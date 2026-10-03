@@ -3,7 +3,9 @@ import Foundation
 /// Файлы и настройки в общем контейнере App Group — единственный канал данных между
 /// приложением и расширением туннеля (у них разные процессы и разные песочницы).
 enum SharedStorage {
-    static var containerURL: URL {
+    static let containerURL: URL = resolveContainerURL()
+
+    private static func resolveContainerURL() -> URL {
         if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: AppConstants.appGroup) {
             return url
         }
@@ -14,9 +16,7 @@ enum SharedStorage {
         return fallback
     }
 
-    static var defaults: UserDefaults {
-        UserDefaults(suiteName: AppConstants.appGroup) ?? .standard
-    }
+    static let defaults: UserDefaults = UserDefaults(suiteName: AppConstants.appGroup) ?? .standard
 
     static func directory(_ name: String) -> URL {
         let url = containerURL.appendingPathComponent(name, isDirectory: true)

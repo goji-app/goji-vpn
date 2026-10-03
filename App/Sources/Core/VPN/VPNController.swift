@@ -97,7 +97,9 @@ final class VPNController: ObservableObject {
             lastError = nil
             startStatsPolling()
             checkActualCountry()
-            Haptics.success()
+            // Вибрация — только на переход из «подключается», не при открытии приложения
+            // с уже поднятым туннелем.
+            if previous == .connecting { Haptics.success() }
         case .disconnected:
             stopStatsPolling()
             actualCountry = nil
