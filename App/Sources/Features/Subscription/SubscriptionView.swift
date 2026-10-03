@@ -395,7 +395,7 @@ struct TransferQRSheet: View {
                     .font(GojiFont.body())
                     .foregroundStyle(GojiColor.textSecondary)
                     .multilineTextAlignment(.center)
-                if let uri, let image = QRCode.image(for: uri) {
+                if let current = uri, let image = QRCode.image(for: current) {
                     Image(uiImage: image)
                         .interpolation(.none)
                         .resizable()
