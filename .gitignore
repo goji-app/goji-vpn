@@ -1,0 +1,27 @@
+# Генерируется XcodeGen из project.yml — в репозиторий не кладём
+*.xcodeproj/
+*.xcworkspace/
+!*.xcodeproj/project.xcworkspace/
+
+# Скачиваются скриптами Scripts/fetch-*.sh (сверка SHA256 / проверка размера)
+Frameworks/
+PacketTunnel/Resources/GeoData/
+.downloads/
+
+# Xcode / сборка
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.ipa
+*.dSYM.zip
+*.xcarchive/
+
+# Секреты подписи — никогда не коммитить
+*.p12
+*.mobileprovision
+*.p8
+AuthKey_*.p8
+Config/Signing.local.xcconfig
+
+.DS_Store
