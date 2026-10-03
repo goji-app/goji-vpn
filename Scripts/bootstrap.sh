@@ -3,10 +3,10 @@
 #   ./Scripts/bootstrap.sh && open GojiVPN.xcodeproj
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+cd "${ROOT}"
 
-"$ROOT/Scripts/fetch-libxray.sh"
-"$ROOT/Scripts/fetch-geodata.sh"
+"${ROOT}/Scripts/fetch-libxray.sh"
+"${ROOT}/Scripts/fetch-geodata.sh"
 
 if ! command -v xcodegen >/dev/null 2>&1; then
   echo "Нужен XcodeGen: brew install xcodegen" >&2
