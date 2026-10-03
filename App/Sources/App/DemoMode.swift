@@ -26,18 +26,19 @@ enum DemoMode {
 
     @MainActor
     static func install() {
+        let ru = AppLanguage.isRussian
         let nodes: [VPNNode] = [
-            demoNode("🇩🇪 Германия", host: "de.example.com", geo: CountryGeoLookup.find("germany")),
-            demoNode("🇳🇱 Нидерланды", host: "nl.example.com", geo: CountryGeoLookup.find("netherlands")),
-            demoNode("🇫🇮 Финляндия", host: "fi.example.com", geo: CountryGeoLookup.find("finland")),
-            demoNode("🇱🇻 Латвия", host: "lv.example.com", geo: CountryGeoLookup.find("latvia")),
-            demoNode("🇪🇪 Эстония", host: "ee.example.com", geo: CountryGeoLookup.find("estonia")),
-            demoNode("Автовыбор серверов EU", host: "eu.example.com", geo: nil),
-            demoNode("Автовыбор серверов LTE", host: "lte.example.com", geo: CountryGeoLookup.find("lte"))
+            demoNode(ru ? "🇩🇪 Германия" : "🇩🇪 Germany", host: "de.example.com", geo: CountryGeoLookup.find("germany")),
+            demoNode(ru ? "🇳🇱 Нидерланды" : "🇳🇱 Netherlands", host: "nl.example.com", geo: CountryGeoLookup.find("netherlands")),
+            demoNode(ru ? "🇫🇮 Финляндия" : "🇫🇮 Finland", host: "fi.example.com", geo: CountryGeoLookup.find("finland")),
+            demoNode(ru ? "🇱🇻 Латвия" : "🇱🇻 Latvia", host: "lv.example.com", geo: CountryGeoLookup.find("latvia")),
+            demoNode(ru ? "🇪🇪 Эстония" : "🇪🇪 Estonia", host: "ee.example.com", geo: CountryGeoLookup.find("estonia")),
+            demoNode(ru ? "Автовыбор серверов EU" : "Auto-select EU", host: "eu.example.com", geo: nil),
+            demoNode(ru ? "Автовыбор серверов LTE" : "Auto-select LTE", host: "lte.example.com", geo: CountryGeoLookup.find("lte"))
         ]
         let expire = Calendar.current.date(byAdding: .day, value: 24, to: Date()) ?? Date()
         let subscription = SubscriptionInfo(
-            id: 1, name: "Goji", isPrimary: true, isActive: true, planName: "Базовый",
+            id: 1, name: "Goji", isPrimary: true, isActive: true, planName: ru ? "Базовый" : "Basic",
             expireAt: ISO8601DateFormatter().string(from: expire), daysLeft: 24,
             subscriptionLink: nil, deviceLimit: 3,
             traffic: TrafficInfo(usedBytes: 18_400_000_000, limitBytes: 0, isUnlimited: true),
@@ -53,4 +54,10 @@ enum DemoMode {
     private static func demoNode(_ name: String, host: String, geo: CountryGeo?) -> VPNNode {
         VPNNode(id: "\(name)|\(host):443", name: name, host: host, port: 443, payload: "{}", geo: geo, uuid: "00000000-0000-0000-0000-000000000000")
     }
+
+    static let devices: [DeviceInfo] = [
+        DeviceInfo(hwid: DeviceID.hwid, readableName: "iPhone", platform: "iOS", userAgent: "Goji app", createdAt: "2026-09-12T10:20:00Z"),
+        DeviceInfo(hwid: "demo-android", readableName: "Pixel 8", platform: "Android", userAgent: "Goji app", createdAt: "2026-08-30T18:05:00Z"),
+        DeviceInfo(hwid: "demo-windows", readableName: "Windows PC", platform: "Windows", userAgent: "Goji app", createdAt: "2026-09-01T09:41:00Z")
+    ]
 }

@@ -28,21 +28,26 @@ xcrun simctl status_bar "${UDID}" override --time "9:41" --batteryState charged 
 xcrun simctl install "${UDID}" "${APP}"
 
 shot() {
-  local name="$1" tab="$2" vpn="$3" appearance="$4"
+  local lang="$1" name="$2" tab="$3" vpn="$4" appearance="$5"
+  local locale="ru_RU"
+  [[ "${lang}" == "en" ]] && locale="en_US"
+  mkdir -p "${OUT}/${lang}"
   xcrun simctl ui "${UDID}" appearance "${appearance}"
   xcrun simctl terminate "${UDID}" "${BUNDLE_ID}" 2>/dev/null || true
-  xcrun simctl launch "${UDID}" "${BUNDLE_ID}" -GojiDemo YES -GojiDemoTab "${tab}" -GojiDemoVPN "${vpn}" >/dev/null
+  xcrun simctl launch "${UDID}" "${BUNDLE_ID}" -AppleLanguages "(${lang})" -AppleLocale "${locale}"     -GojiDemo YES -GojiDemoTab "${tab}" -GojiDemoVPN "${vpn}" >/dev/null
   sleep 6
-  xcrun simctl io "${UDID}" screenshot "${OUT}/${name}.png"
-  echo "  ${name}.png"
+  xcrun simctl io "${UDID}" screenshot "${OUT}/${lang}/${name}.png"
+  echo "  ${lang}/${name}.png"
 }
 
-shot 01-home-connected home on light
-shot 02-servers servers on light
-shot 03-account subscription on light
-shot 04-settings settings on light
-shot 05-home-dark home on dark
-shot 06-home-off home off light
+for lang in ru en; do
+  shot "${lang}" 01-home-connected home on light
+  shot "${lang}" 02-servers servers on light
+  shot "${lang}" 03-account subscription on light
+  shot "${lang}" 04-settings settings on light
+  shot "${lang}" 05-home-dark home on dark
+  shot "${lang}" 06-home-off home off light
+done
 
 xcrun simctl shutdown "${UDID}" || true
-ls -la "${OUT}"
+ls -laR "${OUT}"

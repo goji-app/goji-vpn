@@ -11,7 +11,10 @@ final class AccountViewModel: ObservableObject {
     private let api = APIClient.shared
 
     func load(subscriptionId: Int64?) async {
-        guard !DemoMode.isEnabled else { return }
+        guard !DemoMode.isEnabled else {
+            devices = DemoMode.devices
+            return
+        }
         loading = true
         defer { loading = false }
         if let id = subscriptionId {
