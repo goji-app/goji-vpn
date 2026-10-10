@@ -208,8 +208,11 @@ struct LeakCheckView: View {
             Button {
                 Task {
                     checking = true
-                    report = await LeakChecker.check()
+                    let result = await LeakChecker.check()
+                    report = result
                     checking = false
+                    if result.verdict == .safe { NetworkJournal.shared.log(.leakOK) }
+                    else if result.verdict == .leak { NetworkJournal.shared.log(.leakFail) }
                 }
             } label: {
                 if checking { ProgressView().tint(GojiColor.inkButtonText) } else { Text(L("leak.check")) }

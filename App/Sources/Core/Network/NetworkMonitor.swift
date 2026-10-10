@@ -70,12 +70,14 @@ final class NetworkMonitor: ObservableObject {
             if let current = store.selectedNode, current.id != ru.id { settings.preferredNodeId = current.id }
             store.select(ru.id)
             banner = Banner(text: L("banner.jammed_switched", ru.displayName), kind: .warning)
+            NetworkJournal.shared.log(.switchJammed, ru.displayName)
         case .wifi:
             if let ru = store.nodes.first(where: \.isLTE), store.selectedNode?.id == ru.id,
                let preferred = settings.preferredNodeId, preferred != ru.id,
                store.nodes.contains(where: { $0.id == preferred }) {
                 store.select(preferred)
                 banner = Banner(text: L("banner.wifi_restored"), kind: .success)
+                NetworkJournal.shared.log(.switchWifiRestored, store.selectedNode?.displayName ?? "")
             }
         case .cellular:
             Task { await maybeSwitchOnCellular() }
@@ -94,6 +96,7 @@ final class NetworkMonitor: ObservableObject {
         let target = reachable ? eu : lte
         guard store.selectedNode?.id != target.id else { return }
         store.select(target.id)
+        NetworkJournal.shared.log(reachable ? .switchCellularEU : .switchCellularLTE, target.displayName)
         banner = Banner(
             text: reachable ? L("banner.cellular_eu", eu.displayName) : L("banner.cellular_lte", lte.displayName),
             kind: .warning

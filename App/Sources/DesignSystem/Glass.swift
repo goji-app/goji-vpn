@@ -1,34 +1,15 @@
 import SwiftUI
 
-/// Общий фон всех экранов: мягкий вертикальный градиент + четыре размытых цветных пятна —
-/// под ним «стеклянные» карточки получают цветную подложку, как в эталоне v5.
+/// Общий фон всех экранов — «Goji Expressive» (Material 3 Expressive, порт Android
+/// GlassBackdrop.kt 163f5ab): сплошной surface. Цветные пятна v5 убраны. Имя прежнее, чтобы не
+/// трогать экраны.
 struct GlassBackdrop: View {
-    @Environment(\.colorScheme) private var scheme
-
     var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width, h = geo.size.height
-            ZStack {
-                LinearGradient(colors: [GojiColor.baseTop, GojiColor.baseMid, GojiColor.baseBottom], startPoint: .top, endPoint: .bottom)
-                Group {
-                    blob(GojiColor.blob1, size: w * 0.9).position(x: w * 0.15, y: h * 0.12)
-                    blob(GojiColor.blob2, size: w * 0.8).position(x: w * 0.95, y: h * 0.3)
-                    blob(GojiColor.blob3, size: w * 0.75).position(x: w * 0.1, y: h * 0.72)
-                    blob(GojiColor.blob4, size: w * 0.85).position(x: w * 0.9, y: h * 0.92)
-                }
-                .opacity(scheme == .dark ? 0.32 : 0.6)
-                .blur(radius: 60)
-            }
-        }
-        .ignoresSafeArea()
-    }
-
-    private func blob(_ color: Color, size: CGFloat) -> some View {
-        Circle().fill(color).frame(width: size, height: size)
+        GojiColor.surface.ignoresSafeArea()
     }
 }
 
-/// Стеклянная карточка: материал + полупрозрачная заливка + светлая кромка + мягкая тень.
+/// Карточка-модуль: тональная заливка surfaceContainer (порт godjiCard из Android CardStyle.kt).
 struct GlassCard<Content: View>: View {
     var padding: CGFloat = 16
     var radius: CGFloat = GojiMetrics.cardRadius
@@ -43,6 +24,8 @@ struct GlassCard<Content: View>: View {
     }
 }
 
+/// Поверхность «Goji Expressive»: плотная тональная заливка (surfaceContainer, strong — High),
+/// у выбранного — акцентная обводка 2pt. Без материала, кромок, бликов и теней.
 struct GlassSurface: View {
     var radius: CGFloat = GojiMetrics.cardRadius
     var highlighted = false
@@ -51,21 +34,10 @@ struct GlassSurface: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         shape
-            .fill(.ultraThinMaterial)
-            .overlay(shape.fill(strong ? GojiColor.glassStrong : GojiColor.glass))
-            .overlay(
-                shape.strokeBorder(
-                    highlighted ? GojiColor.teal.opacity(0.7) : GojiColor.stroke,
-                    lineWidth: highlighted ? 1.5 : 1
-                )
-            )
-            .overlay(
-                shape.strokeBorder(
-                    LinearGradient(colors: [GojiColor.highlight, .clear], startPoint: .top, endPoint: .center),
-                    lineWidth: 1
-                )
-            )
-            .shadow(color: GojiColor.glassShadow, radius: 18, x: 0, y: 8)
+            .fill(strong ? GojiColor.glassStrong : GojiColor.glass)
+            .overlay {
+                if highlighted { shape.strokeBorder(GojiColor.primary, lineWidth: 2) }
+            }
     }
 }
 
@@ -87,7 +59,7 @@ struct SectionHeader: View {
     }
 }
 
-/// Основная кнопка: тёмная «чернильная» на светлой теме, светлая на тёмной.
+/// Основная кнопка: плоская заливка primary, текст onPrimary (M3 Expressive).
 struct PrimaryButtonStyle: ButtonStyle {
     var tint: Color = GojiColor.inkButton
     var textColor: Color = GojiColor.inkButtonText
@@ -176,7 +148,8 @@ struct RowLabel: View {
     }
 }
 
-/// Сегментированный переключатель-«пилюля» (периоды, вкладки «Открытые/История» и т.п.).
+/// Сегментированный переключатель-«пилюля» (периоды, вкладки «Открытые/История» и т.п.):
+/// дорожка surfaceContainerHigh, выбранный сегмент — secondaryContainer.
 struct PillSegmented<T: Hashable>: View {
     let options: [T]
     @Binding var selection: T
@@ -191,19 +164,18 @@ struct PillSegmented<T: Hashable>: View {
                 } label: {
                     Text(label(option))
                         .font(GojiFont.manrope(13, .bold))
-                        .foregroundStyle(selected ? GojiColor.inkButtonText : GojiColor.textSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 36)
+                        .foregroundStyle(selected ? GojiColor.onSecondaryContainer : GojiColor.textSecondary)
+                        .frame(maxWidth: .infinity, minHeight: 34)
                         .background(
-                            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                                .fill(selected ? GojiColor.inkButton : .clear)
+                            Capsule().fill(selected ? GojiColor.secondaryContainer : .clear)
                         )
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
-        .padding(4)
-        .background(RoundedRectangle(cornerRadius: 15, style: .continuous).fill(GojiColor.chip))
+        .padding(3)
+        .background(Capsule().fill(GojiColor.chip))
     }
 }
 

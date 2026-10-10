@@ -31,6 +31,10 @@ struct GojiVPNApp: App {
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         BackgroundTasks.register()
+        // Журнал сети: подключения, смена сети, ошибки (см. NetworkJournal).
+        Task { @MainActor in
+            NetworkJournal.shared.attach(vpn: .shared, network: .shared, store: .shared)
+        }
         UNUserNotificationCenter.current().delegate = self
         AppLog.i(.main, "запуск \(AppConstants.appVersion) (\(AppConstants.buildNumber)), iOS \(UIDevice.current.systemVersion), \(DeviceModel.identifier)")
         return true

@@ -71,14 +71,14 @@ struct MainTabView: View {
                 }
             }
             GlassTabBar(selection: $model.tab)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 6)
         }
         .ignoresSafeArea(.keyboard)
     }
 }
 
-/// Плавающий стеклянный таб-бар (как в v5 на Android/Windows).
+/// Короткая нижняя панель навигации Material 3 Expressive (порт Android GlassTabBar.kt, 163f5ab):
+/// во всю ширину, surfaceContainer, высота 64 над индикатором «домой». У выбранной вкладки под
+/// иконкой — таблетка secondaryContainer 56×32, раскрывается пружиной.
 struct GlassTabBar: View {
     @Binding var selection: AppModel.Tab
 
@@ -90,14 +90,14 @@ struct GlassTabBar: View {
     }
 
     private let items: [Item] = [
-        Item(tab: .home, icon: "shield.lefthalf.filled", title: "tab.home"),
-        Item(tab: .servers, icon: "globe.europe.africa", title: "tab.servers"),
-        Item(tab: .subscription, icon: "person.crop.circle", title: "tab.subscription"),
-        Item(tab: .settings, icon: "gearshape", title: "tab.settings")
+        Item(tab: .home, icon: "checkmark.shield", title: "tab.home"),
+        Item(tab: .servers, icon: "globe", title: "tab.servers"),
+        Item(tab: .subscription, icon: "creditcard", title: "tab.subscription"),
+        Item(tab: .settings, icon: "slider.horizontal.3", title: "tab.settings")
     ]
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 0) {
             ForEach(items) { item in
                 let tab = item.tab, icon = item.icon, title = item.title
                 let selected = selection == tab
@@ -107,27 +107,33 @@ struct GlassTabBar: View {
                         selection = tab
                     }
                 } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: icon)
-                            .font(.system(size: 18, weight: selected ? .bold : .regular))
+                    VStack(spacing: 4) {
+                        ZStack {
+                            Capsule()
+                                .fill(GojiColor.selection)
+                                .frame(width: selected ? 56 : 24, height: 32)
+                                .opacity(selected ? 1 : 0)
+                            Image(systemName: icon)
+                                .font(.system(size: 18, weight: selected ? .semibold : .regular))
+                                .foregroundStyle(selected ? GojiColor.onSecondaryContainer : GojiColor.textSecondary)
+                        }
+                        .frame(width: 56, height: 32)
                         Text(L(title))
-                            .font(GojiFont.manrope(10.5, selected ? .bold : .medium, relativeTo: .caption2))
+                            .font(GojiFont.manrope(12, selected ? .bold : .semibold, relativeTo: .caption2))
+                            .foregroundStyle(selected ? GojiColor.textPrimary : GojiColor.textSecondary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
-                    .foregroundStyle(selected ? GojiColor.tealDeep : GojiColor.textSecondary)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(
-                        Capsule().fill(selected ? GojiColor.selection : .clear)
-                    )
+                    .frame(maxWidth: .infinity, minHeight: GojiMetrics.tabBarHeight)
+                    .contentShape(Rectangle())
+                    .animation(.spring(response: 0.35, dampingFraction: 0.6), value: selected)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(L(title))
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
-        .padding(6)
         .frame(height: GojiMetrics.tabBarHeight)
-        .background(GlassSurface(radius: 32, strong: true))
+        .background(GojiColor.surfaceContainer.ignoresSafeArea(edges: .bottom))
     }
 }

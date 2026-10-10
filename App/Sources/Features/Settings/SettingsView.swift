@@ -11,6 +11,10 @@ struct SettingsView: View {
         ScreenScaffold(title: L("settings.title")) {
             SectionHeader(title: L("settings.connection"))
             card {
+                NavigationLink { JournalView() } label: {
+                    RowLabel(icon: "chart.bar.xaxis", title: L("journal.title"), subtitle: L("journal.link_desc"))
+                }
+                divider
                 Toggle(isOn: Binding(get: { settings.killSwitch }, set: { value in
                     settings.killSwitch = value
                     Task { await vpn.applySettings(reloadCore: false) }
