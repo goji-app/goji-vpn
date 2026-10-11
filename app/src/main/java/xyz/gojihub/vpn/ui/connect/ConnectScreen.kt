@@ -468,8 +468,7 @@ private fun SpeedSparkline(down: List<Float>, up: List<Float>, modifier: Modifie
     }
 }
 
-/** Эталон: padding 13/14, радиус 22, подложка bannerBg, круг 28dp цвета accent/warm с белым
- *  значком, текст 12sp, крестик — круг 24dp на подложке hair. */
+/** Предложение бесплатного пробного периода для аккаунта без подписки. */
 @Composable
 private fun TrialCard(days: Int, activating: Boolean, onActivate: () -> Unit) {
     Row(
@@ -496,6 +495,8 @@ private fun TrialCard(days: Int, activating: Boolean, onActivate: () -> Unit) {
     }
 }
 
+/** Эталон: padding 13/14, радиус 22, подложка bannerBg, круг 28dp цвета accent/warm с белым
+ *  значком, текст 12sp, крестик — круг 24dp на подложке hair. */
 @Composable
 private fun BannerCard(text: String, kind: BannerKind, onDismiss: () -> Unit) {
     val ok = kind == BannerKind.SUCCESS

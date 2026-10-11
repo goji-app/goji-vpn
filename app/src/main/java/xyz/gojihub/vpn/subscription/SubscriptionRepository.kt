@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.util.Base64
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -68,7 +69,8 @@ fun VlessNode.toGlobeNode(): xyz.gojihub.vpn.globe.GlobeNode? =
 class SubscriptionRepository @Inject constructor(
     private val api: RemnawaveApi,
     @ApplicationContext private val appContext: Context,
-    private val accountCache: AccountCache
+    private val accountCache: AccountCache,
+    private val tokenManager: xyz.gojihub.vpn.auth.TokenManager
 ) {
     // Тот же приём, что и в NetworkModule: пока туннель поднят, гоняем запрос списка серверов
     // через локальный SOCKS самого Xray — иначе он идёт по сырой сети телефона и падает в зоне
@@ -100,31 +102,69 @@ class SubscriptionRepository @Inject constructor(
     private val _trialDays = MutableStateFlow<Int?>(null)
     val trialDays: StateFlow<Int?> = _trialDays.asStateFlow()
 
-    /** Включает пробный период. null — успех, иначе текст ошибки (сообщение бэкенда, если есть). */
+    // Поколение предложения триала: ответ getDashboard, ушедший до активации/выхода, не должен
+    // вернуть уже скрытую карточку.
+    @Volatile private var trialGeneration = 0
+
+    /** Включает пробный период. null — успех, иначе текст ошибки (сообщение бэкенда, если есть).
+     *  Обновление подписки после ответа идёт в собственном scope репозитория: уход с экрана не
+     *  должен оставить активированный на сервере триал без обновлённой подписки. */
     suspend fun activateTrial(): String? {
-        val result = runCatching { api.activateTrial() }
-            .onFailure { AppLogger.e(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "activateTrial failed", it) }
-            .getOrNull() ?: return Loc.f.trialError
+        val result = try {
+            api.activateTrial()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLogger.e(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "activateTrial failed", e)
+            return Loc.f.trialError
+        }
         val body = result.body()
         if (result.isSuccessful && body?.success != false) {
             AppLogger.i(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "trial activated")
+            trialGeneration++
             _trialDays.value = null
-            refresh()
+            scope.launch { refreshMutex.withLock { refresh() } }
             return null
         }
-        val message = body?.message ?: runCatching {
-            org.json.JSONObject(result.errorBody()?.string().orEmpty()).let { it.optString("message").ifBlank { it.optString("error") } }
-        }.getOrNull()
+        val message = body?.message?.takeIf { it.isNotBlank() } ?: errorMessage(result.errorBody()?.string())
         AppLogger.w(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "trial rejected: ${result.code()} $message")
-        return message?.takeIf { it.isNotBlank() } ?: Loc.f.trialError
+        // Отказ («уже использован», «недоступен») — перепроверяем, предлагать ли карточку дальше.
+        if (result.code() != 401) scope.launch { refreshTrialOffer(_subscription.value != null) }
+        return message ?: Loc.f.trialError
     }
 
+    private fun errorMessage(raw: String?): String? = runCatching {
+        val json = org.json.JSONObject(raw.orEmpty())
+        listOf("message", "error").firstNotNullOfOrNull { key ->
+            (json.opt(key) as? String)?.trim()?.takeIf { it.isNotEmpty() && it.length <= 300 }
+        }
+    }.getOrNull()
+
     private suspend fun refreshTrialOffer(hasSubscription: Boolean) {
+        val generation = trialGeneration
         if (hasSubscription) { _trialDays.value = null; return }
-        val dashboard = runCatching { api.getDashboard() }
-            .onFailure { AppLogger.e(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "getDashboard failed", it) }
-            .getOrNull() ?: return
+        val dashboard = try {
+            api.getDashboard()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLogger.e(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "getDashboard failed", e)
+            return
+        }
+        if (generation != trialGeneration) return
         _trialDays.value = if (dashboard.trialAvailable == true && dashboard.trialPaid != true) dashboard.trialDays ?: 0 else null
+    }
+
+    /** Выход из аккаунта: в памяти не должно остаться ни подписки, ни новостей, ни предложения
+     *  триала прежнего аккаунта, а следующий вход — сразу обновить данные, не дожидаясь часа. */
+    fun clearAccount() {
+        trialGeneration++
+        lastRefreshAt = 0L
+        lastRefreshOk = false
+        refreshedForToken = null
+        _subscription.value = null
+        _trialDays.value = null
+        _broadcasts.value = emptyList()
     }
 
     // Новости/рассылки (см. RemnawaveApi.getBroadcasts) — та же страница, что "Мои рассылки"
@@ -156,12 +196,26 @@ class SubscriptionRepository @Inject constructor(
     private val refreshPrefs = appContext.getSharedPreferences("subscription_refresh", Context.MODE_PRIVATE)
     @Volatile private var lastRefreshAt = refreshPrefs.getLong("last_refresh_at", 0L)
     @Volatile private var lastRefreshOk = lastRefreshAt > 0L
+    // Для какой сессии было последнее обновление. Вход в аккаунт (или в другой аккаунт) меняет
+    // токен — тогда данные считаются устаревшими сразу, а не через час. Раньше неудачная попытка
+    // до входа (запуск приложения без аккаунта) на час блокировала обновление после входа, и
+    // новичок не видел ни подписку, ни карточку пробного периода.
+    @Volatile private var refreshedForToken: String? = if (lastRefreshAt > 0L) tokenManager.accessToken() else null
+
+    private fun isFresh(maxAgeMs: Long): Boolean {
+        if (refreshedForToken != tokenManager.accessToken()) return false
+        val age = System.currentTimeMillis() - lastRefreshAt
+        // Неудачу (нет сети) повторяем через минуту, а не через час.
+        return age < (if (lastRefreshOk) maxAgeMs else minOf(maxAgeMs, FAILED_RETRY_MS))
+    }
 
     suspend fun refreshIfStale(maxAgeMs: Long = REFRESH_MIN_INTERVAL_MS): Boolean {
-        if (System.currentTimeMillis() - lastRefreshAt < maxAgeMs) return lastRefreshOk
+        // Без аккаунта запрашивать нечего — и такая попытка не должна считаться обновлением.
+        if (!tokenManager.isLoggedIn()) return false
+        if (isFresh(maxAgeMs)) return lastRefreshOk
         return refreshMutex.withLock {
             // Пока ждали, другой вызов мог уже обновить — его результат и вернём.
-            if (System.currentTimeMillis() - lastRefreshAt < maxAgeMs) lastRefreshOk else refresh()
+            if (isFresh(maxAgeMs)) lastRefreshOk else refresh()
         }
     }
 
@@ -170,6 +224,7 @@ class SubscriptionRepository @Inject constructor(
     suspend fun refresh(): Boolean = refreshInternal().also {
         lastRefreshOk = it
         lastRefreshAt = System.currentTimeMillis()
+        refreshedForToken = tokenManager.accessToken()
         // Неудачную попытку не запоминаем на диске: после перезапуска стоит попробовать снова.
         if (it) refreshPrefs.edit().putLong("last_refresh_at", lastRefreshAt).apply()
     }
@@ -204,7 +259,10 @@ class SubscriptionRepository @Inject constructor(
             withContext(Dispatchers.IO) {
                 if (active != null) accountCache.save(AccountCache.Key.SUBSCRIPTION, active)
             }
-            refreshTrialOffer(hasSubscription = active != null)
+            // Отдельно и параллельно: лишний запрос сводки кабинета не должен задерживать
+            // новости и список серверов.
+            val hasSubscription = active != null
+            scope.launch { refreshTrialOffer(hasSubscription) }
         }
         // Уведомления о скором окончании подписки/успешной оплате — считаются здесь, а не в
         // отдельных вызывающих местах (воркер + 3 ViewModel), чтобы сработать при любом
@@ -264,6 +322,8 @@ class SubscriptionRepository @Inject constructor(
         // Автоматические обновления (открытие приложения/экранов) — не чаще раза в час;
         // фоновый воркер и так обновляет подписку ежечасно, а кнопка «обновить» — сразу.
         const val REFRESH_MIN_INTERVAL_MS = 60 * 60_000L
+        /** Повтор неудачного обновления (нет сети) — через минуту, а не через REFRESH_MIN_INTERVAL_MS. */
+        const val FAILED_RETRY_MS = 60_000L
     }
 
     fun select(id: String) {

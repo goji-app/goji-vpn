@@ -161,6 +161,7 @@ data class FeatureStrings(
     val trialActivate: String,
     val trialActivated: String,
     val trialError: String,
+    val deleteAccountServerError: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -317,11 +318,11 @@ data class FeatureStrings(
             setAboutDesc = "Версии, HWID, журналы",
             deleteAccount = "Удалить аккаунт",
             deleteAccountTitle = "Удалить аккаунт?",
-            deleteAccountText = "Заявка уйдёт в поддержку, и аккаунт Goji VPN будет удалён сразу по ней вместе со связанными данными: подпиской, устройствами, обращениями в поддержку. Активная подписка аннулируется, отменить это нельзя. После отправки заявки вы выйдете из аккаунта.",
+            deleteAccountText = "Заявка уйдёт в поддержку. Аккаунт Goji VPN удаляется после того, как поддержка её обработает, — вместе со связанными данными: подпиской, устройствами, обращениями в поддержку. Активная подписка аннулируется, отменить удаление нельзя. После отправки заявки вы выйдете из аккаунта.",
             deleteAccountConfirm = "Удалить",
             deleteAccountCancel = "Отмена",
             deleteAccountError = "Не удалось отправить заявку. Проверьте интернет и попробуйте ещё раз.",
-            deleteAccountSent = "Заявка на удаление аккаунта отправлена",
+            deleteAccountSent = "Заявка на удаление отправлена. Аккаунт удалят после её обработки поддержкой",
             deleteAccountTicketSubject = "Удаление аккаунта",
             deleteAccountTicketMessage = { info -> "Прошу удалить мой аккаунт Goji VPN и все связанные с ним данные. Заявка отправлена из приложения ($info)." },
             locationDisclosureTitle = "Доступ к геолокации",
@@ -332,6 +333,7 @@ data class FeatureStrings(
             trialActivate = "Активировать",
             trialActivated = "Пробный период активирован",
             trialError = "Не удалось активировать пробный период",
+            deleteAccountServerError = "Не удалось отправить заявку. Напишите в поддержку: «Удалить аккаунт».",
         )
 
         private val EN = FeatureStrings(
@@ -482,11 +484,11 @@ data class FeatureStrings(
             setAboutDesc = "Versions, HWID, logs",
             deleteAccount = "Delete account",
             deleteAccountTitle = "Delete account?",
-            deleteAccountText = "The request goes to support, and your Goji VPN account is deleted right away along with its data: subscription, devices, support tickets. An active subscription is cancelled, this cannot be undone. You will be signed out after sending the request.",
+            deleteAccountText = "The request goes to support. Your Goji VPN account is deleted once support processes it, together with its data: subscription, devices, support tickets. An active subscription is cancelled, deletion cannot be undone. You will be signed out after sending the request.",
             deleteAccountConfirm = "Delete",
             deleteAccountCancel = "Cancel",
             deleteAccountError = "Could not send the request. Check your connection and try again.",
-            deleteAccountSent = "Account deletion request sent",
+            deleteAccountSent = "Deletion request sent. The account will be deleted once support processes it",
             deleteAccountTicketSubject = "Account deletion",
             deleteAccountTicketMessage = { info -> "Please delete my Goji VPN account and all associated data. Request sent from the app ($info)." },
             locationDisclosureTitle = "Location access",
@@ -497,6 +499,7 @@ data class FeatureStrings(
             trialActivate = "Activate",
             trialActivated = "Free trial activated",
             trialError = "Could not activate the free trial",
+            deleteAccountServerError = "Could not send the request. Please write to support: \"Delete account\".",
         )
 
         private val ZH = FeatureStrings(
@@ -647,11 +650,11 @@ data class FeatureStrings(
             setAboutDesc = "版本、HWID、日志",
             deleteAccount = "删除账户",
             deleteAccountTitle = "删除账户？",
-            deleteAccountText = "请求将发送给客服，您的 Goji VPN 账户及相关数据（订阅、设备、客服工单）会随即被删除。有效订阅将被取消，且无法撤销。发送请求后您将退出登录。",
+            deleteAccountText = "请求将发送给客服。客服处理后，您的 Goji VPN 账户及相关数据（订阅、设备、客服工单）将被删除。有效订阅将被取消，删除无法撤销。发送请求后您将退出登录。",
             deleteAccountConfirm = "删除",
             deleteAccountCancel = "取消",
             deleteAccountError = "请求发送失败。请检查网络后重试。",
-            deleteAccountSent = "已发送删除账户请求",
+            deleteAccountSent = "已发送删除请求。客服处理后账户将被删除",
             deleteAccountTicketSubject = "删除账户",
             deleteAccountTicketMessage = { info -> "请删除我的 Goji VPN 账户及所有相关数据。请求来自应用（$info）。" },
             locationDisclosureTitle = "位置权限",
@@ -662,6 +665,7 @@ data class FeatureStrings(
             trialActivate = "激活",
             trialActivated = "免费试用已激活",
             trialError = "无法激活免费试用",
+            deleteAccountServerError = "请求发送失败。请联系客服：“删除账户”。",
         )
     }
 }

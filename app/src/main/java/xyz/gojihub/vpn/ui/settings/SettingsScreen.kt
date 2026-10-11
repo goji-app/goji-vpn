@@ -133,14 +133,21 @@ fun SettingsScreen(
                 Text(Loc.s.settingsLogout, color = GodjiColors.Danger, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
             // Удаление аккаунта — Google Play требует путь к нему внутри приложения.
-            var confirmDelete by remember { mutableStateOf(false) }
+            var confirmDelete by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                viewModel.accountDeleted.collect {
+                    confirmDelete = false
+                    android.widget.Toast.makeText(context, Loc.f.deleteAccountSent, android.widget.Toast.LENGTH_LONG).show()
+                    onLoggedOut()
+                }
+            }
             Text(
                 Loc.f.deleteAccount, color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable { confirmDelete = true }
+                    .clickable { viewModel.clearDeleteAccountError(); confirmDelete = true }
                     .padding(vertical = 10.dp)
             )
             if (confirmDelete || state.deletingAccount) {
@@ -156,13 +163,7 @@ fun SettingsScreen(
                     confirmButton = {
                         androidx.compose.material3.TextButton(
                             enabled = !state.deletingAccount,
-                            onClick = {
-                                viewModel.requestAccountDeletion {
-                                    confirmDelete = false
-                                    android.widget.Toast.makeText(context, Loc.f.deleteAccountSent, android.widget.Toast.LENGTH_LONG).show()
-                                    onLoggedOut()
-                                }
-                            }
+                            onClick = { viewModel.requestAccountDeletion() }
                         ) {
                             if (state.deletingAccount) {
                                 androidx.compose.material3.CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = GodjiColors.Danger)

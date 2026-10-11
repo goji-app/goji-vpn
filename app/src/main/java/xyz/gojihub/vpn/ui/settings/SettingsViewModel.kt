@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,7 @@ import xyz.gojihub.vpn.i18n.Loc
 import xyz.gojihub.vpn.network.NetworkDiagnostics
 import xyz.gojihub.vpn.network.RemnawaveApi
 import xyz.gojihub.vpn.network.models.CreateSupportTicketRequest
+import xyz.gojihub.vpn.network.models.SendSupportMessageRequest
 import xyz.gojihub.vpn.settings.PingMethod
 import xyz.gojihub.vpn.settings.SettingsRepository
 import xyz.gojihub.vpn.subscription.SubscriptionRepository
@@ -211,33 +213,55 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // Разовое событие «заявка отправлена, вышли из аккаунта» — навигацию делает экран в
+    // LaunchedEffect, а не лямбда, пережившая пересоздание экрана.
+    private val _accountDeleted = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val accountDeleted: kotlinx.coroutines.flow.SharedFlow<Unit> = _accountDeleted
+
     /**
      * Удаление аккаунта (обязательно для Google Play). Своего эндпоинта у бэкенда нет —
-     * отправляем заявку тикетом в поддержку от имени текущей сессии, после чего выходим.
-     * [onDone] вызывается только при успешной отправке.
+     * отправляем заявку в поддержку от имени текущей сессии, после чего выходим. Если лимит
+     * обращений исчерпан (уже есть открытое), заявка уходит сообщением в это обращение.
      */
-    fun requestAccountDeletion(onDone: () -> Unit) {
+    fun requestAccountDeletion() {
         if (_state.value.deletingAccount) return
         _state.value = _state.value.copy(deletingAccount = true, deleteAccountError = null)
         viewModelScope.launch {
-            runCatching {
-                val queueId = runCatching { api.getSupportQueues() }.getOrNull()?.firstOrNull()?.id
-                val info = "Android ${Build.VERSION.RELEASE}, Goji ${BuildConfig.VERSION_NAME}, HWID ${_state.value.hwid}"
-                api.createSupportTicket(
-                    CreateSupportTicketRequest(
-                        subject = Loc.f.deleteAccountTicketSubject,
-                        message = Loc.f.deleteAccountTicketMessage(info),
-                        queueId = queueId
+            val info = "Android ${Build.VERSION.RELEASE}, Goji ${BuildConfig.VERSION_NAME}, HWID ${_state.value.hwid}"
+            val text = Loc.f.deleteAccountTicketMessage(info)
+            val error: String? = try {
+                val limit = try { api.getSupportTicketLimit() } catch (e: CancellationException) { throw e } catch (e: Exception) { null }
+                val activeTicket = limit?.activeTicketId
+                if (limit != null && !limit.canCreate && activeTicket != null) {
+                    val response = api.sendSupportMessage(activeTicket, SendSupportMessageRequest(text))
+                    if (response.isSuccessful) null else Loc.f.deleteAccountServerError
+                } else {
+                    val queues = try { api.getSupportQueues().orEmpty() } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
+                    val queue = queues.firstOrNull { q ->
+                        val n = q.name.lowercase()
+                        listOf("аккаунт", "account", "общ", "general", "друг", "other").any { it in n }
+                    } ?: queues.firstOrNull()
+                    api.createSupportTicket(
+                        CreateSupportTicketRequest(subject = Loc.f.deleteAccountTicketSubject, message = text, queueId = queue?.id)
                     )
-                )
-            }.onSuccess {
-                AppLogger.i(appContext, LogCategory.MAIN, "Settings", "account deletion requested, ticket ${it.ticket.id}")
-                _state.value = _state.value.copy(deletingAccount = false)
+                    null
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: java.io.IOException) {
+                AppLogger.w(appContext, LogCategory.MAIN, "Settings", "account deletion request failed: ${e.message}")
+                Loc.f.deleteAccountError
+            } catch (e: Exception) {
+                AppLogger.w(appContext, LogCategory.MAIN, "Settings", "account deletion request rejected: ${e.message}")
+                Loc.f.deleteAccountServerError
+            }
+            if (error == null) {
+                AppLogger.i(appContext, LogCategory.MAIN, "Settings", "account deletion requested")
                 logout()
-                onDone()
-            }.onFailure {
-                AppLogger.w(appContext, LogCategory.MAIN, "Settings", "account deletion request failed: ${it.message}")
-                _state.value = _state.value.copy(deletingAccount = false, deleteAccountError = Loc.f.deleteAccountError)
+                _state.value = _state.value.copy(deletingAccount = false)
+                _accountDeleted.tryEmit(Unit)
+            } else {
+                _state.value = _state.value.copy(deletingAccount = false, deleteAccountError = error)
             }
         }
     }

@@ -30,7 +30,8 @@ class AuthRepository @Inject constructor(
     private val tokenManager: TokenManager,
     @ApplicationContext private val appContext: Context,
     // Клиент без авторизационных интерсепторов (см. NetworkModule) — для проверки чужой сессии.
-    @javax.inject.Named("refresh") private val plainClient: okhttp3.OkHttpClient
+    @javax.inject.Named("refresh") private val plainClient: okhttp3.OkHttpClient,
+    private val subscriptionRepository: dagger.Lazy<xyz.gojihub.vpn.subscription.SubscriptionRepository>
 ) {
     // PKCE verifier/provider живут между стартом OAuth (открытие Custom Tabs) и возвратом
     // deeplink'ом — раньше держались только в памяти, и это было сознательно принятым риском
@@ -201,6 +202,7 @@ class AuthRepository @Inject constructor(
             "account_referrals.json", "account_partner.json", "account_devices.json"
         ).forEach { runCatching { java.io.File(appContext.filesDir, it).delete() } }
         appContext.getSharedPreferences("subscription_refresh", Context.MODE_PRIVATE).edit().clear().apply()
+        subscriptionRepository.get().clearAccount()
     }
     fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
 
