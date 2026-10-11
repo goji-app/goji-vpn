@@ -12,14 +12,15 @@ import java.util.concurrent.TimeUnit
 data class UpdateInfo(val version: String, val changelog: String, val apkUrl: String)
 
 /**
- * Проверяет последний релиз в публичном GitHub-репозитории (goji-app/goji-vpn-android,
- * см. ARCHITECTURE.md/README — это тот же репозиторий, куда публикуются релизы с APK) и
- * сравнивает его версию с установленной. GitHub REST API отдаёт данные без авторизации, но
- * требует непустой User-Agent — без него отвечает 403 (обычная антибот-мера GitHub, не
- * специфика этого проекта). Используем тот же формат, что и для запросов к бэкенду.
+ * Проверяет, вышла ли новая версия. Основной источник — манифест нашего сайта загрузки
+ * (get.gojihub.xyz/latest.json, Yandex Object Storage + CDN): он открывается в РФ без VPN,
+ * а GitHub там часто тормозит или не отвечает. Если сайт недоступен, проверяем последний релиз
+ * в публичном репозитории goji-app/goji-vpn-android, как раньше. GitHub REST API отдаёт данные
+ * без авторизации, но требует непустой User-Agent — без него отвечает 403.
  */
 object AppUpdateChecker {
     private const val TAG = "GodjiUpdate"
+    private const val MANIFEST_URL = "https://get.gojihub.xyz/latest.json"
     private const val RELEASES_URL = "https://api.github.com/repos/goji-app/goji-vpn-android/releases/latest"
 
     private val client = OkHttpClient.Builder()
@@ -36,40 +37,53 @@ object AppUpdateChecker {
      *  выглядело как "у вас установлена последняя версия" даже когда на GitHub давно вышел
      *  новый релиз. */
     suspend fun checkForUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
+        val latest = fetchFromSite() ?: fetchFromGitHub() ?: return@withContext null
+        latest.takeIf { isNewer(it.version, BuildConfig.VERSION_NAME) }
+    }
+
+    /** Последняя версия по манифесту сайта; null — сайт недоступен или манифест битый. */
+    private fun fetchFromSite(): UpdateInfo? = fetchJson(MANIFEST_URL, accept = "application/json") { json ->
+        val android = json.optJSONObject("android") ?: return@fetchJson null
+        val version = android.optString("version")
+        val files = android.optJSONArray("files") ?: return@fetchJson null
+        val apkUrl = (0 until files.length())
+            .mapNotNull { files.optJSONObject(it) }
+            .firstOrNull { it.optString("kind") == "apk" }
+            ?.optString("url")
+        if (version.isBlank() || apkUrl.isNullOrBlank() || !apkUrl.startsWith("https://")) return@fetchJson null
+        UpdateInfo(version = version, changelog = android.optString("notes"), apkUrl = apkUrl)
+    }
+
+    /** Запасной путь — последний релиз на GitHub. Теги релизов — vX.Y.Z, префикс убираем. */
+    private fun fetchFromGitHub(): UpdateInfo? = fetchJson(RELEASES_URL, accept = "application/vnd.github+json") { json ->
+        val version = json.optString("tag_name").removePrefix("v")
+        val assets = json.optJSONArray("assets") ?: return@fetchJson null
+        val apkUrl = (0 until assets.length())
+            .mapNotNull { assets.optJSONObject(it) }
+            .firstOrNull { it.optString("name").endsWith(".apk", ignoreCase = true) }
+            ?.optString("browser_download_url")
+        if (version.isBlank() || apkUrl.isNullOrBlank()) return@fetchJson null
+        UpdateInfo(
+            version = version,
+            changelog = json.optString("body").ifBlank { json.optString("name") },
+            apkUrl = apkUrl
+        )
+    }
+
+    /** Блокирующий GET + разбор JSON; любая ошибка сети или формата — null с записью в лог. */
+    private fun fetchJson(url: String, accept: String, parse: (JSONObject) -> UpdateInfo?): UpdateInfo? =
         runCatching {
             val request = Request.Builder()
-                .url(RELEASES_URL)
+                .url(url)
                 .header("User-Agent", "Goji/${BuildConfig.VERSION_NAME}/Android")
-                .header("Accept", "application/vnd.github+json")
+                .header("Accept", accept)
                 .build()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@use null
                 val body = response.body?.string() ?: return@use null
-                val json = JSONObject(body)
-                // Теги релизов — vX.Y.Z (см. workflow релизов), убираем префикс для сравнения
-                // с BuildConfig.VERSION_NAME, где его нет.
-                val remoteVersion = json.optString("tag_name").removePrefix("v")
-                if (remoteVersion.isBlank() || !isNewer(remoteVersion, BuildConfig.VERSION_NAME)) return@use null
-
-                val assets = json.optJSONArray("assets") ?: return@use null
-                var apkUrl: String? = null
-                for (i in 0 until assets.length()) {
-                    val asset = assets.optJSONObject(i) ?: continue
-                    if (asset.optString("name").endsWith(".apk", ignoreCase = true)) {
-                        apkUrl = asset.optString("browser_download_url")
-                        break
-                    }
-                }
-                if (apkUrl.isNullOrBlank()) return@use null
-
-                UpdateInfo(
-                    version = remoteVersion,
-                    changelog = json.optString("body").ifBlank { json.optString("name") },
-                    apkUrl = apkUrl
-                )
+                parse(JSONObject(body))
             }
-        }.onFailure { Log.w(TAG, "checkForUpdate failed", it) }.getOrNull()
-    }
+        }.onFailure { Log.w(TAG, "update check via $url failed", it) }.getOrNull()
 
     /** Посегментное сравнение вида "1.0.29" > "1.0.28" — без поддержки суффиксов
      *  ("-beta" и т.п.), в тегах этого проекта их не бывает. */
