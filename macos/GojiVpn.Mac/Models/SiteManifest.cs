@@ -24,7 +24,8 @@ public sealed class SiteFile
     /// <summary>apk | exe | dmg | zip-arm64 | zip-x64</summary>
     public string Kind { get; set; } = "";
     public string Name { get; set; } = "";
-    public string Url { get; set; } = "";
+    /// <summary>Относительный путь на зеркале, например files/windows/GodjiVpn-Setup-1.0.74.exe</summary>
+    public string Path { get; set; } = "";
     public long Size { get; set; }
     [JsonPropertyName("sha256")] public string Sha256 { get; set; } = "";
 }

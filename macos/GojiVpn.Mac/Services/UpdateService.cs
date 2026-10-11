@@ -26,7 +26,9 @@ public sealed record UpdateInfo(Version Version, string VersionLabel, string Cha
 /// </summary>
 public sealed class UpdateService
 {
-    private const string ManifestUrl = "https://get.gojihub.xyz/latest.json";
+    /// <summary>Зеркала сайта загрузки (исходники — «10. Сайт загрузки»): на каждом одни и те же
+    /// latest.json и сборки. Пробуем по порядку, GitHub — запасной путь. Новое зеркало = новая строка.</summary>
+    private static readonly string[] MirrorSites = { "https://get.gojihub.xyz" };
     private const string ReleasesApiUrl = "https://api.github.com/repos/goji-app/goji-vpn-desktop/releases/latest";
 
     private readonly HttpClient _http;
@@ -47,26 +49,32 @@ public sealed class UpdateService
     /// broadcasts/referrals).</returns>
     public async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken ct = default)
     {
-        var latest = await FetchFromSiteAsync(ct).ConfigureAwait(false)
-                     ?? await FetchFromGitHubAsync(ct).ConfigureAwait(false);
+        UpdateInfo? latest = null;
+        foreach (var site in MirrorSites)
+        {
+            latest = await FetchFromSiteAsync(site, ct).ConfigureAwait(false);
+            if (latest != null) break;
+        }
+        latest ??= await FetchFromGitHubAsync(ct).ConfigureAwait(false);
         return latest != null && latest.Version.CompareTo(CurrentVersion) > 0 ? latest : null;
     }
 
     /// <summary>Архитектура этого Mac в именах сборок: …-macOS-arm64.zip (Apple Silicon) или …-macOS-x64.zip (Intel).</summary>
     private static string MacArch => RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "arm64" : "x64";
 
-    private async Task<UpdateInfo?> FetchFromSiteAsync(CancellationToken ct)
+    /// <summary>Пути файлов в манифесте относительные — сборку качаем с того же зеркала, что ответило.</summary>
+    private async Task<UpdateInfo?> FetchFromSiteAsync(string site, CancellationToken ct)
     {
         try
         {
-            var manifest = await _http.GetFromJsonAsync<SiteManifest>(ManifestUrl, ct).ConfigureAwait(false);
+            var manifest = await _http.GetFromJsonAsync<SiteManifest>($"{site}/latest.json", ct).ConfigureAwait(false);
             var platform = manifest?.Macos;
             if (platform == null || !Version.TryParse(platform.Version, out var version)) return null;
 
             var file = platform.Files.FirstOrDefault(f => f.Kind == $"zip-{MacArch}");
-            if (file == null || !file.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return null;
+            if (file == null || string.IsNullOrWhiteSpace(file.Path) || file.Path.Contains("..")) return null;
 
-            return new UpdateInfo(version, platform.Version, platform.Notes, file.Url, file.Name, file.Size);
+            return new UpdateInfo(version, platform.Version, platform.Notes, $"{site}/{file.Path.TrimStart('/')}", file.Name, file.Size);
         }
         catch { return null; }
     }
