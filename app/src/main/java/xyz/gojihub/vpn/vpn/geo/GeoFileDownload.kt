@@ -8,7 +8,9 @@ import java.io.File
 /**
  * Общая закачка файлов геоданных (geoip/geosite, белые списки мобильного интернета):
  *  - потоком во временный файл, без загрузки всего ответа в память (geoip.dat — ~23 МБ);
- *  - условным запросом по ETag: если файл на сервере не менялся, GitHub отвечает 304 без тела;
+ *  - сначала с зеркал нашего сайта загрузки (там копия, обновляемая каждые 6 часов), при их
+ *    недоступности — с GitHub;
+ *  - условным запросом по ETag: если файл на сервере не менялся, сервер отвечает 304 без тела;
  *  - с отметкой времени последней успешной проверки (<файл>.checked) — по ней [isFresh]
  *    решает, нужна ли закачка вообще. Именно отметка, а не mtime файла: копия из assets при
  *    первом запуске имеет свежий mtime, но не российский набор, и её нужно заменить.
@@ -20,6 +22,10 @@ internal object GeoFileDownload {
         val stamp = File(dest.path + ".checked").takeIf { it.exists() }?.readText()?.trim()?.toLongOrNull() ?: return false
         return dest.exists() && System.currentTimeMillis() - stamp in 0 until maxAgeMs
     }
+
+    /** Пробует адреса по очереди (зеркала сайта, затем GitHub) до первой удачной закачки. */
+    fun download(client: OkHttpClient, urls: List<String>, dest: File, minValidSize: Long): Boolean =
+        urls.any { download(client, it, dest, minValidSize) }
 
     fun download(client: OkHttpClient, url: String, dest: File, minValidSize: Long): Boolean {
         val etagFile = File(dest.path + ".etag")

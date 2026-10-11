@@ -2,6 +2,7 @@ package xyz.gojihub.vpn.vpn.geo
 
 import android.content.Context
 import okhttp3.OkHttpClient
+import xyz.gojihub.vpn.update.DownloadMirrors
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -38,7 +39,7 @@ object GeoDataDownloader {
         val dir = File(context.filesDir, "geoassets").apply { mkdirs() }
         return listOf(GEOIP_URL to "geoip.dat", GEOSITE_URL to "geosite.dat").map { (url, name) ->
             val dest = File(dir, name)
-            GeoFileDownload.isFresh(dest, maxAgeMs) || GeoFileDownload.download(client, url, dest, MIN_VALID_SIZE)
+            GeoFileDownload.isFresh(dest, maxAgeMs) || GeoFileDownload.download(client, DownloadMirrors.urls("geo/$name") + url, dest, MIN_VALID_SIZE)
         }.all { it }
     }
 }
