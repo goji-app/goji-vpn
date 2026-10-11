@@ -16,8 +16,8 @@ namespace GodjiVpn.Services;
 public sealed record UpdateInfo(Version Version, string VersionLabel, string Changelog, string DownloadUrl, string FileName, long? SizeBytes);
 
 /// <summary>
-/// Проверка новых версий через GitHub Releases API (api.github.com — публичный эндпоинт,
-/// не наш бэкенд, авторизация не нужна) и скачивание/запуск установщика прямо из приложения.
+/// Проверка новых версий: сначала манифест сайта загрузки (get.gojihub.xyz/latest.json, открывается
+/// в РФ без VPN), при его недоступности — GitHub Releases API (публичный, авторизация не нужна) и скачивание/запуск установщика прямо из приложения.
 /// Устанавливать "тихо" в фоне не пытаемся — просто передаём эстафету обычному Inno Setup
 /// установщику (тому же .exe, что и ручная установка/обновление), который сам закрывает нас
 /// через AppMutex/CloseApplications=yes (см. installer/GodjiVpn.iss) и опционально перезапускает
@@ -26,7 +26,8 @@ public sealed record UpdateInfo(Version Version, string VersionLabel, string Cha
 /// </summary>
 public sealed class UpdateService
 {
-    private const string ReleasesApiUrl = "https://api.github.com/repos/goji-app/goji-vpn-windows/releases/latest";
+    private const string ManifestUrl = "https://get.gojihub.xyz/latest.json";
+    private const string ReleasesApiUrl = "https://api.github.com/repos/goji-app/goji-vpn-desktop/releases/latest";
 
     private readonly HttpClient _http;
 
@@ -41,10 +42,33 @@ public sealed class UpdateService
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
     }
 
-    /// <returns>null — обновлений нет, либо проверка не удалась (сеть/GitHub недоступны,
+    /// <returns>null — обновлений нет, либо проверка не удалась (сайт и GitHub недоступны,
     /// версия не распарсилась и т.п. — не критично, просто тихо пропускаем, как и у
     /// broadcasts/referrals).</returns>
     public async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken ct = default)
+    {
+        var latest = await FetchFromSiteAsync(ct).ConfigureAwait(false)
+                     ?? await FetchFromGitHubAsync(ct).ConfigureAwait(false);
+        return latest != null && latest.Version.CompareTo(CurrentVersion) > 0 ? latest : null;
+    }
+
+    private async Task<UpdateInfo?> FetchFromSiteAsync(CancellationToken ct)
+    {
+        try
+        {
+            var manifest = await _http.GetFromJsonAsync<SiteManifest>(ManifestUrl, ct).ConfigureAwait(false);
+            var platform = manifest?.Windows;
+            if (platform == null || !Version.TryParse(platform.Version, out var version)) return null;
+
+            var file = platform.Files.FirstOrDefault(f => f.Kind == "exe");
+            if (file == null || !file.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return null;
+
+            return new UpdateInfo(version, platform.Version, platform.Notes, file.Url, file.Name, file.Size);
+        }
+        catch { return null; }
+    }
+
+    private async Task<UpdateInfo?> FetchFromGitHubAsync(CancellationToken ct)
     {
         try
         {
@@ -52,13 +76,12 @@ public sealed class UpdateService
             if (release == null) return null;
 
             var tag = release.TagName.TrimStart('v', 'V');
-            if (!Version.TryParse(tag, out var remoteVersion)) return null;
-            if (remoteVersion.CompareTo(CurrentVersion) <= 0) return null;
+            if (!Version.TryParse(tag, out var version)) return null;
 
             var asset = release.Assets.FirstOrDefault(a => a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
             if (asset == null) return null;
 
-            return new UpdateInfo(remoteVersion, tag, release.Body, asset.BrowserDownloadUrl, asset.Name, asset.Size);
+            return new UpdateInfo(version, tag, release.Body, asset.BrowserDownloadUrl, asset.Name, asset.Size);
         }
         catch { return null; }
     }
