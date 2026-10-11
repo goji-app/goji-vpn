@@ -50,6 +50,7 @@ android {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SELF_UPDATE", "true")
             buildConfigField("boolean", "ENABLE_EXTERNAL_CHECKOUT", "true")
+            buildConfigField("boolean", "ENABLE_WEB_LOGIN", "true")
         }
         create("play") {
             dimension = "distribution"
@@ -59,6 +60,10 @@ android {
             // ЮKassa/Т-Банк/Robokassa/крипта) должна быть скрыта именно в Play-сборке. Продление
             // для таких пользователей — через сайт/бота вне приложения.
             buildConfigField("boolean", "ENABLE_EXTERNAL_CHECKOUT", "false")
+            // Вход через сайт (WebLoginActivity) открывает во встроенном WebView весь
+            // gojihub.xyz — вместе с тарифами и оплатой, а Google к тому же не пускает свой
+            // OAuth во встроенные WebView. В Play-сборке — только email-код и QR-перенос.
+            buildConfigField("boolean", "ENABLE_WEB_LOGIN", "false")
         }
     }
 

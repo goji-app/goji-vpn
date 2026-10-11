@@ -112,6 +112,10 @@
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
+            <!-- Android 14+ и Google Play требуют описать, зачем нужен specialUse. -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="VPN tunnel (VpnService) that stays active while the user is connected to Goji VPN" />
         </service>
 
         <!-- Трамплин ярлыка "Подключиться: <последний узел>" (см. LastNodeShortcut). exported —

@@ -18,6 +18,8 @@ import xyz.gojihub.vpn.auth.AuthRepository
 import xyz.gojihub.vpn.i18n.AppLanguage
 import xyz.gojihub.vpn.i18n.Loc
 import xyz.gojihub.vpn.network.NetworkDiagnostics
+import xyz.gojihub.vpn.network.RemnawaveApi
+import xyz.gojihub.vpn.network.models.CreateSupportTicketRequest
 import xyz.gojihub.vpn.settings.PingMethod
 import xyz.gojihub.vpn.settings.SettingsRepository
 import xyz.gojihub.vpn.subscription.SubscriptionRepository
@@ -29,6 +31,7 @@ import xyz.gojihub.vpn.update.AppUpdateChecker
 import xyz.gojihub.vpn.update.AppUpdateDownloader
 import xyz.gojihub.vpn.update.UpdateInfo
 import xyz.gojihub.vpn.util.AppLogger
+import xyz.gojihub.vpn.util.LogCategory
 import xyz.gojihub.vpn.util.LogLevel
 import xyz.gojihub.vpn.vpn.GodjiVpnService
 import javax.inject.Inject
@@ -54,7 +57,9 @@ data class SettingsUiState(
     val updateDownloading: Boolean = false,
     val updateDownloadProgress: Int = 0,
     val leakChecking: Boolean = false,
-    val leakReport: NetworkDiagnostics.Report? = null
+    val leakReport: NetworkDiagnostics.Report? = null,
+    val deletingAccount: Boolean = false,
+    val deleteAccountError: String? = null
 )
 
 @HiltViewModel
@@ -63,6 +68,7 @@ class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val networkDiagnostics: NetworkDiagnostics,
+    private val api: RemnawaveApi,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -203,6 +209,41 @@ class SettingsViewModel @Inject constructor(
             }
             _state.value = _state.value.copy(leakChecking = false, leakReport = report)
         }
+    }
+
+    /**
+     * Удаление аккаунта (обязательно для Google Play). Своего эндпоинта у бэкенда нет —
+     * отправляем заявку тикетом в поддержку от имени текущей сессии, после чего выходим.
+     * [onDone] вызывается только при успешной отправке.
+     */
+    fun requestAccountDeletion(onDone: () -> Unit) {
+        if (_state.value.deletingAccount) return
+        _state.value = _state.value.copy(deletingAccount = true, deleteAccountError = null)
+        viewModelScope.launch {
+            runCatching {
+                val queueId = runCatching { api.getSupportQueues() }.getOrNull()?.firstOrNull()?.id
+                val info = "Android ${Build.VERSION.RELEASE}, Goji ${BuildConfig.VERSION_NAME}, HWID ${_state.value.hwid}"
+                api.createSupportTicket(
+                    CreateSupportTicketRequest(
+                        subject = Loc.f.deleteAccountTicketSubject,
+                        message = Loc.f.deleteAccountTicketMessage(info),
+                        queueId = queueId
+                    )
+                )
+            }.onSuccess {
+                AppLogger.i(appContext, LogCategory.MAIN, "Settings", "account deletion requested, ticket ${it.ticket.id}")
+                _state.value = _state.value.copy(deletingAccount = false)
+                logout()
+                onDone()
+            }.onFailure {
+                AppLogger.w(appContext, LogCategory.MAIN, "Settings", "account deletion request failed: ${it.message}")
+                _state.value = _state.value.copy(deletingAccount = false, deleteAccountError = Loc.f.deleteAccountError)
+            }
+        }
+    }
+
+    fun clearDeleteAccountError() {
+        _state.value = _state.value.copy(deleteAccountError = null)
     }
 
     fun logout() {

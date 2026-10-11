@@ -132,6 +132,53 @@ fun SettingsScreen(
             ) {
                 Text(Loc.s.settingsLogout, color = GodjiColors.Danger, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
+            // Удаление аккаунта — Google Play требует путь к нему внутри приложения.
+            var confirmDelete by remember { mutableStateOf(false) }
+            Text(
+                Loc.f.deleteAccount, color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { confirmDelete = true }
+                    .padding(vertical = 10.dp)
+            )
+            if (confirmDelete || state.deletingAccount) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { if (!state.deletingAccount) { confirmDelete = false; viewModel.clearDeleteAccountError() } },
+                    title = { Text(Loc.f.deleteAccountTitle, fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(Loc.f.deleteAccountText, fontSize = 13.5.sp, lineHeight = 19.sp)
+                            state.deleteAccountError?.let { Text(it, color = GodjiColors.Danger, fontSize = 12.5.sp) }
+                        }
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(
+                            enabled = !state.deletingAccount,
+                            onClick = {
+                                viewModel.requestAccountDeletion {
+                                    confirmDelete = false
+                                    android.widget.Toast.makeText(context, Loc.f.deleteAccountSent, android.widget.Toast.LENGTH_LONG).show()
+                                    onLoggedOut()
+                                }
+                            }
+                        ) {
+                            if (state.deletingAccount) {
+                                androidx.compose.material3.CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = GodjiColors.Danger)
+                            } else {
+                                Text(Loc.f.deleteAccountConfirm, color = GodjiColors.Danger, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(
+                            enabled = !state.deletingAccount,
+                            onClick = { confirmDelete = false; viewModel.clearDeleteAccountError() }
+                        ) { Text(Loc.f.deleteAccountCancel) }
+                    }
+                )
+            }
             return@Column
         }
 

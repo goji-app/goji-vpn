@@ -144,6 +144,18 @@ data class FeatureStrings(
     val setNotificationsDesc: String,
     val setUpdatesDesc: String,
     val setAboutDesc: String,
+    val deleteAccount: String,
+    val deleteAccountTitle: String,
+    val deleteAccountText: String,
+    val deleteAccountConfirm: String,
+    val deleteAccountCancel: String,
+    val deleteAccountError: String,
+    val deleteAccountSent: String,
+    val deleteAccountTicketSubject: String,
+    val deleteAccountTicketMessage: (String) -> String,
+    val locationDisclosureTitle: String,
+    val locationDisclosureText: String,
+    val locationDisclosureContinue: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -298,6 +310,18 @@ data class FeatureStrings(
             setNotificationsDesc = "Закреплённое уведомление и вибрация",
             setUpdatesDesc = "Версия приложения и новые выпуски",
             setAboutDesc = "Версии, HWID, журналы",
+            deleteAccount = "Удалить аккаунт",
+            deleteAccountTitle = "Удалить аккаунт?",
+            deleteAccountText = "Заявка уйдёт в поддержку. В течение 30 дней мы удалим аккаунт Goji VPN и связанные с ним данные: подписку, устройства, обращения в поддержку. Активная подписка будет аннулирована, отменить это нельзя. После отправки заявки вы выйдете из аккаунта.",
+            deleteAccountConfirm = "Удалить",
+            deleteAccountCancel = "Отмена",
+            deleteAccountError = "Не удалось отправить заявку. Проверьте интернет и попробуйте ещё раз.",
+            deleteAccountSent = "Заявка на удаление аккаунта отправлена",
+            deleteAccountTicketSubject = "Удаление аккаунта",
+            deleteAccountTicketMessage = { info -> "Прошу удалить мой аккаунт Goji VPN и все связанные с ним данные. Заявка отправлена из приложения ($info)." },
+            locationDisclosureTitle = "Доступ к геолокации",
+            locationDisclosureText = "Android сообщает имя Wi-Fi сети только приложениям с доступом к геолокации. Goji VPN использует его только чтобы отличать доверенные сети от чужих. Координаты приложение не читает, имя сети хранится только на телефоне и никуда не отправляется.",
+            locationDisclosureContinue = "Продолжить",
         )
 
         private val EN = FeatureStrings(
@@ -446,6 +470,18 @@ data class FeatureStrings(
             setNotificationsDesc = "Pinned notification and vibration",
             setUpdatesDesc = "App version and new releases",
             setAboutDesc = "Versions, HWID, logs",
+            deleteAccount = "Delete account",
+            deleteAccountTitle = "Delete account?",
+            deleteAccountText = "The request goes to support. Within 30 days we will delete your Goji VPN account and its data: subscription, devices, support tickets. An active subscription will be cancelled, this cannot be undone. You will be signed out after sending the request.",
+            deleteAccountConfirm = "Delete",
+            deleteAccountCancel = "Cancel",
+            deleteAccountError = "Could not send the request. Check your connection and try again.",
+            deleteAccountSent = "Account deletion request sent",
+            deleteAccountTicketSubject = "Account deletion",
+            deleteAccountTicketMessage = { info -> "Please delete my Goji VPN account and all associated data. Request sent from the app ($info)." },
+            locationDisclosureTitle = "Location access",
+            locationDisclosureText = "Android reveals the Wi-Fi network name only to apps with location access. Goji VPN uses it only to tell trusted networks from others. The app does not read your coordinates; the network name stays on the phone and is never sent anywhere.",
+            locationDisclosureContinue = "Continue",
         )
 
         private val ZH = FeatureStrings(
@@ -594,6 +630,18 @@ data class FeatureStrings(
             setNotificationsDesc = "常驻通知和振动",
             setUpdatesDesc = "应用版本和新版本",
             setAboutDesc = "版本、HWID、日志",
+            deleteAccount = "删除账户",
+            deleteAccountTitle = "删除账户？",
+            deleteAccountText = "请求将发送给客服。我们会在 30 天内删除您的 Goji VPN 账户及相关数据：订阅、设备、客服工单。有效订阅将被取消，且无法撤销。发送请求后您将退出登录。",
+            deleteAccountConfirm = "删除",
+            deleteAccountCancel = "取消",
+            deleteAccountError = "请求发送失败。请检查网络后重试。",
+            deleteAccountSent = "已发送删除账户请求",
+            deleteAccountTicketSubject = "删除账户",
+            deleteAccountTicketMessage = { info -> "请删除我的 Goji VPN 账户及所有相关数据。请求来自应用（$info）。" },
+            locationDisclosureTitle = "位置权限",
+            locationDisclosureText = "Android 只向拥有位置权限的应用提供 Wi-Fi 网络名称。Goji VPN 仅用它区分受信任的网络。应用不读取坐标，网络名称只保存在手机上，不会发送到任何地方。",
+            locationDisclosureContinue = "继续",
         )
     }
 }

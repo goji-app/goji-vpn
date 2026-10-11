@@ -100,6 +100,26 @@ fun NetworkRulesScreen(onBack: () -> Unit, viewModel: NetworkRulesViewModel = hi
             ToggleRow(Loc.f.netRulesDisconnectTrusted, Loc.f.netRulesDisconnectTrustedDesc, state.disconnectOnTrusted) { viewModel.setDisconnectOnTrusted(it) }
         }
 
+        // Пояснение до системного запроса (Google Play: prominent disclosure) — зачем
+        // приложению геолокация и что с ней происходит.
+        var showLocationDisclosure by remember { mutableStateOf(false) }
+        if (showLocationDisclosure) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showLocationDisclosure = false },
+                title = { Text(Loc.f.locationDisclosureTitle, fontWeight = FontWeight.Bold) },
+                text = { Text(Loc.f.locationDisclosureText, fontSize = 13.5.sp, lineHeight = 19.sp) },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        showLocationDisclosure = false
+                        permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                    }) { Text(Loc.f.locationDisclosureContinue, fontWeight = FontWeight.Bold) }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { showLocationDisclosure = false }) { Text(Loc.f.deleteAccountCancel) }
+                }
+            )
+        }
+
         SectionLabel(Loc.f.netRulesCurrentSection)
         Row(
             Modifier
@@ -124,7 +144,7 @@ fun NetworkRulesScreen(onBack: () -> Unit, viewModel: NetworkRulesViewModel = hi
             when {
                 ssid == null -> {}
                 ssid.isEmpty() && !viewModel.hasLocationPermission() -> ChipButton(Loc.f.netRulesAllow) {
-                    permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                    showLocationDisclosure = true
                 }
                 ssid.isNotEmpty() && ssid !in state.trusted -> ChipButton(Loc.f.netRulesTrust) { viewModel.trust(ssid) }
             }

@@ -2,6 +2,7 @@ package xyz.gojihub.vpn.ui.login
 
 import android.content.Intent
 import android.net.Uri
+import xyz.gojihub.vpn.BuildConfig
 import xyz.gojihub.vpn.auth.WebLoginActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
@@ -134,28 +135,31 @@ fun LoginScreen(
             // не проходит. Поэтому для новых пользователей сначала отправляем в бота: там же
             // создаётся аккаунт с рабочим триалом, а в приложение потом входят уже в него любым
             // способом ниже.
-            val (botBannerInteraction, botBannerScale) = rememberPressScale()
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .scale(botBannerScale.value)
-                    .godjiGlassFlat(RoundedCornerShape(20.dp))
-                    .clickable(interactionSource = botBannerInteraction, indication = LocalIndication.current) {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Shadow_Duck_bot")))
+            // Бот продаёт подписки — в Play-сборке ссылки на внешнюю оплату быть не должно.
+            if (BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
+                val (botBannerInteraction, botBannerScale) = rememberPressScale()
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .scale(botBannerScale.value)
+                        .godjiGlassFlat(RoundedCornerShape(20.dp))
+                        .clickable(interactionSource = botBannerInteraction, indication = LocalIndication.current) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Shadow_Duck_bot")))
+                        }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    Text("✈️", fontSize = 16.sp)
+                    Column(Modifier.weight(1f)) {
+                        Text(Loc.s.loginFirstTimeTitle, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+                        Text(
+                            Loc.s.loginFirstTimeDesc,
+                            color = GodjiColors.TextSecondary, fontSize = 10.sp, lineHeight = 13.sp
+                        )
                     }
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(9.dp)
-            ) {
-                Text("✈️", fontSize = 16.sp)
-                Column(Modifier.weight(1f)) {
-                    Text(Loc.s.loginFirstTimeTitle, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
-                    Text(
-                        Loc.s.loginFirstTimeDesc,
-                        color = GodjiColors.TextSecondary, fontSize = 10.sp, lineHeight = 13.sp
-                    )
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = GodjiColors.TextSecondary, modifier = Modifier.size(20.dp))
                 }
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = GodjiColors.TextSecondary, modifier = Modifier.size(20.dp))
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -165,18 +169,27 @@ fun LoginScreen(
                     // WebLoginActivity.kt) все они ведут в одно и то же место — полноценный веб-
                     // вход сайта, где пользователь сам выбирает провайдера. Три кнопки с
                     // одинаковым действием только путали бы, поэтому оставили одну.
+                    // Play-сборка: вход через сайт выключен (BuildConfig.ENABLE_WEB_LOGIN), главная
+                    // кнопка сразу открывает вход по email-коду.
                     val (webLoginInteraction, webLoginScale) = rememberPressScale()
                     Button(
-                        onClick = { openWebLogin() },
+                        onClick = { if (BuildConfig.ENABLE_WEB_LOGIN) openWebLogin() else viewModel.toggleEmailMode(true) },
                         enabled = !state.loading,
                         interactionSource = webLoginInteraction,
                         colors = ButtonDefaults.buttonColors(containerColor = GodjiColors.Ink),
                         shape = RoundedCornerShape(50),
                         modifier = Modifier.fillMaxWidth().height(54.dp).scale(webLoginScale.value)
-                    ) { Text(Loc.s.loginViaWebsite, color = GodjiColors.Surface, fontWeight = FontWeight.Bold, fontSize = 15.sp) }
+                    ) {
+                        Text(
+                            if (BuildConfig.ENABLE_WEB_LOGIN) Loc.s.loginViaWebsite else Loc.s.loginEmailMode,
+                            color = GodjiColors.Surface, fontWeight = FontWeight.Bold, fontSize = 15.sp
+                        )
+                    }
 
-                    TextButton(onClick = { viewModel.toggleEmailMode(true) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(Loc.s.loginEmailMode, color = GodjiColors.TealDeep, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    if (BuildConfig.ENABLE_WEB_LOGIN) {
+                        TextButton(onClick = { viewModel.toggleEmailMode(true) }, modifier = Modifier.fillMaxWidth()) {
+                            Text(Loc.s.loginEmailMode, color = GodjiColors.TealDeep, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
                     }
 
                     // Перенос входа со старого устройства: там Подписка → "Перенести на другое

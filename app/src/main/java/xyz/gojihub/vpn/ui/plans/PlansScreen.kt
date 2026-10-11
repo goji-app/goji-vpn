@@ -126,51 +126,55 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
 
         SubscriptionCard(state)
 
-        if (state.periods.size > 1) {
-            PeriodSegments(state.periods, state.selectedMonths, onSelect = viewModel::selectPeriod)
-        }
+        // Тарифы с ценами покупаются только вне Google Play — в Play-сборке их не показываем
+        // (правила Play о платежах, см. ENABLE_EXTERNAL_CHECKOUT).
+        if (BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
+            if (state.periods.size > 1) {
+                PeriodSegments(state.periods, state.selectedMonths, onSelect = viewModel::selectPeriod)
+            }
 
-        Column(Modifier.fillMaxWidth().godjiCard().clip(RoundedCornerShape(26.dp))) {
-            state.plans.forEachIndexed { index, plan ->
-                if (index > 0) HorizontalDivider(thickness = 1.dp, color = GodjiColors.Hair)
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(if (plan.isCurrent) GodjiColors.SelBg else Color.Transparent)
-                        .padding(horizontal = 14.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                            Text(plan.name, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            if (plan.isCurrent) HoloBadge(Loc.s.plansCurrentLabel, "★")
-                        }
-                        // Длинные описания сжимаем до 2 строк; "читать полностью" — только если
-                        // текст реально не поместился.
-                        var expanded by remember(plan.id) { mutableStateOf(false) }
-                        var overflowing by remember(plan.id) { mutableStateOf(false) }
-                        Text(
-                            plan.description,
-                            color = GodjiColors.TextSecondary,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 11.5.sp,
-                            lineHeight = 16.7.sp,
-                            maxLines = if (expanded) Int.MAX_VALUE else 2,
-                            overflow = TextOverflow.Ellipsis,
-                            onTextLayout = { if (!expanded) overflowing = it.hasVisualOverflow }
-                        )
-                        if (overflowing || expanded) {
+            Column(Modifier.fillMaxWidth().godjiCard().clip(RoundedCornerShape(26.dp))) {
+                state.plans.forEachIndexed { index, plan ->
+                    if (index > 0) HorizontalDivider(thickness = 1.dp, color = GodjiColors.Hair)
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(if (plan.isCurrent) GodjiColors.SelBg else Color.Transparent)
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                Text(plan.name, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                if (plan.isCurrent) HoloBadge(Loc.s.plansCurrentLabel, "★")
+                            }
+                            // Длинные описания сжимаем до 2 строк; "читать полностью" — только если
+                            // текст реально не поместился.
+                            var expanded by remember(plan.id) { mutableStateOf(false) }
+                            var overflowing by remember(plan.id) { mutableStateOf(false) }
                             Text(
-                                if (expanded) Loc.s.plansDescriptionCollapse else Loc.s.plansDescriptionExpand,
-                                color = GodjiColors.TealDeep,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.5.sp,
-                                modifier = Modifier.clickable { expanded = !expanded }
+                                plan.description,
+                                color = GodjiColors.TextSecondary,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 11.5.sp,
+                                lineHeight = 16.7.sp,
+                                maxLines = if (expanded) Int.MAX_VALUE else 2,
+                                overflow = TextOverflow.Ellipsis,
+                                onTextLayout = { if (!expanded) overflowing = it.hasVisualOverflow }
                             )
+                            if (overflowing || expanded) {
+                                Text(
+                                    if (expanded) Loc.s.plansDescriptionCollapse else Loc.s.plansDescriptionExpand,
+                                    color = GodjiColors.TealDeep,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.5.sp,
+                                    modifier = Modifier.clickable { expanded = !expanded }
+                                )
+                            }
                         }
+                        Text(plan.priceLabel, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp, letterSpacing = (-0.34).sp)
                     }
-                    Text(plan.priceLabel, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp, letterSpacing = (-0.34).sp)
                 }
             }
         }
@@ -262,7 +266,7 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
             }
         }
 
-        if (state.partner != null) {
+        if (state.partner != null && BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
             PartnerLinkCard(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PARTNER_DASHBOARD))) })
         }
 
@@ -309,7 +313,7 @@ private fun SubscriptionCard(state: PlansUiState) {
                     color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 13.sp
                 )
                 Text(Loc.s.plansUntil(state.expiryLabel), color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.5.sp)
-                if (state.personalDiscountPercent > 0) {
+                if (state.personalDiscountPercent > 0 && BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(Icons.Filled.LocalOffer, contentDescription = null, tint = GodjiColors.TealDeep, modifier = Modifier.size(12.dp))
                         Text(Loc.s.plansPersonalDiscount(state.personalDiscountPercent), color = GodjiColors.TealDeep, fontWeight = FontWeight.Bold, fontSize = 11.sp)
