@@ -6,6 +6,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import xyz.gojihub.vpn.R
 
@@ -39,7 +40,10 @@ val GodjiTypography = Typography(
     titleLarge = base.titleLarge.copy(fontFamily = ManropeFamily),
     titleMedium = TextStyle(fontFamily = ManropeFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp),
     titleSmall = base.titleSmall.copy(fontFamily = ManropeFamily),
-    bodyLarge = base.bodyLarge.copy(fontFamily = ManropeFamily),
+    // Стиль текста по умолчанию для всех Text без явного lineHeight. У M3 bodyLarge интервал
+    // фиксированный 24sp — у текста 11–13sp он давал двойные промежутки между строками при
+    // переносе (особенно на узких экранах). Относительный интервал растёт вместе со шрифтом.
+    bodyLarge = base.bodyLarge.copy(fontFamily = ManropeFamily, lineHeight = 1.3.em),
     bodyMedium = TextStyle(fontFamily = ManropeFamily, fontWeight = FontWeight.Normal, fontSize = 13.5.sp),
     bodySmall = base.bodySmall.copy(fontFamily = ManropeFamily),
     labelLarge = base.labelLarge.copy(fontFamily = ManropeFamily),

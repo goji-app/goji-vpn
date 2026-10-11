@@ -109,7 +109,10 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("${Loc.s.plansIdPrefix}$id", color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                        Text(
+                            "${Loc.s.plansIdPrefix}$id", color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 11.sp,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
+                        )
                         Icon(Icons.Filled.ContentCopy, contentDescription = null, tint = GodjiColors.TextSecondary, modifier = Modifier.size(12.dp))
                     }
                 }
@@ -320,7 +323,7 @@ private fun SubscriptionCard(state: PlansUiState) {
                     }
                 }
             }
-            ActiveBadge(label = Loc.s.plansActive)
+            if (state.subscriptionId != null && state.daysLeft > 0) ActiveBadge(label = Loc.s.plansActive)
         }
         // Во флейворе play кнопки оплаты нет вовсе (правила Google Play, см. ENABLE_EXTERNAL_CHECKOUT).
         if (BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
@@ -718,10 +721,14 @@ private fun DaysRing(days: Int) {
             drawArc(GodjiColors.TrackBg, -90f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(w))
             drawArc(GodjiColors.Teal, -90f, 360f * pct, false, Offset(inset, inset), arcSize, style = Stroke(w))
         }
+        // Круг фиксированного размера — размеры текста в dp, чтобы крупный шрифт не обрезал «ДНЕЙ».
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val numberSize = with(density) { 19.dp.toSp() }
+        val labelSize = with(density) { 7.5.dp.toSp() }
         Box(Modifier.size(54.dp).clip(CircleShape).background(GodjiColors.RingCore), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("$days", color = GodjiColors.TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, lineHeight = 19.sp)
-                Text(Loc.s.plansDays, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Bold, fontSize = 7.5.sp, letterSpacing = 0.6.sp)
+                Text("$days", color = GodjiColors.TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = numberSize, lineHeight = numberSize, maxLines = 1)
+                Text(Loc.s.plansDays, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Bold, fontSize = labelSize, lineHeight = labelSize, letterSpacing = 0.6.sp, maxLines = 1)
             }
         }
     }

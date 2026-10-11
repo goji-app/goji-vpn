@@ -59,6 +59,13 @@ private const val REFERENCE_WIDTH_DP = 392f
 private const val MIN_SCALE = 0.85f
 private const val MAX_SCALE = 1.3f
 
+// Системный «Размер шрифта» учитываем, но с потолком: экраны свёрстаны под фиксированные
+// карточки, кольца и панель вкладок, и на телефонах с крупным системным шрифтом (у Xiaomi/Redmi
+// он доходит до 1.5–2.0) текст вылезал из них и налезал друг на друга. Крупнее можно сделать
+// своей настройкой «Размер шрифта» в приложении — итоговый масштаб тоже ограничен.
+private const val MAX_SYSTEM_FONT_SCALE = 1.1f
+private const val MAX_FONT_SCALE = 1.25f
+
 @Composable
 fun GodjiVpnTheme(
     // Тёплая "бумажная" дневная тема v3 (или тёмная — см. GodjiColors.isDark) — системную
@@ -73,7 +80,8 @@ fun GodjiVpnTheme(
         // Только fontScale, не density — настройка "Размер шрифта" должна менять размер
         // текста, а не отступы/иконки/размеры карточек (те уже отмасштабированы под ширину
         // экрана выше через density).
-        fontScale = baseDensity.fontScale * GodjiColors.fontSizePreset.multiplier
+        fontScale = (baseDensity.fontScale.coerceIn(0.85f, MAX_SYSTEM_FONT_SCALE) * GodjiColors.fontSizePreset.multiplier)
+            .coerceAtMost(MAX_FONT_SCALE)
     )
 
     CompositionLocalProvider(LocalDensity provides scaledDensity) {

@@ -97,7 +97,8 @@ fun GlassTabBar(tabs: List<GlassTab>, selectedRoute: String?, onSelect: (GlassTa
                 Text(
                     tab.label, color = labelColor, fontSize = 12.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 )
             }
         }
