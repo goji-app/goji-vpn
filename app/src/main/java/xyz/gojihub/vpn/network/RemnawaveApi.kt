@@ -48,6 +48,14 @@ interface RemnawaveApi {
     @POST("api/auth/consent")
     suspend fun consent(@Body body: ConsentRequest): Response<Void>
 
+    // Сводка кабинета — из неё нужны только поля пробного периода.
+    @GET("api/dashboard")
+    suspend fun getDashboard(): DashboardResponse
+
+    // Бесплатный пробный период для аккаунта без подписки (как кнопка в веб-кабинете).
+    @POST("api/dashboard/trial")
+    suspend fun activateTrial(@Body body: EmptyBody = EmptyBody()): Response<TrialResponse>
+
     @GET("api/subscriptions")
     suspend fun getSubscriptions(): SubscriptionsResponse
 

@@ -156,6 +156,11 @@ data class FeatureStrings(
     val locationDisclosureTitle: String,
     val locationDisclosureText: String,
     val locationDisclosureContinue: String,
+    val trialTitle: (Int) -> String,
+    val trialDesc: String,
+    val trialActivate: String,
+    val trialActivated: String,
+    val trialError: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -312,7 +317,7 @@ data class FeatureStrings(
             setAboutDesc = "Версии, HWID, журналы",
             deleteAccount = "Удалить аккаунт",
             deleteAccountTitle = "Удалить аккаунт?",
-            deleteAccountText = "Заявка уйдёт в поддержку. В течение 30 дней мы удалим аккаунт Goji VPN и связанные с ним данные: подписку, устройства, обращения в поддержку. Активная подписка будет аннулирована, отменить это нельзя. После отправки заявки вы выйдете из аккаунта.",
+            deleteAccountText = "Заявка уйдёт в поддержку, и аккаунт Goji VPN будет удалён сразу по ней вместе со связанными данными: подпиской, устройствами, обращениями в поддержку. Активная подписка аннулируется, отменить это нельзя. После отправки заявки вы выйдете из аккаунта.",
             deleteAccountConfirm = "Удалить",
             deleteAccountCancel = "Отмена",
             deleteAccountError = "Не удалось отправить заявку. Проверьте интернет и попробуйте ещё раз.",
@@ -322,6 +327,11 @@ data class FeatureStrings(
             locationDisclosureTitle = "Доступ к геолокации",
             locationDisclosureText = "Android сообщает имя Wi-Fi сети только приложениям с доступом к геолокации. Goji VPN использует его только чтобы отличать доверенные сети от чужих. Координаты приложение не читает, имя сети хранится только на телефоне и никуда не отправляется.",
             locationDisclosureContinue = "Продолжить",
+            trialTitle = { d -> if (d > 0) "Пробный период — $d ${when { d % 10 == 1 && d % 100 != 11 -> "день"; d % 10 in 2..4 && d % 100 !in 12..14 -> "дня"; else -> "дней" }}" else "Пробный период" },
+            trialDesc = "Подписки пока нет. Включите бесплатный пробный период — без оплаты и привязки карты.",
+            trialActivate = "Активировать",
+            trialActivated = "Пробный период активирован",
+            trialError = "Не удалось активировать пробный период",
         )
 
         private val EN = FeatureStrings(
@@ -472,7 +482,7 @@ data class FeatureStrings(
             setAboutDesc = "Versions, HWID, logs",
             deleteAccount = "Delete account",
             deleteAccountTitle = "Delete account?",
-            deleteAccountText = "The request goes to support. Within 30 days we will delete your Goji VPN account and its data: subscription, devices, support tickets. An active subscription will be cancelled, this cannot be undone. You will be signed out after sending the request.",
+            deleteAccountText = "The request goes to support, and your Goji VPN account is deleted right away along with its data: subscription, devices, support tickets. An active subscription is cancelled, this cannot be undone. You will be signed out after sending the request.",
             deleteAccountConfirm = "Delete",
             deleteAccountCancel = "Cancel",
             deleteAccountError = "Could not send the request. Check your connection and try again.",
@@ -482,6 +492,11 @@ data class FeatureStrings(
             locationDisclosureTitle = "Location access",
             locationDisclosureText = "Android reveals the Wi-Fi network name only to apps with location access. Goji VPN uses it only to tell trusted networks from others. The app does not read your coordinates; the network name stays on the phone and is never sent anywhere.",
             locationDisclosureContinue = "Continue",
+            trialTitle = { d -> if (d > 0) "Free trial — $d ${if (d == 1) "day" else "days"}" else "Free trial" },
+            trialDesc = "No subscription yet. Start a free trial — no payment or card required.",
+            trialActivate = "Activate",
+            trialActivated = "Free trial activated",
+            trialError = "Could not activate the free trial",
         )
 
         private val ZH = FeatureStrings(
@@ -632,7 +647,7 @@ data class FeatureStrings(
             setAboutDesc = "版本、HWID、日志",
             deleteAccount = "删除账户",
             deleteAccountTitle = "删除账户？",
-            deleteAccountText = "请求将发送给客服。我们会在 30 天内删除您的 Goji VPN 账户及相关数据：订阅、设备、客服工单。有效订阅将被取消，且无法撤销。发送请求后您将退出登录。",
+            deleteAccountText = "请求将发送给客服，您的 Goji VPN 账户及相关数据（订阅、设备、客服工单）会随即被删除。有效订阅将被取消，且无法撤销。发送请求后您将退出登录。",
             deleteAccountConfirm = "删除",
             deleteAccountCancel = "取消",
             deleteAccountError = "请求发送失败。请检查网络后重试。",
@@ -642,6 +657,11 @@ data class FeatureStrings(
             locationDisclosureTitle = "位置权限",
             locationDisclosureText = "Android 只向拥有位置权限的应用提供 Wi-Fi 网络名称。Goji VPN 仅用它区分受信任的网络。应用不读取坐标，网络名称只保存在手机上，不会发送到任何地方。",
             locationDisclosureContinue = "继续",
+            trialTitle = { d -> if (d > 0) "免费试用 — $d 天" else "免费试用" },
+            trialDesc = "暂无订阅。开启免费试用——无需付款，无需绑定银行卡。",
+            trialActivate = "激活",
+            trialActivated = "免费试用已激活",
+            trialError = "无法激活免费试用",
         )
     }
 }

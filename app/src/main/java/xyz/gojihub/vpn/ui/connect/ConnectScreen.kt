@@ -189,6 +189,10 @@ fun ConnectScreen(viewModel: ConnectViewModel = hiltViewModel(), onOpenPlans: ()
             Text(it, color = GodjiColors.Danger, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         }
 
+        state.trialDays?.let { days ->
+            TrialCard(days, activating = state.trialActivating, onActivate = viewModel::activateTrial)
+        }
+
         SpeedCard(state)
 
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -466,6 +470,32 @@ private fun SpeedSparkline(down: List<Float>, up: List<Float>, modifier: Modifie
 
 /** Эталон: padding 13/14, радиус 22, подложка bannerBg, круг 28dp цвета accent/warm с белым
  *  значком, текст 12sp, крестик — круг 24dp на подложке hair. */
+@Composable
+private fun TrialCard(days: Int, activating: Boolean, onActivate: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().godjiCard(RoundedCornerShape(24.dp), tint = GodjiColors.TealTint).padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(Loc.f.trialTitle(days), color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(Loc.f.trialDesc, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.5.sp, lineHeight = 15.sp)
+        }
+        Box(
+            Modifier
+                .height(38.dp)
+                .clip(RoundedCornerShape(50))
+                .background(GodjiColors.Teal)
+                .clickable(enabled = !activating, onClick = onActivate)
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (activating) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = GodjiColors.Surface)
+            else Text(Loc.f.trialActivate, color = GodjiColors.Surface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        }
+    }
+}
+
 @Composable
 private fun BannerCard(text: String, kind: BannerKind, onDismiss: () -> Unit) {
     val ok = kind == BannerKind.SUCCESS

@@ -63,6 +63,8 @@ data class ConnectUiState(
     val netState: NetState = NetState.CELLULAR,
     val banner: String? = null,
     val bannerKind: BannerKind = BannerKind.INFO,
+    val trialDays: Int? = null,
+    val trialActivating: Boolean = false,
 
     val connectedTimeLabel: String = "00:00:00",
 
@@ -138,6 +140,10 @@ class ConnectViewModel @Inject constructor(
                     daysLeft = sub?.daysLeft ?: 0
                 )
             }
+        }
+
+        viewModelScope.launch {
+            subscriptionRepository.trialDays.collect { _state.value = _state.value.copy(trialDays = it) }
         }
 
         viewModelScope.launch {
@@ -343,6 +349,19 @@ class ConnectViewModel @Inject constructor(
                 Loc.s.bannerCellularSwitchedLte(stripLeadingFlag(lteNode.name)),
             bannerKind = BannerKind.WARNING
         )
+    }
+
+    fun activateTrial() {
+        if (_state.value.trialActivating) return
+        _state.value = _state.value.copy(trialActivating = true)
+        viewModelScope.launch {
+            val error = subscriptionRepository.activateTrial()
+            _state.value = _state.value.copy(
+                trialActivating = false,
+                banner = error ?: Loc.f.trialActivated,
+                bannerKind = if (error == null) BannerKind.SUCCESS else BannerKind.WARNING
+            )
+        }
     }
 
     fun dismissBanner() {

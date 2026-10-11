@@ -94,6 +94,39 @@ class SubscriptionRepository @Inject constructor(
     private val _subscription = MutableStateFlow(accountCache.load<SubscriptionInfo>(AccountCache.Key.SUBSCRIPTION)?.value)
     val subscription: StateFlow<SubscriptionInfo?> = _subscription.asStateFlow()
 
+    /** Пробный период, который можно включить прямо из приложения (только у аккаунта без
+     *  подписки и только бесплатный — платный триал в Play-сборке предлагать нельзя).
+     *  Значение — число дней (0, если бэкенд его не сообщил), null — предлагать нечего. */
+    private val _trialDays = MutableStateFlow<Int?>(null)
+    val trialDays: StateFlow<Int?> = _trialDays.asStateFlow()
+
+    /** Включает пробный период. null — успех, иначе текст ошибки (сообщение бэкенда, если есть). */
+    suspend fun activateTrial(): String? {
+        val result = runCatching { api.activateTrial() }
+            .onFailure { AppLogger.e(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "activateTrial failed", it) }
+            .getOrNull() ?: return Loc.f.trialError
+        val body = result.body()
+        if (result.isSuccessful && body?.success != false) {
+            AppLogger.i(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "trial activated")
+            _trialDays.value = null
+            refresh()
+            return null
+        }
+        val message = body?.message ?: runCatching {
+            org.json.JSONObject(result.errorBody()?.string().orEmpty()).let { it.optString("message").ifBlank { it.optString("error") } }
+        }.getOrNull()
+        AppLogger.w(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "trial rejected: ${result.code()} $message")
+        return message?.takeIf { it.isNotBlank() } ?: Loc.f.trialError
+    }
+
+    private suspend fun refreshTrialOffer(hasSubscription: Boolean) {
+        if (hasSubscription) { _trialDays.value = null; return }
+        val dashboard = runCatching { api.getDashboard() }
+            .onFailure { AppLogger.e(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "getDashboard failed", it) }
+            .getOrNull() ?: return
+        _trialDays.value = if (dashboard.trialAvailable == true && dashboard.trialPaid != true) dashboard.trialDays ?: 0 else null
+    }
+
     // Новости/рассылки (см. RemnawaveApi.getBroadcasts) — та же страница, что "Мои рассылки"
     // веб-версии (#/my-broadcasts). Тоже с диска: без этого раздел новостей на «Подписке»
     // пустовал при каждом запуске без сети.
@@ -171,6 +204,7 @@ class SubscriptionRepository @Inject constructor(
             withContext(Dispatchers.IO) {
                 if (active != null) accountCache.save(AccountCache.Key.SUBSCRIPTION, active)
             }
+            refreshTrialOffer(hasSubscription = active != null)
         }
         // Уведомления о скором окончании подписки/успешной оплате — считаются здесь, а не в
         // отдельных вызывающих местах (воркер + 3 ViewModel), чтобы сработать при любом

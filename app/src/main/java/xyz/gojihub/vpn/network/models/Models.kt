@@ -243,3 +243,23 @@ data class DeviceDto(
 
 @JsonClass(generateAdapter = true)
 data class RenameDeviceRequest(@Json(name = "readable_name") val readableName: String)
+
+// ── Пробный период (gojihub.xyz/api/dashboard, /api/dashboard/trial) ──
+// Поля сверены с JS-бандлом веб-кабинета (ClientDashboard: trial_available/trial_days/
+// trial_paid, POST /api/dashboard/trial с пустым телом → {success, message}).
+
+@JsonClass(generateAdapter = true)
+data class DashboardResponse(
+    @Json(name = "trial_available") val trialAvailable: Boolean? = null,
+    @Json(name = "trial_days") val trialDays: Int? = null,
+    @Json(name = "trial_paid") val trialPaid: Boolean? = null
+)
+
+@JsonClass(generateAdapter = true)
+class EmptyBody
+
+@JsonClass(generateAdapter = true)
+data class TrialResponse(
+    val success: Boolean? = null,
+    val message: String? = null
+)
