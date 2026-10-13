@@ -1,0 +1,161 @@
+<UserControl x:Class="GodjiVpn.Views.LoginView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+             xmlns:controls="clr-namespace:GodjiVpn.Controls">
+    <!-- Вход v5 «Стекло» — по эталону screens/*-login.png и LoginScreen.kt: плашка "Goji",
+         глобус со спутниками, снизу плотный стеклянный лист r32. Подтверждение кода
+         (screens/*-verify.png) — отдельный кадр: круглая "назад" и лист с клетками кода.
+         Общий фон (GlassBackdrop) рисует MainWindow, здесь всё прозрачно. -->
+    <Grid Background="{DynamicResource BgBrush}">
+
+        <!-- ═══ Вход ═══ -->
+        <Grid Margin="18,16,18,20"
+              Visibility="{Binding OtpSent, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*" MinHeight="110"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Глобус выходит за колонку на 18/20 по сторонам, как в эталоне; лежит под плашкой. -->
+            <controls:GlobeHost x:Name="Globe" Grid.Row="0" Grid.RowSpan="2" Satellites="True" Margin="-18,-16,-18,-8"/>
+
+            <controls:GlassPanel Grid.Row="0" Style="{StaticResource GlassPill}" HorizontalAlignment="Left" Padding="5,5,13,5">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="30" Height="30" CornerRadius="15" Background="{DynamicResource InkBrush}">
+                        <Image Source="pack://application:,,,/Assets/Images/logo.png" Width="20" Height="20"/>
+                    </Border>
+                    <TextBlock Text="Goji" FontWeight="Bold" FontSize="{s:Fs 15}" VerticalAlignment="Center" Margin="9,0,0,0"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                </StackPanel>
+            </controls:GlassPanel>
+
+            <controls:GlassPanel Grid.Row="2" Style="{StaticResource GlassStrong}" CornerRadius="32" Margin="0,12,0,0">
+                <StackPanel Margin="16,20,16,16">
+
+                        <TextBlock Text="Привет. Куда&#10;подключаемся сегодня?" FontWeight="SemiBold" FontSize="{s:Fs 30}"
+                                   LineHeight="{s:Fs 33}" LineStackingStrategy="BlockLineHeight" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                        <!-- "Впервые здесь?" — рабочий пробный период выдаёт бот (с капчей), поэтому
+                             новых пользователей сначала отправляем туда. -->
+                        <Button Style="{StaticResource BareButton}" Margin="0,14,0,0" Command="{Binding OpenBotCommand}">
+                            <controls:GlassPanel Style="{StaticResource GlassFlat}" CornerRadius="20" Padding="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="36" Height="36" CornerRadius="18" Background="#2AABEE" VerticalAlignment="Center">
+                                        <Path Data="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
+                                              Style="{StaticResource Icon}" Width="17" Height="17" Fill="White" Margin="0,0,1,0"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="11,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Впервые здесь?" FontWeight="Bold" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <TextBlock Text="Сначала откройте бота в Telegram — там вы подтвердите, что не робот, и получите рабочий пробный период."
+                                                   FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <Path Grid.Column="2" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="18" Height="18"
+                                          Fill="{DynamicResource TextSecondaryBrush}"/>
+                                </Grid>
+                            </controls:GlassPanel>
+                        </Button>
+
+                        <!-- Вход через сайт — одна кнопка вместо Google/Telegram/Яндекс: нативный обмен
+                             кода на бэкенде 7.1.0 сломан, все провайдеры доступны на самом сайте во
+                             встроенном окне (LoginViewModel.OpenWebLoginAsync / Views/WebLoginWindow). -->
+                        <StackPanel Margin="0,14,0,0"
+                                    Visibility="{Binding EmailMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <Button Style="{StaticResource InkPillButton}" Height="54" Content="Продолжить через сайт"
+                                    Command="{Binding OpenWebLoginCommand}"/>
+                            <Button Style="{StaticResource GlassLinkButton}" Content="Через email и код из письма" Padding="8,12,8,4"
+                                    Command="{Binding ShowEmailFormCommand}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,14,0,0"
+                                    Visibility="{Binding EmailMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="Email" FontWeight="SemiBold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="6,0,0,6"/>
+                            <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Style="{StaticResource AccentPillButton}" Height="54" FontSize="{s:Fs 15}" Margin="0,12,0,0"
+                                    Content="{Binding SendOtpButtonText}" Command="{Binding SendOtpCommand}"/>
+                            <Button Style="{StaticResource GlassLinkButton}" Content="← Другие способы входа" Padding="8,12,8,0"
+                                    Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{s:Fs 12}"
+                                    Command="{Binding ShowOAuthOptionsCommand}"/>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource DangerBrush}" FontSize="{s:Fs 12}"
+                                   TextWrapping="Wrap" TextAlignment="Center" Margin="0,10,0,0"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+                        <TextBlock Text="Аккаунта нет? Создадим сами, ничего заполнять не нужно." FontWeight="Medium" FontSize="{s:Fs 11}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,12,0,4"/>
+                        <TextBlock TextWrapping="Wrap" TextAlignment="Center" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}">
+                            <Run Text="Создавая аккаунт, вы соглашаетесь с "/>
+                            <Hyperlink Foreground="{DynamicResource TealDeepBrush}" TextDecorations="{x:Null}" Click="OnTermsClick"><Run Text="пользовательским соглашением" FontWeight="SemiBold"/></Hyperlink>
+                            <Run Text=" и "/>
+                            <Hyperlink Foreground="{DynamicResource TealDeepBrush}" TextDecorations="{x:Null}" Click="OnPrivacyClick"><Run Text="политикой конфиденциальности" FontWeight="SemiBold"/></Hyperlink>
+                            <Run Text="."/>
+                        </TextBlock>
+                </StackPanel>
+            </controls:GlassPanel>
+        </Grid>
+
+        <!-- ═══ Подтверждение почты ═══ -->
+        <Grid Margin="18,16,18,20"
+              Visibility="{Binding OtpSent, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Button Style="{StaticResource GlassCircleButton}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                    AutomationProperties.Name="Назад" Command="{Binding ChangeEmailCommand}"
+                    Visibility="{Binding IsVerifySuccess, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                <Path Data="{StaticResource IconChevronLeft}" Style="{StaticResource Icon}" Width="20" Height="20"
+                      Fill="{DynamicResource TextPrimaryBrush}"/>
+            </Button>
+
+            <controls:GlassPanel Style="{StaticResource GlassStrong}" CornerRadius="32" VerticalAlignment="Bottom">
+                <Grid Margin="20,22,20,20">
+                    <StackPanel Visibility="{Binding IsVerifySuccess, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <TextBlock Text="Подтверди почту" FontWeight="SemiBold" FontSize="{s:Fs 30}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock FontWeight="Medium" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,6,0,0">
+                            <Run Text="Код отправлен на "/><Run Text="{Binding Email, Mode=OneWay}"/>
+                        </TextBlock>
+                        <controls:OtpInput x:Name="Otp" Code="{Binding Code, Mode=TwoWay}" Margin="-4,18,-4,0"
+                                           HasError="{Binding ErrorMessage, Converter={StaticResource NullToBoolConverter}}"/>
+                        <TextBlock FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,12,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="Проверка запустится сама, как только введёшь все цифры"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                            <Setter Property="Text" Value="Проверяем…"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource DangerBrush}" FontSize="{s:Fs 12}"
+                                   TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
+                        <Button Style="{StaticResource AccentPillButton}" Height="52" FontSize="{s:Fs 15}" Margin="0,16,0,0"
+                                Content="Подтвердить" Command="{Binding VerifyCommand}"/>
+                    </StackPanel>
+
+                    <!-- Успех: светящийся круг с галочкой — порт VerifySuccessContent. -->
+                    <StackPanel Visibility="{Binding IsVerifySuccess, Converter={StaticResource BoolToVisibilityConverter}}"
+                                HorizontalAlignment="Center" Margin="0,8,0,8">
+                        <TextBlock Text="Готово!" FontWeight="SemiBold" FontSize="{s:Fs 22}" Foreground="{DynamicResource TealDeepBrush}"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Почта подтверждена" FontWeight="Medium" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" Margin="0,4,0,22"/>
+                        <Border Width="88" Height="88" CornerRadius="44" Background="{DynamicResource TealBrush}" HorizontalAlignment="Center">
+                            <Path Data="{StaticResource IconCheck}" Style="{StaticResource Icon}" Width="44" Height="44" Fill="{DynamicResource SurfaceBrush}"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </controls:GlassPanel>
+        </Grid>
+    </Grid>
+</UserControl>

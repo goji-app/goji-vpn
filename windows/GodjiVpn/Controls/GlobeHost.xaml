@@ -1,0 +1,17 @@
+<UserControl x:Class="GodjiVpn.Controls.GlobeHost"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf">
+    <!-- WebView2CompositionControl, не обычный WebView2 — обычный хостится через HwndHost
+         (нативное дочернее окно) и рисуется поверх ЛЮБОГО WPF-контента независимо от
+         z-order ("airspace"-проблема, официально описана Microsoft). CompositionControl —
+         drop-in замена на основе визуального компоузинга, позволяющая накладывать WPF-элементы
+         поверх него, как в Android (глобус на весь экран логина + текст поверх). -->
+    <!-- DefaultBackgroundColor раньше был зашит светлым (#FFFDF7) — в тёмной теме под
+         глобусом (пока он рендерится/если canvas не полностью его перекрывает) была видна
+         светлая заплатка. Transparent — тогда фон отдаёт вот этот Grid снизу, с
+         DynamicResource, который подхватывает тему сам. -->
+    <Grid Background="Transparent">
+        <wv2:WebView2CompositionControl x:Name="Web" DefaultBackgroundColor="Transparent"/>
+    </Grid>
+</UserControl>

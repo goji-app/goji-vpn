@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* background: transparent, не зашитый светлый цвет — иначе в тёмной теме под глобусом
+     была бы видна светлая заплатка поверх тёмного фона WPF-контейнера (GlobeHost.xaml). */
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  goji-globe { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+  <goji-globe id="globe" theme="light" status="off" node="auto"></goji-globe>
+  <script>
+    // Спутники читаются компонентом один раз при загрузке (boot) — поэтому атрибут ставим
+    // до подключения модуля, по параметру ?sat=1 (GlobeHost.Satellites, только экран входа).
+    if (new URLSearchParams(location.search).get('sat') === '1')
+      document.getElementById('globe').setAttribute('satellites', 'on');
+  </script>
+  <script type="module" src="./goji-globe.js"></script>
+  <script>
+    // Тонкая обёртка над методами/атрибутами <goji-globe> — вызывается из C#
+    // (GlobeHost.xaml.cs) через CoreWebView2.ExecuteScriptAsync после каждого изменения
+    // статуса подключения, выбранного узла или переключения светлой/тёмной темы.
+    window.godjiSetStatus = function (status) {
+      document.getElementById('globe').setAttribute('status', status);
+    };
+    window.godjiSetNode = function (lat, lon, country, city, title) {
+      document.getElementById('globe').setAttribute('node', 'dynamic');
+      document.getElementById('globe').setNode({ lat, lon, country, city, title });
+    };
+    window.godjiSetPaused = function (paused) {
+      const g = document.getElementById('globe');
+      g._paused = !!paused;
+      if (g.setPaused) g.setPaused(paused);
+    };
+    window.godjiSetTheme = function (theme) {
+      document.getElementById('globe').setAttribute('theme', theme);
+    };
+  </script>
+</body>
+</html>

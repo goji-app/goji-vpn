@@ -1,0 +1,391 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+        xmlns:c="using:GodjiVpn.Controls">
+    <!-- Компоненты «Goji Expressive» (Material 3 Expressive, порт Android ui/theme 163f5ab;
+         имена классов v5 «Стекло» сохранены) — те же, что в Windows-клиенте (Themes/Glass.xaml),
+         в виде классов Avalonia: GlassPanel.card/.pill/.strong/.flat, Button.bare/.row/.accent/
+         .ink/.chip/.circle/.link/.danger, TextBlock.title/.section/.rowTitle/.rowSub. -->
+
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="{StaticResource Manrope}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+
+    <!-- ── Поверхности (тональные, без теней и бликов) ── -->
+    <Style Selector="c|GlassPanel">
+        <Setter Property="GlassColor" Value="{DynamicResource GlassColor}"/>
+        <Setter Property="GlassStrongColor" Value="{DynamicResource GlassStrongColor}"/>
+        <Setter Property="GlassFaintColor" Value="{DynamicResource GlassFaintColor}"/>
+        <Setter Property="SpotColor" Value="{DynamicResource GlassSpotColor}"/>
+        <Setter Property="GlossColor" Value="{DynamicResource GlassGlossColor}"/>
+        <Setter Property="RimAColor" Value="{DynamicResource RimAColor}"/>
+        <Setter Property="RimBColor" Value="{DynamicResource RimBColor}"/>
+        <Setter Property="RimCColor" Value="{DynamicResource RimCColor}"/>
+        <Setter Property="RimDColor" Value="{DynamicResource RimDColor}"/>
+        <Setter Property="InnerTopColor" Value="{DynamicResource InnerTopColor}"/>
+        <Setter Property="InnerBottomColor" Value="{DynamicResource InnerBottomColor}"/>
+        <Setter Property="ShadowColor" Value="{DynamicResource GlassShadowColor}"/>
+        <Setter Property="AccentColor" Value="{DynamicResource TealColor}"/>
+    </Style>
+    <Style Selector="c|GlassPanel.card">
+        <Setter Property="CornerRadius" Value="24"/>
+        <Setter Property="Level" Value="Normal"/>
+        <Setter Property="Shadow" Value="Card"/>
+    </Style>
+    <Style Selector="c|GlassPanel.pill">
+        <Setter Property="CornerRadius" Value="999"/>
+        <Setter Property="Level" Value="Strong"/>
+        <Setter Property="Shadow" Value="Pill"/>
+    </Style>
+    <Style Selector="c|GlassPanel.strong">
+        <Setter Property="CornerRadius" Value="28"/>
+        <Setter Property="Level" Value="Strong"/>
+        <Setter Property="Shadow" Value="Strong"/>
+    </Style>
+    <Style Selector="c|GlassPanel.flat">
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Level" Value="Faint"/>
+        <Setter Property="Shadow" Value="None"/>
+    </Style>
+
+    <!-- ── Текст ── -->
+    <Style Selector="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Manrope}"/>
+    </Style>
+    <Style Selector="TextBlock.title">
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 26}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.subTitle">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="{s:Fs 22}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.section">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="{s:Fs 11}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Margin" Value="8,16,8,8"/>
+    </Style>
+    <Style Selector="TextBlock.rowTitle">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="{s:Fs 14}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.rowSub">
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontSize" Value="{s:Fs 11}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Margin" Value="0,2,0,0"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.muted">
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontSize" Value="{s:Fs 12}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.error">
+        <Setter Property="FontSize" Value="{s:Fs 12}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+    </Style>
+
+    <Style Selector="Rectangle.hair">
+        <Setter Property="Height" Value="2"/>
+        <Setter Property="Fill" Value="{DynamicResource BgSolidBrush}"/>
+    </Style>
+    <Style Selector="Rectangle.vhair">
+        <Setter Property="Width" Value="2"/>
+        <Setter Property="Fill" Value="{DynamicResource BgSolidBrush}"/>
+    </Style>
+
+    <Style Selector="Path.icon">
+        <Setter Property="Stretch" Value="Uniform"/>
+        <Setter Property="Fill" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Цвет иконки — классом (а не локальным Fill): внутри шаблонов элементов списков
+         локальное значение проигрывает стилю с классом Path.icon. -->
+    <Style Selector="Path.icon.teal"><Setter Property="Fill" Value="{DynamicResource TealDeepBrush}"/></Style>
+    <Style Selector="Path.icon.accent"><Setter Property="Fill" Value="{DynamicResource TealBrush}"/></Style>
+    <Style Selector="Path.icon.danger"><Setter Property="Fill" Value="{DynamicResource DangerBrush}"/></Style>
+    <Style Selector="Path.icon.secondary"><Setter Property="Fill" Value="{DynamicResource TextSecondaryBrush}"/></Style>
+    <Style Selector="Path.icon.muted"><Setter Property="Fill" Value="{DynamicResource TextMutedBrush}"/></Style>
+    <Style Selector="Path.icon.terra"><Setter Property="Fill" Value="{DynamicResource TerracottaBrush}"/></Style>
+    <Style Selector="Path.icon.inkText"><Setter Property="Fill" Value="{DynamicResource InkBtnTextBrush}"/></Style>
+    <Style Selector="Path.icon.white"><Setter Property="Fill" Value="{DynamicResource SurfaceBrush}"/></Style>
+
+    <!-- ── Кнопки ── -->
+    <Style Selector="Button.bare, Button.row, Button.accent, Button.ink, Button.chip, Button.circle, Button.link, Button.danger">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        <Setter Property="RenderTransform" Value="scale(1)"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="PART_ContentPresenter"
+                                  Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Padding="{TemplateBinding Padding}"
+                                  Background="{TemplateBinding Background}"
+                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.accent, Button.ink, Button.danger">
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    <Style Selector="Button.row">
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    <Style Selector="Button.bare:pressed, Button.accent:pressed, Button.ink:pressed, Button.chip:pressed, Button.circle:pressed, Button.danger:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.96)"/>
+    </Style>
+    <Style Selector="Button:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+    </Style>
+
+    <!-- Строка на всю ширину карточки: подсветка при нажатии. -->
+    <Style Selector="Button.row">
+        <Setter Property="Padding" Value="14,13"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Button.row:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PressedRowBrush}"/>
+    </Style>
+
+    <!-- Капсула с акцентным градиентом. -->
+    <Style Selector="Button.accent">
+        <Setter Property="Height" Value="48"/>
+        <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 14}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border CornerRadius="999" Background="{DynamicResource AccentGradientBrush}" Padding="16,0">
+                    <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}"/>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Сплошная "чернильная" капсула. -->
+    <Style Selector="Button.ink">
+        <Setter Property="Height" Value="52"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBtnTextBrush}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 15}"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border CornerRadius="999" Background="{DynamicResource InkBtnBrush}" Padding="16,0">
+                    <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}"/>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Красная капсула для опасного действия. -->
+    <Style Selector="Button.danger">
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 13.5}"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border CornerRadius="999" Background="{DynamicResource DangerBrush}" Padding="16,0">
+                    <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}"/>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Капсула-чип: "Проверить обновления", "Доверять"… -->
+    <Style Selector="Button.chip">
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 12}"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border CornerRadius="999" Background="{DynamicResource ChipBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                        BorderThickness="1" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}"/>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Круглая стеклянная кнопка 40. -->
+    <Style Selector="Button.circle">
+        <Setter Property="Width" Value="40"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <c:GlassPanel Classes="pill">
+                    <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </c:GlassPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Текстовая ссылка. -->
+    <Style Selector="Button.link">
+        <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="{s:Fs 13}"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="8,10"/>
+    </Style>
+    <Style Selector="Button.link:pointerover">
+        <Setter Property="Opacity" Value="0.8"/>
+    </Style>
+
+    <!-- ── Переключатель 54×32 ── -->
+    <Style Selector="ToggleButton.switch">
+        <Setter Property="Width" Value="54"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="Track" CornerRadius="16" Background="{DynamicResource TrackBgBrush}">
+                        <Border.Transitions>
+                            <Transitions><BrushTransition Property="Background" Duration="0:0:0.3"/></Transitions>
+                        </Border.Transitions>
+                    </Border>
+                    <Border Name="Knob" Width="36" Height="26" CornerRadius="13" Background="#F2FFFFFF"
+                            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,3,0,0"
+                            BoxShadow="0 1 6 0 #38000000" RenderTransform="translate(3px, 0px)">
+                        <Border.Transitions>
+                            <Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="BackEaseOut"/></Transitions>
+                        </Border.Transitions>
+                    </Border>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.switch:checked /template/ Border#Track">
+        <Setter Property="Background" Value="{DynamicResource TealBrush}"/>
+    </Style>
+    <Style Selector="ToggleButton.switch:checked /template/ Border#Knob">
+        <Setter Property="RenderTransform" Value="translate(15px, 0px)"/>
+    </Style>
+
+    <!-- ── Поле ввода на стекле ── -->
+    <Style Selector="TextBox.glass">
+        <Setter Property="FontFamily" Value="{StaticResource Manrope}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontSize" Value="{s:Fs 14}"/>
+        <Setter Property="Padding" Value="14,11"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ChipBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1.5"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBox.glass:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource ChipBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+    </Style>
+    <Style Selector="TextBox.glass:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource ChipBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource TealBrush}"/>
+        <Setter Property="BorderThickness" Value="1.5"/>
+    </Style>
+    <Style Selector="TextBox.glass:focus">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBox.glass /template/ TextBlock#PART_Watermark, TextBox.glass /template/ TextBlock#PART_FloatingWatermark">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+
+    <!-- Прозрачное поле без рамки (чат, поле домена в капсуле). -->
+    <Style Selector="TextBox.bare">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="2,6"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBox.bare:pointerover /template/ Border#PART_BorderElement, TextBox.bare:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="TextBox.bare:focus">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+
+    <!-- ── Список без прокрутки (Controls/PagedItems) ─────────── -->
+    <!-- Строки текущей страницы + "‹ 1 / 3 ›" под ними (только если страниц больше одной). -->
+    <Style Selector="c|PagedItems">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <DockPanel>
+                    <Grid DockPanel.Dock="Bottom" IsVisible="{TemplateBinding HasPages}">
+                        <Rectangle Classes="hair" VerticalAlignment="Top"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4">
+                            <Button Classes="bare pager" AutomationProperties.Name="Предыдущая страница"
+                                    Command="{Binding PrevCommand, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Path Classes="icon" Data="{StaticResource IconChevronLeft}" Width="18" Height="18"/>
+                            </Button>
+                            <TextBlock Text="{TemplateBinding PagerText}" FontWeight="Bold" FontSize="{s:Fs 12}" MinWidth="44"
+                                       TextAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <Button Classes="bare pager" AutomationProperties.Name="Следующая страница"
+                                    Command="{Binding NextCommand, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Path Classes="icon" Data="{StaticResource IconChevronRight}" Width="18" Height="18"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/>
+                </DockPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.pager">
+        <Setter Property="Width" Value="40"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Button.pager:disabled">
+        <Setter Property="Opacity" Value="0.3"/>
+    </Style>
+    <Style Selector="Button.pager:disabled /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <!-- Разделитель строки в PagedItems: скрыт над первой строкой страницы. -->
+    <Style Selector="Rectangle.pagedSep[(c|PagedPanel.IsPageStart)=True]">
+        <Setter Property="Opacity" Value="0"/>
+    </Style>
+</Styles>

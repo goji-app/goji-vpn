@@ -1,0 +1,175 @@
+<UserControl x:Class="GodjiVpn.Views.SupportListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+             xmlns:controls="clr-namespace:GodjiVpn.Controls">
+    <!-- Список обращений v5 «Стекло» — SupportListScreen.kt в стиле остальных экранов:
+         заголовок + круглая кнопка закрытия, чернильная капсула "Новое обращение", сегмент
+         Открытые/История, обращения — строки одной стеклянной карточки через разделитель. -->
+    <Grid Background="{DynamicResource BgBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="20,16,16,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Поддержка" Style="{StaticResource ScreenTitle}" VerticalAlignment="Center"/>
+            <Button Grid.Column="1" Style="{StaticResource GlassCircleButton}" Click="OnCloseClick" AutomationProperties.Name="Закрыть">
+                <Path Data="{StaticResource IconClose}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource TextPrimaryBrush}"/>
+            </Button>
+        </Grid>
+
+        <!-- Без прокрутки: обращения листаются страницами. -->
+        <Grid Grid.Row="1" Margin="16,0,16,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+                <Button Grid.Row="0" Style="{StaticResource InkPillButton}" Height="48" FontSize="{s:Fs 14}" Content="Новое обращение"
+                        Command="{Binding NewTicketCommand}"/>
+                <Button Grid.Row="1" Style="{StaticResource GlassLinkButton}" Content="Часто задаваемые вопросы" Padding="8,12,8,12"
+                        Command="{Binding OpenFaqCommand}"/>
+
+                <controls:SegmentedControl Grid.Row="2" ItemsSource="{Binding TabLabels}" SelectedIndex="{Binding Tab, Mode=OneWay}"
+                                           SelectCommand="{Binding SelectTabCommand}"/>
+
+                <controls:Spinner Grid.Row="3" VerticalAlignment="Top" Foreground="{DynamicResource TealBrush}" HorizontalAlignment="Center" Margin="0,30,0,0"
+                                  Width="24" Height="24"
+                                  Visibility="{Binding Loading, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                <controls:GlassPanel Grid.Row="3" VerticalAlignment="Top" Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,14,0,0"
+                                     Visibility="{Binding LoadError, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Margin="20" HorizontalAlignment="Center">
+                        <TextBlock Text="Не удалось загрузить обращения" FontWeight="Medium" FontSize="{s:Fs 12.5}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                        <Button Style="{StaticResource ChipButton}" Content="Повторить" Margin="0,10,0,0" HorizontalAlignment="Center"
+                                Command="{Binding RetryCommand}"/>
+                    </StackPanel>
+                </controls:GlassPanel>
+
+                <controls:GlassPanel Grid.Row="3" VerticalAlignment="Top" CornerRadius="24" Margin="0,14,0,0">
+                    <controls:GlassPanel.Style>
+                        <Style TargetType="controls:GlassPanel" BasedOn="{StaticResource GlassCard}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Loading}" Value="False"/>
+                                        <Condition Binding="{Binding LoadError}" Value="False"/>
+                                        <Condition Binding="{Binding Tickets.Count}" Value="0"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:GlassPanel.Style>
+                    <TextBlock Margin="20" HorizontalAlignment="Center" FontWeight="Medium" FontSize="{s:Fs 12.5}"
+                               Foreground="{DynamicResource TextSecondaryBrush}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="Нет открытых обращений"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Tab}" Value="1">
+                                        <Setter Property="Text" Value="Нет закрытых обращений"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </controls:GlassPanel>
+
+                <controls:GlassPanel Grid.Row="3" VerticalAlignment="Top" CornerRadius="24" Margin="0,14,0,0">
+                    <controls:GlassPanel.Style>
+                        <Style TargetType="controls:GlassPanel" BasedOn="{StaticResource GlassCard}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Tickets.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Loading}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:GlassPanel.Style>
+                    <controls:PagedItems ItemsSource="{Binding Tickets}">
+                        <controls:PagedItems.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <Rectangle Style="{StaticResource PagedSep}"/>
+                                    <Button Style="{StaticResource RowButton}" Padding="16,12" Click="OnTicketClick" Tag="{Binding}"
+                                            AutomationProperties.Name="{Binding Title}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="{s:Fs 13.5}" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                <TextBlock Text="{Binding LastMessage}" FontWeight="Medium" FontSize="{s:Fs 11.5}" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"
+                                                           Visibility="{Binding LastMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                <TextBlock FontSize="{s:Fs 10.5}" Margin="0,4,0,0" Foreground="{DynamicResource TextSecondaryBrush}">
+                                                    <Run Text="{Binding StatusLabel, Mode=OneWay}" FontWeight="SemiBold">
+                                                        <Run.Style>
+                                                            <Style TargetType="Run">
+                                                                <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsClosed}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Run.Style>
+                                                    </Run><Run Text="{Binding DateLabel, StringFormat=' · {0}', Mode=OneWay}"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <controls:PillBorder Grid.Column="1" Background="{DynamicResource DangerBrush}" MinWidth="20" Height="20"
+                                                                 Padding="6,0" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                                 Visibility="{Binding HasUnread, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="{Binding UnreadCount}" FontSize="{s:Fs 10.5}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </controls:PillBorder>
+                                            <Path Grid.Column="2" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="15" Height="15"
+                                                  Fill="{DynamicResource TextSecondaryBrush}" Margin="10,0,0,0"/>
+                                        </Grid>
+                                    </Button>
+                                </StackPanel>
+                            </DataTemplate>
+                        </controls:PagedItems.ItemTemplate>
+                    </controls:PagedItems>
+                </controls:GlassPanel>
+
+                <StackPanel Grid.Row="4">
+                <controls:Spinner Foreground="{DynamicResource TealBrush}" HorizontalAlignment="Center" Margin="0,14,0,0"
+                                  Visibility="{Binding LoadingMore, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <Button Content="Показать ещё" Padding="8,12">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource GlassLinkButton}">
+                            <Setter Property="Command" Value="{Binding LoadMoreCommand}"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding CanLoadMore}" Value="True"/>
+                                        <Condition Binding="{Binding LoadingMore}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

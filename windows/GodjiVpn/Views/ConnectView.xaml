@@ -1,0 +1,249 @@
+<UserControl x:Class="GodjiVpn.Views.ConnectView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+             xmlns:controls="clr-namespace:GodjiVpn.Controls">
+    <!-- Главная «Goji Expressive» (Material 3 Expressive) — по ConnectScreen.kt Android 1.0.117:
+         шапка, глобус, кнопка-«печенье» с заголовком, плитка скорости с мини-графиком, плитки
+         «Качество канала» и «Подписка», карточка узла со строкой журнала сети. Промежутки 8, без
+         прокрутки: глобус занимает оставшееся место и ужимается, если остальному нужно больше. -->
+    <Grid Margin="16,14,16,8" Background="{DynamicResource BgBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*" MinHeight="120"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+            <!-- Шапка лежит ПОВЕРХ верхнего края глобуса (он заходит под неё) — ZIndex. -->
+            <Grid Grid.Row="0" Panel.ZIndex="2">
+                <controls:GlassPanel Style="{StaticResource GlassPill}" HorizontalAlignment="Left" Padding="4,4,12,4">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="28" Height="28" CornerRadius="14" Background="{DynamicResource InkBrush}">
+                            <Image Source="pack://application:,,,/Assets/Images/logo.png" Width="20" Height="20"/>
+                        </Border>
+                        <TextBlock Text="Goji" FontWeight="Bold" FontSize="{s:Fs 14}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </controls:GlassPanel>
+                <controls:GlassPanel Style="{StaticResource GlassPill}" HorizontalAlignment="Right" Height="34" Padding="13,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Center">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{DynamicResource TealDeepBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasNetwork}" Value="False">
+                                            <Setter Property="Fill" Value="{DynamicResource JamTextBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding NetLabel}" FontWeight="Bold" FontSize="{s:Fs 12}" Margin="7,0,0,0" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="{StaticResource ManropeFamily}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasNetwork}" Value="False">
+                                            <Setter Property="Foreground" Value="{DynamicResource JamTextBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </controls:GlassPanel>
+            </Grid>
+
+            <!-- Глобус без карточки: холст заходит на 44 под шапку и на 42 под кнопку, по ширине +60
+                 с каждой стороны; вокруг сферы — общий фон. Высота — всё оставшееся место. -->
+            <Grid Grid.Row="1" Margin="0,12,0,0">
+                <controls:GlobeHost x:Name="Globe" Margin="-60,-44,-60,-42"/>
+                <controls:GlassPanel Style="{StaticResource GlassPill}" CornerRadius="18" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                     Margin="0,6,14,0" MaxWidth="190" Padding="13,9"
+                                     Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding GreetingHi}" FontWeight="Bold" FontSize="{s:Fs 20}" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{Binding GreetingSub}" FontWeight="SemiBold" FontSize="{s:Fs 9}" HorizontalAlignment="Right"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </controls:GlassPanel>
+            </Grid>
+
+            <StackPanel Grid.Row="2">
+            <!-- Кнопка-«печенье» 64 по центру, под ней заголовок 22 и строка статуса. -->
+            <controls:PowerButton Margin="0,8,0,0" IsOn="{Binding IsConnected}" IsBusy="{Binding IsConnecting}"
+                                  Command="{Binding ToggleCommand}"/>
+            <TextBlock Text="{Binding Headline}" FontWeight="Bold" FontSize="{s:Fs 22}" LineHeight="{s:Fs 26}" TextAlignment="Center" HorizontalAlignment="Center"
+                       TextWrapping="Wrap" MaxHeight="56" TextTrimming="CharacterEllipsis" Margin="0,8,0,0"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
+                <Ellipse Width="7" Height="7" VerticalAlignment="Center">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="{DynamicResource OffDotBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsConnecting}" Value="True">
+                                    <Setter Property="Fill" Value="{DynamicResource ConnectingDotBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                    <Setter Property="Fill" Value="{DynamicResource TealBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="{Binding Subline}" FontWeight="SemiBold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="7,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330"/>
+                <TextBlock FontWeight="Bold" FontSize="{s:Fs 13}" Margin="7,0,0,0" VerticalAlignment="Center"
+                           Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Run Text="·"/> <Run Text="{Binding ConnectedTimeLabel, Mode=OneWay}"/>
+                </TextBlock>
+            </StackPanel>
+
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource DangerBrush}" FontWeight="SemiBold" FontSize="{s:Fs 12}"
+                       TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,8,0,0"
+                       Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+            <!-- Скорость сейчас: ↓ крупно, ↑ мелко и мини-график последних ~30 с. -->
+            <controls:GlassPanel Style="{StaticResource GlassCard}" Padding="16,12" Margin="0,8,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Скорость сейчас" FontWeight="SemiBold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                            <Path Data="{StaticResource IconArrowDown}" Style="{StaticResource Icon}" Width="14" Height="14" Fill="{DynamicResource TealBrush}"/>
+                            <TextBlock Text="{Binding DownSpeedLabel}" FontWeight="Bold" FontSize="{s:Fs 22}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                            <Path Data="{StaticResource IconArrowUp}" Style="{StaticResource Icon}" Width="11" Height="11" Fill="{DynamicResource TerracottaBrush}"
+                                  Margin="10,0,0,0"/>
+                            <TextBlock FontWeight="SemiBold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="4,0,0,0"
+                                       VerticalAlignment="Center">
+                                <Run Text="{Binding UpSpeedLabel, Mode=OneWay}"/><Run Text=" МБ/с"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                    <controls:SpeedSparkline Grid.Column="1" Width="108" Height="40" Margin="12,0,0,0"
+                                             Down="{Binding DownHistory}" Up="{Binding UpHistory}"/>
+                </Grid>
+            </controls:GlassPanel>
+
+            <!-- Две плитки в ряд: качество канала и подписка. -->
+            <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <controls:GlassPanel Style="{StaticResource GlassCard}" Padding="14,12">
+                    <StackPanel>
+                        <TextBlock Text="Качество канала" FontWeight="SemiBold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                            <TextBlock Text="{Binding QualityValue}" FontWeight="ExtraBold" FontSize="{s:Fs 26}" VerticalAlignment="Bottom">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding QualityLevel}" Value="excellent">
+                                                <Setter Property="Foreground" Value="{DynamicResource TealBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding QualityLevel}" Value="good">
+                                                <Setter Property="Foreground" Value="{DynamicResource TealBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding QualityLevel}" Value="fair">
+                                                <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding QualityLevel}" Value="poor">
+                                                <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="{Binding QualityLabel}" FontWeight="Bold" FontSize="{s:Fs 12.5}" Margin="6,0,0,4" VerticalAlignment="Bottom"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding QualityDetail}" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </controls:GlassPanel>
+                <controls:GlassPanel Grid.Column="2" Style="{StaticResource GlassCard}">
+                    <Button Style="{StaticResource RowButton}" Padding="14,12" Command="{Binding OpenTrafficCommand}">
+                        <StackPanel>
+                            <TextBlock Text="Подписка" FontWeight="SemiBold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding SubDaysLabel}" FontWeight="ExtraBold" FontSize="{s:Fs 20}" TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center"/>
+                                <controls:SignalBars Grid.Column="1" Filled="{Binding SubBars}" Level="{Binding SubBarLevel}" Margin="8,0,0,0"
+                                                     VerticalAlignment="Center"/>
+                            </Grid>
+                            <TextBlock Text="{Binding SubDetail}" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </controls:GlassPanel>
+            </Grid>
+
+            <!-- Узел + «Журнал сети» — одна карточка: строка узла открывает «Серверы», строка журнала —
+                 журнал сети (Настройки → Подключение). -->
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="26" Margin="0,8,0,0">
+                <StackPanel>
+                    <Button Style="{StaticResource RowButton}" Padding="14,10" Command="{Binding OpenServersCommand}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Width="38" Height="38" CornerRadius="12" Background="{DynamicResource ChipBrush}">
+                                <Grid>
+                                    <Border Width="24" Height="17" CornerRadius="3" ClipToBounds="True"
+                                            Visibility="{Binding CurrentFlagImagePath, Converter={StaticResource NullToVisibilityConverter}}">
+                                        <Image Source="{Binding CurrentFlagImagePath}" Stretch="UniformToFill"/>
+                                    </Border>
+                                    <Path Data="{StaticResource IconGlobe}" Style="{StaticResource Icon}" Width="18" Height="18"
+                                          Fill="{DynamicResource TextSecondaryBrush}"
+                                          Visibility="{Binding CurrentFlagImagePath, Converter={StaticResource InverseNullToVisibilityConverter}}"/>
+                                </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CurrentNodeName}" FontWeight="Bold" FontSize="{s:Fs 14}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding CurrentNodeMeta}" FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding CurrentNodeMeta, Converter={StaticResource NullToVisibilityConverter}}"/>
+                            </StackPanel>
+                            <Path Grid.Column="2" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="16" Height="16"
+                                  Fill="{DynamicResource TextSecondaryBrush}"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Height="2" Fill="{DynamicResource BgSolidBrush}"/>
+                    <Button Style="{StaticResource RowButton}" Padding="14,10,14,11" Command="{Binding OpenJournalCommand}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource TabIconHome}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TealDeepBrush}"
+                                      StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center"/>
+                                <TextBlock Text="Журнал сети" FontWeight="Bold" FontSize="{s:Fs 14}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding JournalLine}" FontWeight="SemiBold" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TealDeepBrush}"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                <Path Grid.Column="1" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="16" Height="16"
+                                      Fill="{DynamicResource TealDeepBrush}" Margin="6,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </controls:GlassPanel>
+            </StackPanel>
+
+    </Grid>
+</UserControl>

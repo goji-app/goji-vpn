@@ -1,0 +1,843 @@
+<UserControl x:Class="GodjiVpn.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+             xmlns:controls="clr-namespace:GodjiVpn.Controls"
+             xmlns:utils="clr-namespace:GodjiVpn.Utils">
+    <!-- Настройки v5 «Стекло» — по SettingsScreen.kt: колонка padding 16, gap 8, подписи
+         разделов + стеклянные карточки r24 со строками через тонкий разделитель. Подэкраны
+         (разделы, настройки пинга, журнал…) — подмена содержимого вкладки, см. SettingsPage.
+         Без прокрутки: каждый раздел — свой подэкран, длинные списки — постранично. -->
+    <UserControl.Resources>
+        <!-- Строка-ссылка: заголовок + подпись + шеврон. Tag — подпись. -->
+        <Style x:Key="LinkRowButton" TargetType="Button" BasedOn="{StaticResource RowButton}">
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{Binding}" Style="{StaticResource RowTitle}"/>
+                                <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" Style="{StaticResource RowSubtitle}"
+                                           Visibility="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}, Converter={StaticResource NullToVisibilityConverter}}"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="15" Height="15"
+                                  Fill="{DynamicResource TextSecondaryBrush}" Margin="12,0,0,0"/>
+                        </Grid>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Строка "О программе": подпись слева, значение справа (обрезается), копирование по нажатию. -->
+        <Style x:Key="AboutRowButton" TargetType="Button" BasedOn="{StaticResource RowButton}">
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="Command" Value="{Binding CopyAboutCommand}"/>
+            <Setter Property="CommandParameter" Value="{Binding Tag, RelativeSource={RelativeSource Self}}"/>
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding}" FontWeight="Medium" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                       FontWeight="SemiBold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+                        </Grid>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Шапка подэкрана: стрелка назад + заголовок 24. -->
+        <Style x:Key="BackButton" TargetType="Button" BasedOn="{StaticResource BareButton}">
+            <Setter Property="Command" Value="{Binding BackCommand}"/>
+            <Setter Property="AutomationProperties.Name" Value="Назад"/>
+            <Setter Property="Padding" Value="0,0,10,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <!-- Шаблоном, а не Content: один экземпляр Path в сеттере стиля может стоять только
+                 в одной кнопке, у второй подстраницы стрелка пропадала. -->
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <Path Data="{StaticResource IconArrowBack}" Style="{StaticResource Icon}" Width="22" Height="22"
+                              Fill="{DynamicResource TextPrimaryBrush}"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SubTitle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="{s:Fs 24}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+    </UserControl.Resources>
+
+
+    <Grid Background="{DynamicResource BgBrush}">
+
+        <!-- ═══ Основной экран: разделы (без прокрутки — каждый раздел отдельным подэкраном) ═══ -->
+        <StackPanel Margin="16,16,16,12" Visibility="{Binding IsMainPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <TextBlock Text="Настройки" Style="{StaticResource ScreenTitle}" Margin="4,0,4,10"/>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24">
+                <StackPanel>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Внешний вид" Tag="Тема и размер шрифта"
+                                Command="{Binding OpenAppearanceCommand}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Подключение" Tag="Журнал сети, пинг, Wi-Fi, сайты мимо VPN"
+                                Command="{Binding OpenConnectionCommand}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Безопасность" Tag="Проверка утечек IP и DNS"
+                                Command="{Binding OpenSecurityCommand}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Обновления" Tag="Версия программы и новые выпуски"
+                                Command="{Binding OpenUpdatesCommand}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Button Style="{StaticResource LinkRowButton}" Content="О программе" Tag="Версии, HWID, журналы"
+                                Command="{Binding OpenAboutCommand}"/>
+                </StackPanel>
+            </controls:GlassPanel>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,12,0,0">
+                        <Button Style="{StaticResource LinkRowButton}" Content="Написать в поддержку" Tag="Обращения и переписка прямо в приложении"
+                                Command="{Binding OpenSupportCommand}"/>
+            </controls:GlassPanel>
+            <Button Style="{StaticResource BareButton}" Margin="0,12,0,0" Command="{Binding LogoutCommand}">
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Height="50">
+                    <TextBlock Text="Выйти из аккаунта" FontWeight="Bold" FontSize="{s:Fs 14}" Foreground="{DynamicResource DangerBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </controls:GlassPanel>
+            </Button>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" Visibility="{Binding IsAppearancePage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource BackButton}"/>
+                <TextBlock Text="Внешний вид" Style="{StaticResource SubTitle}"/>
+            </StackPanel>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,16,0,0">
+                <StackPanel Margin="14,13">
+                    <TextBlock Text="Тема оформления" Style="{StaticResource RowTitle}"/>
+                    <controls:SegmentedControl ItemsSource="{Binding ThemeModes}" DisplayMemberPath="Label"
+                                               SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}" Margin="0,9,0,0"/>
+                    <TextBlock Text="Размер шрифта" Style="{StaticResource RowTitle}" Margin="0,14,0,0"/>
+                    <controls:SegmentedControl ItemsSource="{Binding FontSizes}" DisplayMemberPath="Label"
+                                               SelectedIndex="{Binding FontSizeIndex, Mode=TwoWay}" Margin="0,9,0,0"/>
+                </StackPanel>
+            </controls:GlassPanel>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" Visibility="{Binding IsConnectionPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource BackButton}"/>
+                <TextBlock Text="Подключение" Style="{StaticResource SubTitle}"/>
+            </StackPanel>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,16,0,0">
+                <StackPanel>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Журнал сети" Tag="Когда VPN работал, смены сети и сбои"
+                                Command="{Binding OpenJournalCommand}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Настройки пинга" Tag="Способ проверки и URL теста"
+                                Command="{Binding OpenPingSettingsCommand}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Правила Wi-Fi" Tag="Доверенные сети и автовключение в чужих"
+                                Command="{Binding OpenWifiRulesCommand}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Сайты мимо VPN" Tag="Домены, которые открываются напрямую"
+                                Command="{Binding OpenBypassCommand}"/>
+                </StackPanel>
+            </controls:GlassPanel>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" Visibility="{Binding IsSecurityPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource BackButton}"/>
+                <TextBlock Text="Безопасность" Style="{StaticResource SubTitle}"/>
+            </StackPanel>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,16,0,0">
+                <StackPanel Margin="14,13">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Проверка утечек" Style="{StaticResource RowTitle}"/>
+                            <TextBlock Text="Идут ли IP и DNS-запросы через VPN" Style="{StaticResource RowSubtitle}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource ChipButton}" Margin="12,0,0,0" Command="{Binding CheckLeakCommand}"
+                                AutomationProperties.Name="Проверить утечки">
+                            <Grid>
+                                <TextBlock Text="Проверить" FontWeight="Bold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TealDeepBrush}" Visibility="{Binding LeakChecking, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                <StackPanel Orientation="Horizontal" Visibility="{Binding LeakChecking, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <controls:Spinner Foreground="{DynamicResource TealBrush}" Width="13" Height="13" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Проверяем…" Margin="7,0,0,0" FontWeight="Bold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TealDeepBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </Grid>
+
+                    <StackPanel Visibility="{Binding HasLeakReport, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Border CornerRadius="18" Padding="12,11" Margin="0,12,0,0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{DynamicResource TerracottaTintBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LeakOk}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource TealTintBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="28" Height="28" CornerRadius="14" VerticalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource TerracottaBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding LeakOk}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource TealBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Path Width="15" Height="15" Fill="{DynamicResource SurfaceBrush}">
+                                        <Path.Style>
+                                            <Style TargetType="Path" BasedOn="{StaticResource Icon}">
+                                                <Setter Property="Data" Value="{StaticResource IconPriorityHigh}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding LeakOk}" Value="True">
+                                                        <Setter Property="Data" Value="{StaticResource IconCheck}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Path.Style>
+                                    </Path>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding LeakTitle}" FontWeight="Bold" FontSize="{s:Fs 14}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    <TextBlock Text="{Binding LeakDesc}" FontWeight="Medium" FontSize="{s:Fs 11.5}" LineHeight="{s:Fs 16}" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Grid Margin="0,12,0,0" Visibility="{Binding LeakSiteIp, Converter={StaticResource NullToVisibilityConverter}}">
+                            <TextBlock Text="IP для сайтов" FontWeight="Medium" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding LeakSiteIp}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" Margin="110,0,0,0"/>
+                        </Grid>
+                        <Grid Margin="0,10,0,0" Visibility="{Binding LeakRealIp, Converter={StaticResource NullToVisibilityConverter}}">
+                            <TextBlock Text="Настоящий IP" FontWeight="Medium" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding LeakRealIp}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" Margin="110,0,0,0"/>
+                        </Grid>
+                        <Grid Margin="0,10,0,0" Visibility="{Binding LeakDns, Converter={StaticResource NullToVisibilityConverter}}">
+                            <TextBlock Text="DNS-резолвер" FontWeight="Medium" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding LeakDns}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" Margin="110,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </controls:GlassPanel>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" Visibility="{Binding IsUpdatesPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource BackButton}"/>
+                <TextBlock Text="Обновления" Style="{StaticResource SubTitle}"/>
+            </StackPanel>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,16,0,0">
+                <Grid Margin="14,13">
+                    <Grid Visibility="{Binding ShowUpdateIdle, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding UpdateIdleText}" FontWeight="Medium" FontSize="{s:Fs 12}" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Style="{StaticResource ChipButton}" Content="Проверить обновления" Margin="12,0,0,0"
+                                Command="{Binding CheckForUpdateCommand}"/>
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Height="34"
+                                Visibility="{Binding ShowUpdateChecking, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <controls:Spinner Foreground="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Проверка обновлений…" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" Margin="10,0,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding ShowUpdateAvailable, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontWeight="Bold" FontSize="{s:Fs 14}" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center">
+                                <Run Text="Доступна версия "/><Run Text="{Binding AvailableUpdate.VersionLabel, Mode=OneWay}"/>
+                            </TextBlock>
+                            <controls:HoloBadge Text="НОВАЯ" Icon="✦" Reverse="True" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Border Background="{DynamicResource ChipBrush}" CornerRadius="16" Padding="12,10" Margin="0,10,0,0" MaxHeight="430"
+                                Visibility="{Binding HasUpdateChangelog, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <RichTextBox utils:RichTextBoxBehavior.AttachedDocument="{Binding UpdateChangelogDocument}"
+                                             IsReadOnly="True" IsDocumentEnabled="True" Focusable="False" BorderThickness="0" Background="Transparent"
+                                             Padding="0" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled"/>
+                            </ScrollViewer>
+                        </Border>
+                        <Button Style="{StaticResource AccentPillButton}" Height="44" FontSize="{s:Fs 13.5}" Margin="0,10,0,0"
+                                Content="Скачать и установить" Command="{Binding DownloadAndInstallUpdateCommand}"/>
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid>
+                            <TextBlock Text="Загрузка обновления…" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Text="{Binding DownloadPercentLabel}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" HorizontalAlignment="Right"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </Grid>
+                        <controls:ShimmerBar Value="{Binding DownloadProgress}" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </controls:GlassPanel>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" Visibility="{Binding IsAboutPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource BackButton}"/>
+                <TextBlock Text="О программе" Style="{StaticResource SubTitle}"/>
+            </StackPanel>
+            <Grid Margin="8,10,8,0">
+                <TextBlock Text="О ПРОГРАММЕ · НАЖМИ, ЧТОБЫ СКОПИРОВАТЬ" Style="{StaticResource SectionLabel}" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding CopiedToast}" FontWeight="Bold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TealDeepBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                           Visibility="{Binding CopiedToast, Converter={StaticResource NullToVisibilityConverter}}"/>
+            </Grid>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,8,0,0">
+                <StackPanel>
+                    <Button Style="{StaticResource AboutRowButton}" Content="Версия программы" Tag="{Binding AppVersion}"/>
+                    <Rectangle Style="{StaticResource Hair}"/>
+                    <Button Style="{StaticResource AboutRowButton}" Content="Версия XRAY" Tag="{Binding XrayVersion}"/>
+                    <Rectangle Style="{StaticResource Hair}"/>
+                    <Button Style="{StaticResource AboutRowButton}" Content="HWID" Tag="{Binding Hwid}"/>
+                    <Rectangle Style="{StaticResource Hair}"/>
+                    <Button Style="{StaticResource AboutRowButton}" Content="Об устройстве" Tag="{Binding DeviceInfo}"/>
+                </StackPanel>
+            </controls:GlassPanel>
+            <TextBlock Text="ЖУРНАЛЫ" Style="{StaticResource SectionLabel}" Margin="8,16,8,0"/>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,8,0,0">
+                <ItemsControl ItemsSource="{Binding LogFiles}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <Rectangle x:Name="Sep" Style="{StaticResource Hair}"/>
+                                <Button Style="{StaticResource RowButton}" Padding="14,12" AutomationProperties.Name="{Binding Label}"
+                                        Command="{Binding DataContext.OpenLogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Label}" FontWeight="Medium" FontSize="{s:Fs 13.5}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <Path Grid.Column="1" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="15" Height="15"
+                                              Fill="{DynamicResource TextSecondaryBrush}" Margin="12,0,0,0"/>
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                                    <Setter TargetName="Sep" Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </controls:GlassPanel>
+        </StackPanel>
+
+        <!-- ═══ Подэкран: Журнал сети (порт Android JournalScreen.kt) — аптайм по часам за сутки,
+             счётчики и лента событий постранично, без прокрутки ═══ -->
+        <Grid Margin="16,16,16,12" DataContext="{Binding Journal}"
+              Visibility="{Binding DataContext.IsJournalPage, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource BackButton}" Command="{Binding DataContext.BackCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock Text="Журнал сети" Style="{StaticResource SubTitle}"/>
+            </StackPanel>
+
+            <controls:SegmentedControl Grid.Row="1" ItemsSource="{Binding Days}" DisplayMemberPath="Label"
+                                       SelectedIndex="{Binding DayIndex, Mode=TwoWay}" Margin="0,14,0,0"/>
+
+            <controls:GlassPanel Grid.Row="2" Style="{StaticResource GlassCard}" Margin="0,8,0,0" Padding="16,12">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel VerticalAlignment="Bottom">
+                            <TextBlock Text="Под защитой" FontWeight="SemiBold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding ProtectedLabel}" FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding PercentLabel}" FontWeight="ExtraBold" FontSize="{s:Fs 24}" Foreground="{DynamicResource TealBrush}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Hours}" Height="56" Margin="0,8,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1" Columns="24"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Height="{Binding Height}" VerticalAlignment="Bottom" Margin="1.5,0" CornerRadius="3">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource TealBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Level}" Value="issue">
+                                                    <Setter Property="Background" Value="{DynamicResource TerracottaBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Level}" Value="empty">
+                                                    <Setter Property="Background" Value="{DynamicResource TrackBgBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Level}" Value="future">
+                                                    <Setter Property="Background" Value="{DynamicResource TrackBgBrush}"/>
+                                                    <Setter Property="Opacity" Value="0.45"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="00:00" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Left"/>
+                        <TextBlock Grid.Column="1" Text="06:00" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="12:00" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="18:00" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="4" Text="24:00" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                    </Grid>
+                </StackPanel>
+            </controls:GlassPanel>
+
+            <UniformGrid Grid.Row="3" Rows="1" Columns="3" Margin="-4,8,-4,0">
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="20" Margin="4,0" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Connects}" FontWeight="ExtraBold" FontSize="{s:Fs 20}"/>
+                        <TextBlock Text="подключения" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </controls:GlassPanel>
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="20" Margin="4,0" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Text="{Binding NetworkChanges}" FontWeight="ExtraBold" FontSize="{s:Fs 20}"/>
+                        <TextBlock Text="смены сети" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </controls:GlassPanel>
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="20" Margin="4,0" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Issues}" FontWeight="ExtraBold" FontSize="{s:Fs 20}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TerracottaBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Issues}" Value="0">
+                                            <Setter Property="Foreground" Value="{DynamicResource TealBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="сбои" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </controls:GlassPanel>
+            </UniformGrid>
+
+            <TextBlock Grid.Row="4" Text="СОБЫТИЯ" Style="{StaticResource SectionLabel}" Margin="8,14,8,0"/>
+            <controls:GlassPanel Grid.Row="5" Style="{StaticResource GlassCard}" Margin="0,8,0,0" VerticalAlignment="Top">
+                <Grid>
+                    <TextBlock Text="Пока тихо. События появятся, когда VPN начнёт работать." FontWeight="Medium" FontSize="{s:Fs 12.5}"
+                               LineHeight="{s:Fs 17}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" Margin="16,14"
+                               Visibility="{Binding HasEvents, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                    <controls:PagedItems ItemsSource="{Binding Events}"
+                                         Visibility="{Binding HasEvents, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <controls:PagedItems.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <Rectangle Style="{StaticResource PagedSep}"/>
+                                    <Grid Margin="14,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="44"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Time}" FontWeight="Bold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        <Ellipse Grid.Column="1" Width="8" Height="8" Margin="0,5,10,0" VerticalAlignment="Top">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="{DynamicResource OffDotBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Level}" Value="ok">
+                                                            <Setter Property="Fill" Value="{DynamicResource TealBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Level}" Value="issue">
+                                                            <Setter Property="Fill" Value="{DynamicResource TerracottaBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Level}" Value="switch">
+                                                            <Setter Property="Fill" Value="{DynamicResource WarningBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{s:Fs 13.5}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Text}" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap" MaxHeight="34" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"
+                                                       Visibility="{Binding HasText, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </DataTemplate>
+                        </controls:PagedItems.ItemTemplate>
+                    </controls:PagedItems>
+                </Grid>
+            </controls:GlassPanel>
+            <TextBlock Grid.Row="6" Text="Журнал хранится 7 дней и только на этом компьютере." FontSize="{s:Fs 11}"
+                       Foreground="{DynamicResource TextMutedBrush}" Margin="8,8,8,0" TextWrapping="Wrap"/>
+        </Grid>
+
+        <!-- ═══ Подэкран: Настройки пинга ═══ -->
+        <StackPanel Margin="18,18,18,10" Visibility="{Binding IsPingPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource BackButton}"/>
+                <TextBlock Text="Настройки пинга" Style="{StaticResource SubTitle}"/>
+            </StackPanel>
+
+            <TextBlock Text="ПРОВЕРКА СЕРВЕРОВ" Style="{StaticResource SectionLabel}" Margin="8,14,8,8"/>
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24">
+                <StackPanel Margin="16">
+                    <TextBlock Text="Способ пинга" FontWeight="SemiBold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <ItemsControl ItemsSource="{Binding PingMethods}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource RowButton}" Padding="4,8"
+                                        Command="{Binding DataContext.SelectPingMethodCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Grid Width="20" Height="20" VerticalAlignment="Center">
+                                            <Ellipse x:Name="Ring" StrokeThickness="2" Stroke="{DynamicResource TextSecondaryBrush}"/>
+                                            <Ellipse x:Name="Dot" Width="10" Height="10" Fill="{DynamicResource TealDeepBrush}" Visibility="Collapsed"/>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Label}" FontWeight="Medium" FontSize="{s:Fs 13}" Margin="12,0,0,0"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                        <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource TealDeepBrush}"/>
+                                        <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="URL для теста (через прокси)" FontWeight="SemiBold" FontSize="{s:Fs 11}"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,14,0,6"/>
+                    <TextBox Style="{StaticResource GlassTextBox}" FontSize="{s:Fs 12.5}"
+                             Text="{Binding PingTestUrl, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+            </controls:GlassPanel>
+        </StackPanel>
+
+        <!-- ═══ Подэкран: Правила Wi-Fi (доверенные сети — постранично) ═══ -->
+        <Grid Margin="16,16,16,12" Visibility="{Binding IsWifiPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource BackButton}"/>
+                <TextBlock Text="Правила Wi-Fi" Style="{StaticResource SubTitle}"/>
+            </StackPanel>
+            <StackPanel Grid.Row="1">
+                <TextBlock Text="АВТОМАТИЧЕСКИ" Style="{StaticResource SectionLabel}" Margin="8,14,8,0"/>
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,8,0,0">
+                    <StackPanel>
+                        <Grid Margin="14,13">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Включать VPN в чужих сетях" Style="{StaticResource RowTitle}"/>
+                                <TextBlock Text="При подключении к любой Wi-Fi не из списка доверенных" Style="{StaticResource RowSubtitle}"/>
+                            </StackPanel>
+                            <ToggleButton Grid.Column="1" Style="{StaticResource GlassSwitch}" Margin="12,0,0,0"
+                                          AutomationProperties.Name="Включать VPN в чужих сетях"
+                                          IsChecked="{Binding WifiAutoConnect, Mode=TwoWay}"/>
+                        </Grid>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Grid Margin="14,13">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Отключать VPN в доверенных сетях" Style="{StaticResource RowTitle}"/>
+                                <TextBlock Text="Например, дома — VPN выключится сам, когда компьютер подключится к этой сети" Style="{StaticResource RowSubtitle}"/>
+                            </StackPanel>
+                            <ToggleButton Grid.Column="1" Style="{StaticResource GlassSwitch}" Margin="12,0,0,0"
+                                          AutomationProperties.Name="Отключать VPN в доверенных сетях"
+                                          IsChecked="{Binding WifiDisconnectTrusted, Mode=TwoWay}"/>
+                        </Grid>
+                    </StackPanel>
+                </controls:GlassPanel>
+
+                <TextBlock Text="ТЕКУЩАЯ СЕТЬ" Style="{StaticResource SectionLabel}" Margin="8,16,8,0"/>
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,8,0,0">
+                    <Grid Margin="14,13">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource ChipBrush}" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconWifi}" Style="{StaticResource Icon}" Width="18" Height="18" Fill="{DynamicResource TealDeepBrush}"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding CurrentSsidTitle}" Style="{StaticResource RowTitle}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding CurrentSsidSubtitle}" Style="{StaticResource RowSubtitle}"
+                                       Visibility="{Binding CurrentSsidSubtitle, Converter={StaticResource NullToVisibilityConverter}}"/>
+                        </StackPanel>
+                        <Grid Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <Button Style="{StaticResource ChipButton}" Content="Доверять" Command="{Binding TrustCurrentCommand}"
+                                    Visibility="{Binding ShowTrustButton, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            <Button Style="{StaticResource ChipButton}" Content="Разрешить" Command="{Binding AllowLocationCommand}"
+                                    Visibility="{Binding ShowAllowButton, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        </Grid>
+                    </Grid>
+                </controls:GlassPanel>
+            </StackPanel>
+            <TextBlock Grid.Row="2" Text="ДОВЕРЕННЫЕ СЕТИ" Style="{StaticResource SectionLabel}" Margin="8,16,8,0"/>
+            <Grid Grid.Row="3">
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,8,0,0" VerticalAlignment="Top">
+                    <Grid>
+                        <TextBlock Text="Пока нет. Подключись к своей сети (дом, работа) и нажми «Доверять»." FontWeight="Medium" FontSize="{s:Fs 12}"
+                                   LineHeight="{s:Fs 17}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" Margin="14,13"
+                                   Visibility="{Binding TrustedEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <controls:PagedItems ItemsSource="{Binding TrustedSsids}">
+                            <controls:PagedItems.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <Rectangle Style="{StaticResource PagedSep}"/>
+                                        <Grid Margin="14,11,10,11">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding}" FontWeight="SemiBold" FontSize="{s:Fs 14}" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1" Style="{StaticResource BareButton}" Width="28" Height="28" Margin="12,0,0,0"
+                                                    AutomationProperties.Name="Удалить"
+                                                    Command="{Binding DataContext.RemoveTrustedCommand, RelativeSource={RelativeSource AncestorType=controls:PagedItems}}"
+                                                    CommandParameter="{Binding}">
+                                                <Border CornerRadius="14" Background="{DynamicResource HairBrush}">
+                                                    <Path Data="{StaticResource IconClose}" Style="{StaticResource Icon}" Width="12" Height="12"
+                                                          Fill="{DynamicResource TextPrimaryBrush}"/>
+                                                </Border>
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </controls:PagedItems.ItemTemplate>
+                        </controls:PagedItems>
+                    </Grid>
+                </controls:GlassPanel>
+            </Grid>
+            <StackPanel Grid.Row="4">
+                <TextBlock Text="Правила срабатывают при смене сети, пока приложение запущено — в том числе свёрнутым в трей."
+                           FontWeight="Medium" FontSize="{s:Fs 11}" LineHeight="{s:Fs 15}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="8,12,8,0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ═══ Подэкран: Сайты мимо VPN (домены — постранично) ═══ -->
+        <Grid Margin="16,16,16,12" Visibility="{Binding IsBypassPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource BackButton}"/>
+                    <TextBlock Text="Сайты мимо VPN" Style="{StaticResource SubTitle}"/>
+                </StackPanel>
+                <TextBlock Text="Трафик к этим сайтам (и их поддоменам) пойдёт напрямую через твоего провайдера, остальное — через VPN. Удобно для банков, госуслуг и локальных сервисов, которые не любят VPN."
+                           FontWeight="Medium" FontSize="{s:Fs 12}" LineHeight="{s:Fs 17}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="8,10,8,10"/>
+
+                <!-- Поле + "Добавить": капсула на Chip, обводка краснеет при ошибке. -->
+                <controls:PillBorder Height="50" Padding="16,0,6,0" BorderThickness="1" Background="{DynamicResource ChipBrush}">
+                    <controls:PillBorder.Style>
+                        <Style TargetType="controls:PillBorder">
+                            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding BypassError}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:PillBorder.Style>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding BypassInput, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"
+                                 FontSize="{s:Fs 13.5}" FontWeight="SemiBold" BorderThickness="0" Background="Transparent" Padding="0"
+                                 AutomationProperties.Name="Домен" KeyDown="OnBypassKeyDown"/>
+                        <TextBlock Text="Например, sberbank.ru" FontWeight="Medium" FontSize="{s:Fs 13.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" Margin="2,0,0,0" IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding BypassInput}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <Button Grid.Column="1" Style="{StaticResource AccentPillButton}" Height="38" FontSize="{s:Fs 12.5}" Margin="10,0,0,0"
+                                Content="Добавить" Command="{Binding AddBypassCommand}"/>
+                    </Grid>
+                </controls:PillBorder>
+                <TextBlock Text="Это не похоже на адрес сайта" FontWeight="SemiBold" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource DangerBrush}"
+                           Margin="12,8,12,0" Visibility="{Binding BypassError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                <Border CornerRadius="20" Background="{DynamicResource TealTintBrush}" Padding="14,8,8,8" Margin="0,10,0,0"
+                        Visibility="{Binding ShowBypassApply, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Изменения применятся после переподключения VPN" FontWeight="SemiBold" FontSize="{s:Fs 12}" LineHeight="{s:Fs 16}"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Style="{StaticResource ChipButton}" Content="Применить" Margin="10,0,0,0"
+                                Command="{Binding ApplyBypassCommand}"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+            <TextBlock Grid.Row="1" Text="{Binding BypassListLabel}" Style="{StaticResource SectionLabel}" Margin="8,16,8,0"/>
+            <Grid Grid.Row="2">
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,8,0,0" VerticalAlignment="Top">
+                    <Grid>
+                        <TextBlock Text="Список пуст — весь трафик идёт через VPN." FontWeight="Medium" FontSize="{s:Fs 12}" LineHeight="{s:Fs 17}" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="14,13"
+                                   Visibility="{Binding BypassEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <controls:PagedItems ItemsSource="{Binding BypassDomains}">
+                            <controls:PagedItems.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <Rectangle Style="{StaticResource PagedSep}"/>
+                                        <Grid Margin="14,10,10,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Shown}" FontWeight="SemiBold" FontSize="{s:Fs 14}" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                <TextBlock Text="вместе с поддоменами" FontWeight="Medium" FontSize="{s:Fs 11}" Margin="0,1,0,0"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Style="{StaticResource BareButton}" Width="28" Height="28" Margin="12,0,0,0"
+                                                    AutomationProperties.Name="Удалить"
+                                                    Command="{Binding DataContext.RemoveBypassCommand, RelativeSource={RelativeSource AncestorType=controls:PagedItems}}"
+                                                    CommandParameter="{Binding}">
+                                                <Border CornerRadius="14" Background="{DynamicResource HairBrush}">
+                                                    <Path Data="{StaticResource IconClose}" Style="{StaticResource Icon}" Width="12" Height="12"
+                                                          Fill="{DynamicResource TextPrimaryBrush}"/>
+                                                </Border>
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </controls:PagedItems.ItemTemplate>
+                        </controls:PagedItems>
+                    </Grid>
+                </controls:GlassPanel>
+            </Grid>
+        </Grid>
+
+        <!-- ═══ Подэкран: просмотр журнала ═══ -->
+        <Grid Margin="18,18,18,10" Visibility="{Binding IsLogPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource BackButton}"/>
+                <TextBlock Grid.Column="1" Text="{Binding SelectedLogFile.Label}" Style="{StaticResource SubTitle}"/>
+                <Button Grid.Column="2" Style="{StaticResource GlassCircleButton}" Margin="10,0,0,0" Command="{Binding RefreshLogCommand}"
+                        ToolTip="Обновить">
+                    <Path Data="{StaticResource IconRefresh}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource TealDeepBrush}"/>
+                </Button>
+            </Grid>
+
+            <controls:GlassPanel Grid.Row="1" Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,14,0,0">
+                <Grid Margin="4">
+                    <TextBox Text="{Binding LogContent, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" TextChanged="OnLogTextChanged"
+                             FontFamily="Consolas" FontSize="{s:Fs 10.5}" Padding="8" VerticalContentAlignment="Stretch"
+                             Foreground="{DynamicResource TextPrimaryBrush}" CaretBrush="{DynamicResource TextPrimaryBrush}"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             BorderThickness="0" Background="Transparent"/>
+                    <TextBlock Text="Журнал пока пуст." FontWeight="Medium" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                               Visibility="{Binding IsLogEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </Grid>
+            </controls:GlassPanel>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
+                <Button Style="{StaticResource ChipButton}" Content="Копировать всё" Command="{Binding CopyLogCommand}" Margin="0,0,8,0"/>
+                <Button Style="{StaticResource ChipButton}" Content="Открыть папку" Command="{Binding OpenLogsFolderCommand}"/>
+            </StackPanel>
+        </Grid>
+
+    </Grid>
+</UserControl>

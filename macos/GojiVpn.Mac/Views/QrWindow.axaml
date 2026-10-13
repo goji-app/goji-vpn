@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+        xmlns:c="using:GodjiVpn.Controls"
+        x:Class="GodjiVpn.Views.QrWindow"
+        Title="Goji VPN" Width="380" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource BgSolidBrush}">
+    <!-- QR-код текста: заголовок, пояснение, код на белой подложке, предупреждение, "Закрыть". -->
+    <Panel>
+        <c:GlassBackdrop/>
+        <c:GlassPanel Classes="strong" CornerRadius="28" Margin="16">
+            <StackPanel Margin="20">
+                <TextBlock Name="TitleBlock" FontWeight="Bold" FontSize="{s:Fs 20}" TextAlignment="Center" TextWrapping="Wrap"/>
+                <TextBlock Name="SubtitleBlock" Classes="muted" LineHeight="{s:Fs 17}" TextAlignment="Center" Margin="0,8,0,0"/>
+                <Border Name="QrBox" Width="236" Height="236" CornerRadius="20" Background="White" BorderBrush="{DynamicResource CardBorderBrush}"
+                        BorderThickness="1" Padding="14" Margin="0,14,0,0" HorizontalAlignment="Center">
+                    <Image Name="QrImage" RenderOptions.BitmapInterpolationMode="None"/>
+                </Border>
+                <Border Name="WarningBox" CornerRadius="14" Background="{DynamicResource TerracottaTintBrush}" Padding="12,9"
+                        Margin="0,12,0,0" IsVisible="False">
+                    <TextBlock Name="WarningBlock" FontWeight="SemiBold" FontSize="{s:Fs 11.5}" LineHeight="{s:Fs 16}" TextAlignment="Center"
+                               TextWrapping="Wrap" Foreground="{DynamicResource DangerBrush}"/>
+                </Border>
+                <TextBlock Name="CaptionBlock" FontWeight="SemiBold" FontSize="{s:Fs 12}" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,12,0,0"/>
+                <Button Name="CloseBtn" Classes="chip" Content="Закрыть" Height="44" Margin="0,14,0,0" HorizontalAlignment="Stretch"
+                        Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{s:Fs 13.5}" IsCancel="True"/>
+            </StackPanel>
+        </c:GlassPanel>
+    </Panel>
+</Window>

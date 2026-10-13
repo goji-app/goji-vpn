@@ -1,0 +1,13 @@
+bin/
+obj/
+publish_stage/
+dist/
+.vs/
+.claude/
+
+# Бинарники ядра (Xray-core, sing-box, Wintun, geoip/geosite) — не входят в исходники,
+# скачиваются отдельно по инструкции в GodjiVpn/Runtime/README.txt. Десятки МБ каждый,
+# незачем раздувать историю репозитория.
+GodjiVpn/Runtime/*.exe
+GodjiVpn/Runtime/*.dll
+GodjiVpn/Runtime/*.dat

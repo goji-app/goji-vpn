@@ -1,0 +1,571 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+             xmlns:c="using:GodjiVpn.Controls"
+             xmlns:conv="using:GodjiVpn.Converters"
+             x:Class="GodjiVpn.Views.SettingsView">
+    <!-- Настройки v5 «Стекло» — как SettingsView Windows-клиента (без правил Wi-Fi):
+         главная страница — список разделов, каждый раздел — свой подэкран (без прокрутки);
+         длинные списки — постранично (PagedItems). -->
+    <UserControl.Styles>
+        <Style Selector="ItemsControl.rows ContentPresenter:nth-child(1) Rectangle.sep">
+            <Setter Property="IsVisible" Value="False"/>
+        </Style>
+        <Style Selector="Border.verdict"><Setter Property="Background" Value="{DynamicResource TerracottaTintBrush}"/></Style>
+        <Style Selector="Border.verdict.ok"><Setter Property="Background" Value="{DynamicResource TealTintBrush}"/></Style>
+        <Style Selector="Border.verdictDot"><Setter Property="Background" Value="{DynamicResource TerracottaBrush}"/></Style>
+        <Style Selector="Border.verdictDot.ok"><Setter Property="Background" Value="{DynamicResource TealBrush}"/></Style>
+        <Style Selector="Path.verdictIcon"><Setter Property="Data" Value="{StaticResource IconPriorityHigh}"/></Style>
+        <Style Selector="Path.verdictIcon.ok"><Setter Property="Data" Value="{StaticResource IconCheck}"/></Style>
+        <Style Selector="Ellipse.radioRing"><Setter Property="Stroke" Value="{DynamicResource TextSecondaryBrush}"/></Style>
+        <Style Selector="Ellipse.radioRing.on"><Setter Property="Stroke" Value="{DynamicResource TealDeepBrush}"/></Style>
+        <Style Selector="Border.bypassBox"><Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/></Style>
+        <Style Selector="Border.bypassBox.error"><Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/></Style>
+        <Style Selector="Border.hour"><Setter Property="Background" Value="{DynamicResource TealBrush}"/></Style>
+        <Style Selector="Border.hour.issue"><Setter Property="Background" Value="{DynamicResource TerracottaBrush}"/></Style>
+        <Style Selector="Border.hour.empty"><Setter Property="Background" Value="{DynamicResource TrackBgBrush}"/></Style>
+        <Style Selector="Border.hour.future">
+            <Setter Property="Background" Value="{DynamicResource TrackBgBrush}"/>
+            <Setter Property="Opacity" Value="0.45"/>
+        </Style>
+        <Style Selector="TextBlock.hourTick">
+            <Setter Property="FontSize" Value="{s:Fs 10.5}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+        </Style>
+        <Style Selector="TextBlock.issues"><Setter Property="Foreground" Value="{DynamicResource TerracottaBrush}"/></Style>
+        <Style Selector="TextBlock.issues.none"><Setter Property="Foreground" Value="{DynamicResource TealBrush}"/></Style>
+        <Style Selector="Ellipse.eventDot"><Setter Property="Fill" Value="{DynamicResource OffDotBrush}"/></Style>
+        <Style Selector="Ellipse.eventDot.ok"><Setter Property="Fill" Value="{DynamicResource TealBrush}"/></Style>
+        <Style Selector="Ellipse.eventDot.issue"><Setter Property="Fill" Value="{DynamicResource TerracottaBrush}"/></Style>
+        <Style Selector="Ellipse.eventDot.switch"><Setter Property="Fill" Value="{DynamicResource WarningBrush}"/></Style>
+        <Style Selector="Button.back">
+            <Setter Property="Padding" Value="0,0,10,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Styles>
+    <Panel>
+
+        <!-- ═══ Основной экран: разделы (без прокрутки — каждый раздел отдельным подэкраном) ═══ -->
+        <StackPanel Margin="16,16,16,12" IsVisible="{Binding IsMainPage}">
+            <TextBlock Classes="title" Text="Настройки" Margin="4,0,4,10"/>
+            <c:GlassPanel Classes="card" CornerRadius="24">
+                <StackPanel>
+                    <Button Classes="row" AutomationProperties.Name="Внешний вид" Command="{Binding OpenAppearanceCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Внешний вид"/>
+                                <TextBlock Classes="rowSub" Text="Тема и размер шрифта"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" AutomationProperties.Name="Подключение" Command="{Binding OpenConnectionCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Подключение"/>
+                                <TextBlock Classes="rowSub" Text="Журнал сети, пинг, сайты мимо VPN"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" AutomationProperties.Name="Безопасность" Command="{Binding OpenSecurityCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Безопасность"/>
+                                <TextBlock Classes="rowSub" Text="Проверка утечек IP и DNS"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" AutomationProperties.Name="Обновления" Command="{Binding OpenUpdatesCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Обновления"/>
+                                <TextBlock Classes="rowSub" Text="Версия программы и новые выпуски"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" AutomationProperties.Name="О программе" Command="{Binding OpenAboutCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="О программе"/>
+                                <TextBlock Classes="rowSub" Text="Версии, HWID, журналы"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </c:GlassPanel>
+            <c:GlassPanel Classes="card" CornerRadius="24" Margin="0,12,0,0">
+                    <Button Classes="row" AutomationProperties.Name="Написать в поддержку" Command="{Binding OpenSupportCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Написать в поддержку"/>
+                                <TextBlock Classes="rowSub" Text="Обращения и переписка прямо в приложении"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+            </c:GlassPanel>
+            <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,12,0,0" Command="{Binding LogoutCommand}">
+                <c:GlassPanel Classes="card" CornerRadius="24" Height="50">
+                    <TextBlock Text="Выйти из аккаунта" FontWeight="Bold" FontSize="{s:Fs 14}" Foreground="{DynamicResource DangerBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </c:GlassPanel>
+            </Button>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" IsVisible="{Binding IsAppearancePage}">
+            <StackPanel Orientation="Horizontal">
+                <Button Classes="bare back" Command="{Binding BackCommand}">
+                    <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                </Button>
+                <TextBlock Classes="subTitle" Text="Внешний вид" FontSize="{s:Fs 24}"/>
+            </StackPanel>
+            <c:GlassPanel Classes="card" CornerRadius="24" Margin="0,16,0,0">
+                <StackPanel Margin="14,13">
+                    <TextBlock Classes="rowTitle" Text="Тема оформления"/>
+                    <c:SegmentedControl ItemsSource="{Binding ThemeModes}" DisplayMemberPath="Label"
+                                        SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}" Margin="0,9,0,0"/>
+                    <TextBlock Classes="rowTitle" Text="Размер шрифта" Margin="0,14,0,0"/>
+                    <c:SegmentedControl ItemsSource="{Binding FontSizes}" DisplayMemberPath="Label"
+                                        SelectedIndex="{Binding FontSizeIndex, Mode=TwoWay}" Margin="0,9,0,0"/>
+                </StackPanel>
+            </c:GlassPanel>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" IsVisible="{Binding IsConnectionPage}">
+            <StackPanel Orientation="Horizontal">
+                <Button Classes="bare back" Command="{Binding BackCommand}">
+                    <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                </Button>
+                <TextBlock Classes="subTitle" Text="Подключение" FontSize="{s:Fs 24}"/>
+            </StackPanel>
+            <c:GlassPanel Classes="card" CornerRadius="24" Margin="0,16,0,0">
+                <StackPanel>
+                    <Button Classes="row" AutomationProperties.Name="Журнал сети" Command="{Binding OpenJournalCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Журнал сети"/>
+                                <TextBlock Classes="rowSub" Text="Когда VPN работал, смены сети и сбои"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" AutomationProperties.Name="Настройки пинга" Command="{Binding OpenPingSettingsCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Настройки пинга"/>
+                                <TextBlock Classes="rowSub" Text="Способ проверки и URL теста"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" AutomationProperties.Name="Сайты мимо VPN" Command="{Binding OpenBypassCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Сайты мимо VPN"/>
+                                <TextBlock Classes="rowSub" Text="Домены, которые открываются напрямую"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </c:GlassPanel>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" IsVisible="{Binding IsSecurityPage}">
+            <StackPanel Orientation="Horizontal">
+                <Button Classes="bare back" Command="{Binding BackCommand}">
+                    <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                </Button>
+                <TextBlock Classes="subTitle" Text="Безопасность" FontSize="{s:Fs 24}"/>
+            </StackPanel>
+            <c:GlassPanel Classes="card" CornerRadius="24" Margin="0,16,0,0">
+                <StackPanel Margin="14,13">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="rowTitle" Text="Проверка утечек"/>
+                            <TextBlock Classes="rowSub" Text="Идут ли IP и DNS-запросы через VPN"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="chip" Margin="12,0,0,0" Command="{Binding CheckLeakCommand}">
+                            <Panel>
+                                <TextBlock Text="Проверить" IsVisible="{Binding !LeakChecking}"/>
+                                <StackPanel Orientation="Horizontal" IsVisible="{Binding LeakChecking}">
+                                    <c:Spinner Width="13" Height="13" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Проверяем…" Margin="7,0,0,0"/>
+                                </StackPanel>
+                            </Panel>
+                        </Button>
+                    </Grid>
+                    <StackPanel IsVisible="{Binding HasLeakReport}">
+                        <Border Classes="verdict" Classes.ok="{Binding LeakOk}" CornerRadius="18" Padding="12,11" Margin="0,12,0,0">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <Border Classes="verdictDot" Classes.ok="{Binding LeakOk}" Width="28" Height="28" CornerRadius="14" VerticalAlignment="Center">
+                                    <Path Classes="icon white verdictIcon" Classes.ok="{Binding LeakOk}" Width="15" Height="15"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding LeakTitle}" FontWeight="Bold" FontSize="{s:Fs 14}"/>
+                                    <TextBlock Classes="muted" Text="{Binding LeakDesc}" FontSize="{s:Fs 11.5}" LineHeight="{s:Fs 16}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Grid ColumnDefinitions="Auto,*" Margin="0,12,0,0" IsVisible="{Binding LeakSiteIp, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Classes="muted" Text="IP для сайтов" FontSize="{s:Fs 12.5}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding LeakSiteIp}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+                        </Grid>
+                        <Grid ColumnDefinitions="Auto,*" Margin="0,10,0,0" IsVisible="{Binding LeakRealIp, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Classes="muted" Text="Настоящий IP" FontSize="{s:Fs 12.5}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding LeakRealIp}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+                        </Grid>
+                        <Grid ColumnDefinitions="Auto,*" Margin="0,10,0,0" IsVisible="{Binding LeakDns, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Classes="muted" Text="DNS-резолвер" FontSize="{s:Fs 12.5}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding LeakDns}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </c:GlassPanel>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" IsVisible="{Binding IsUpdatesPage}">
+            <StackPanel Orientation="Horizontal">
+                <Button Classes="bare back" Command="{Binding BackCommand}">
+                    <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                </Button>
+                <TextBlock Classes="subTitle" Text="Обновления" FontSize="{s:Fs 24}"/>
+            </StackPanel>
+            <c:GlassPanel Classes="card" CornerRadius="24" Margin="0,16,0,0">
+                <Panel Margin="14,13">
+                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding ShowUpdateIdle}">
+                        <TextBlock Classes="muted" Text="{Binding UpdateIdleText}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="chip" Content="Проверить обновления" Margin="12,0,0,0" Command="{Binding CheckForUpdateCommand}"/>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Height="34" IsVisible="{Binding ShowUpdateChecking}">
+                        <c:Spinner VerticalAlignment="Center"/>
+                        <TextBlock Classes="muted" Text="Проверка обновлений…" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel IsVisible="{Binding ShowUpdateAvailable}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontWeight="Bold" FontSize="{s:Fs 14}" VerticalAlignment="Center"
+                                       Text="{Binding AvailableUpdate.VersionLabel, StringFormat='Доступна версия {0}'}"/>
+                            <c:HoloBadge Text="НОВАЯ" Icon="✦" Reverse="True" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <Border Background="{DynamicResource ChipBrush}" CornerRadius="16" Padding="12,10" Margin="0,10,0,0" MaxHeight="430"
+                                IsVisible="{Binding HasUpdateChangelog}">
+                            <ScrollViewer>
+                                <SelectableTextBlock Text="{Binding UpdateChangelogText}" FontSize="{s:Fs 12.5}" TextWrapping="Wrap"
+                                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            </ScrollViewer>
+                        </Border>
+                        <Button Classes="accent" Height="44" FontSize="{s:Fs 13.5}" Margin="0,10,0,0" Content="Скачать обновление"
+                                Command="{Binding DownloadAndInstallUpdateCommand}"/>
+                    </StackPanel>
+                    <StackPanel IsVisible="{Binding IsDownloadingUpdate}">
+                        <Grid>
+                            <TextBlock Text="Загрузка обновления…" FontWeight="SemiBold" FontSize="{s:Fs 12.5}"/>
+                            <TextBlock Classes="muted" Text="{Binding DownloadPercentLabel}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <c:ShimmerBar Value="{Binding DownloadProgress}" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Panel>
+            </c:GlassPanel>
+        </StackPanel>
+
+        <StackPanel Margin="16,16,16,12" IsVisible="{Binding IsAboutPage}">
+            <StackPanel Orientation="Horizontal">
+                <Button Classes="bare back" Command="{Binding BackCommand}">
+                    <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                </Button>
+                <TextBlock Classes="subTitle" Text="О программе" FontSize="{s:Fs 24}"/>
+            </StackPanel>
+            <Grid Margin="8,10,8,8">
+                <TextBlock Classes="section" Text="О ПРОГРАММЕ · НАЖМИ, ЧТОБЫ СКОПИРОВАТЬ" Margin="0"/>
+                <TextBlock Text="{Binding CopiedToast}" FontWeight="Bold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TealDeepBrush}"
+                           HorizontalAlignment="Right" IsVisible="{Binding CopiedToast, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </Grid>
+            <c:GlassPanel Classes="card" CornerRadius="24">
+                <StackPanel>
+                    <Button Classes="row" Padding="14,12" Command="{Binding CopyAboutCommand}" CommandParameter="{Binding AppVersion}">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Classes="muted" Text="Версия программы" FontSize="{s:Fs 13}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding AppVersion}" FontWeight="SemiBold" FontSize="{s:Fs 13}" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" Padding="14,12" Command="{Binding CopyAboutCommand}" CommandParameter="{Binding XrayVersion}">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Classes="muted" Text="Версия XRAY" FontSize="{s:Fs 13}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding XrayVersion}" FontWeight="SemiBold" FontSize="{s:Fs 13}" TextAlignment="Right" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" Padding="14,12" Command="{Binding CopyAboutCommand}" CommandParameter="{Binding Hwid}">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Classes="muted" Text="HWID" FontSize="{s:Fs 13}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Hwid}" FontWeight="SemiBold" FontSize="{s:Fs 13}" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" Padding="14,12" Command="{Binding CopyAboutCommand}" CommandParameter="{Binding DeviceInfo}">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Classes="muted" Text="Об устройстве" FontSize="{s:Fs 13}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding DeviceInfo}" FontWeight="SemiBold" FontSize="{s:Fs 13}" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </c:GlassPanel>
+            <TextBlock Classes="section" Text="ЖУРНАЛЫ"/>
+            <c:GlassPanel Classes="card" CornerRadius="24">
+                <ItemsControl Classes="rows" ItemsSource="{Binding LogFiles}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <Rectangle Classes="hair sep"/>
+                                <Button Classes="row" Padding="14,12"
+                                        Command="{Binding $parent[ItemsControl].DataContext.OpenLogCommand}" CommandParameter="{Binding}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{Binding Label}" FontWeight="Medium" FontSize="{s:Fs 13.5}"/>
+                                        <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </c:GlassPanel>
+        </StackPanel>
+
+        <!-- ═══ Подэкран: Журнал сети (порт Android JournalScreen.kt, как в Windows-клиенте) ═══ -->
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="16,16,16,12" IsVisible="{Binding IsJournalPage}">
+            <StackPanel Orientation="Horizontal">
+                <Button Classes="bare back" Command="{Binding BackCommand}">
+                    <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                </Button>
+                <TextBlock Classes="subTitle" Text="Журнал сети" FontSize="{s:Fs 24}"/>
+            </StackPanel>
+
+            <c:SegmentedControl Grid.Row="1" ItemsSource="{Binding Journal.Days}" DisplayMemberPath="Label"
+                                SelectedIndex="{Binding Journal.DayIndex, Mode=TwoWay}" Margin="0,14,0,0"/>
+
+            <c:GlassPanel Grid.Row="2" Classes="card" Margin="0,8,0,0" Padding="16,12">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel VerticalAlignment="Bottom">
+                            <TextBlock Text="Под защитой" FontWeight="SemiBold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding Journal.ProtectedLabel}" FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Journal.PercentLabel}" FontWeight="ExtraBold" FontSize="{s:Fs 24}" Foreground="{DynamicResource TealBrush}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Journal.Hours}" Height="56" Margin="0,8,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1" Columns="24"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="hour" Height="{Binding Height}" VerticalAlignment="Bottom" Margin="1.5,0" CornerRadius="3"
+                                        Classes.issue="{Binding Level, Converter={x:Static conv:Conv.StringIn}, ConverterParameter='issue'}"
+                                        Classes.empty="{Binding Level, Converter={x:Static conv:Conv.StringIn}, ConverterParameter='empty'}"
+                                        Classes.future="{Binding Level, Converter={x:Static conv:Conv.StringIn}, ConverterParameter='future'}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Grid ColumnDefinitions="*,*,*,*,*" Margin="0,8,0,0">
+                        <TextBlock Grid.Column="0" Classes="hourTick" Text="00:00" HorizontalAlignment="Left"/>
+                        <TextBlock Grid.Column="1" Classes="hourTick" Text="06:00" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Classes="hourTick" Text="12:00" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Classes="hourTick" Text="18:00" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="4" Classes="hourTick" Text="24:00" HorizontalAlignment="Right"/>
+                    </Grid>
+                </StackPanel>
+            </c:GlassPanel>
+
+            <UniformGrid Grid.Row="3" Rows="1" Columns="3" Margin="-4,8,-4,0">
+                <c:GlassPanel Classes="card" CornerRadius="20" Margin="4,0" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Journal.Connects}" FontWeight="ExtraBold" FontSize="{s:Fs 20}"/>
+                        <TextBlock Text="подключения" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </c:GlassPanel>
+                <c:GlassPanel Classes="card" CornerRadius="20" Margin="4,0" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Journal.NetworkChanges}" FontWeight="ExtraBold" FontSize="{s:Fs 20}"/>
+                        <TextBlock Text="смены сети" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </c:GlassPanel>
+                <c:GlassPanel Classes="card" CornerRadius="20" Margin="4,0" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Classes="issues" Classes.none="{Binding Journal.Issues, Converter={x:Static conv:Conv.IsZero}}"
+                                   Text="{Binding Journal.Issues}" FontWeight="ExtraBold" FontSize="{s:Fs 20}"/>
+                        <TextBlock Text="сбои" FontWeight="Medium" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </c:GlassPanel>
+            </UniformGrid>
+
+            <TextBlock Grid.Row="4" Classes="section" Text="СОБЫТИЯ" Margin="8,14,8,0"/>
+            <c:GlassPanel Grid.Row="5" Classes="card" Margin="0,8,0,0" VerticalAlignment="Top">
+                <Panel>
+                    <TextBlock Classes="muted" Text="Пока тихо. События появятся, когда VPN начнёт работать." FontSize="{s:Fs 12.5}"
+                               LineHeight="{s:Fs 17}" TextWrapping="Wrap" Margin="16,14" IsVisible="{Binding !Journal.HasEvents}"/>
+                    <c:PagedItems ItemsSource="{Binding Journal.Events}" IsVisible="{Binding Journal.HasEvents}">
+                        <c:PagedItems.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <Rectangle Classes="hair pagedSep"/>
+                                    <Grid ColumnDefinitions="44,Auto,*" Margin="14,10">
+                                        <TextBlock Text="{Binding Time}" FontWeight="Bold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        <Ellipse Grid.Column="1" Classes="eventDot" Width="8" Height="8" Margin="0,5,10,0" VerticalAlignment="Top"
+                                                 Classes.ok="{Binding Level, Converter={x:Static conv:Conv.StringIn}, ConverterParameter='ok'}"
+                                                 Classes.issue="{Binding Level, Converter={x:Static conv:Conv.StringIn}, ConverterParameter='issue'}"
+                                                 Classes.switch="{Binding Level, Converter={x:Static conv:Conv.StringIn}, ConverterParameter='switch'}"/>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{s:Fs 13.5}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Text}" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap" MaxHeight="34" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"
+                                                       IsVisible="{Binding HasText}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </DataTemplate>
+                        </c:PagedItems.ItemTemplate>
+                    </c:PagedItems>
+                </Panel>
+            </c:GlassPanel>
+            <TextBlock Grid.Row="6" Text="Журнал хранится 7 дней и только на этом компьютере." FontSize="{s:Fs 11}"
+                       Foreground="{DynamicResource TextMutedBrush}" Margin="8,8,8,0" TextWrapping="Wrap"/>
+        </Grid>
+
+        <Panel IsVisible="{Binding IsPingPage}">
+            <StackPanel Margin="18,18,18,10">
+                <StackPanel Orientation="Horizontal">
+                    <Button Classes="bare back" Command="{Binding BackCommand}">
+                        <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                    </Button>
+                    <TextBlock Classes="subTitle" Text="Настройки пинга" FontSize="{s:Fs 24}"/>
+                </StackPanel>
+                <TextBlock Classes="section" Text="ПРОВЕРКА СЕРВЕРОВ" Margin="8,14,8,8"/>
+                <c:GlassPanel Classes="card" CornerRadius="24">
+                    <StackPanel Margin="16">
+                        <TextBlock Classes="muted" Text="Способ пинга" FontWeight="SemiBold" FontSize="{s:Fs 11}" Margin="0,0,0,6"/>
+                        <ItemsControl ItemsSource="{Binding PingMethods}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Classes="row" Padding="4,8"
+                                            Command="{Binding $parent[ItemsControl].DataContext.SelectPingMethodCommand}" CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Panel Width="20" Height="20" VerticalAlignment="Center">
+                                                <Ellipse Classes="radioRing" Classes.on="{Binding IsSelected}" StrokeThickness="2"/>
+                                                <Ellipse Width="10" Height="10" Fill="{DynamicResource TealDeepBrush}" IsVisible="{Binding IsSelected}"/>
+                                            </Panel>
+                                            <TextBlock Text="{Binding Label}" FontWeight="Medium" FontSize="{s:Fs 13}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Classes="muted" Text="URL для теста (через прокси)" FontWeight="SemiBold" FontSize="{s:Fs 11}" Margin="0,14,0,6"/>
+                        <TextBox Classes="glass" FontSize="{s:Fs 12.5}" Text="{Binding PingTestUrl}"/>
+                    </StackPanel>
+                </c:GlassPanel>
+            </StackPanel>
+        </Panel>
+
+        <!-- ═══ Подэкран: Сайты мимо VPN (домены — постранично) ═══ -->
+        <Grid RowDefinitions="Auto,Auto,*" Margin="16,16,16,12" IsVisible="{Binding IsBypassPage}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Classes="bare back" Command="{Binding BackCommand}">
+                        <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                    </Button>
+                    <TextBlock Classes="subTitle" Text="Сайты мимо VPN" FontSize="{s:Fs 24}"/>
+                </StackPanel>
+                <TextBlock Classes="muted" LineHeight="{s:Fs 17}" Margin="8,10,8,10"
+                           Text="Трафик к этим сайтам (и их поддоменам) пойдёт напрямую через твоего провайдера, остальное — через VPN. Удобно для банков, госуслуг и локальных сервисов, которые не любят VPN."/>
+                <Border Classes="bypassBox" Classes.error="{Binding BypassError}" Height="50" Padding="16,0,6,0" CornerRadius="25"
+                        BorderThickness="1" Background="{DynamicResource ChipBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Name="BypassBox" Classes="bare" Text="{Binding BypassInput}" VerticalAlignment="Center" FontSize="{s:Fs 13.5}" FontWeight="SemiBold"
+                                 Watermark="Например, sberbank.ru"/>
+                        <Button Grid.Column="1" Classes="accent" Height="38" FontSize="{s:Fs 12.5}" Margin="10,0,0,0" Content="Добавить"
+                                HorizontalAlignment="Right" Command="{Binding AddBypassCommand}"/>
+                    </Grid>
+                </Border>
+                <TextBlock Classes="error" Text="Это не похоже на адрес сайта" FontWeight="SemiBold" FontSize="{s:Fs 11.5}" Margin="12,8,12,0"
+                           IsVisible="{Binding BypassError}"/>
+                <Border CornerRadius="20" Background="{DynamicResource TealTintBrush}" Padding="14,8,8,8" Margin="0,10,0,0" IsVisible="{Binding ShowBypassApply}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Изменения применятся после переподключения VPN" FontWeight="SemiBold" FontSize="{s:Fs 12}" LineHeight="{s:Fs 16}"
+                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="chip" Content="Применить" Margin="10,0,0,0" Command="{Binding ApplyBypassCommand}"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+            <TextBlock Grid.Row="1" Classes="section" Text="{Binding BypassListLabel}"/>
+            <Panel Grid.Row="2">
+                <c:GlassPanel Classes="card" CornerRadius="24" VerticalAlignment="Top">
+                    <Panel>
+                        <TextBlock Classes="muted" Text="Список пуст — весь трафик идёт через VPN." LineHeight="{s:Fs 17}" Margin="14,13" IsVisible="{Binding BypassEmpty}"/>
+                        <c:PagedItems ItemsSource="{Binding BypassDomains}">
+                            <c:PagedItems.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <Rectangle Classes="hair pagedSep"/>
+                                        <Grid ColumnDefinitions="*,Auto" Margin="14,10,10,10">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Shown}" FontWeight="SemiBold" FontSize="{s:Fs 14}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Classes="muted" Text="вместе с поддоменами" FontSize="{s:Fs 11}" Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Classes="bare" Width="28" Height="28" Margin="12,0,0,0"
+                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveBypassCommand}" CommandParameter="{Binding}">
+                                                <Border CornerRadius="14" Background="{DynamicResource HairBrush}">
+                                                    <Path Classes="icon" Data="{StaticResource IconClose}" Width="12" Height="12"/>
+                                                </Border>
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </c:PagedItems.ItemTemplate>
+                        </c:PagedItems>
+                    </Panel>
+                </c:GlassPanel>
+            </Panel>
+        </Grid>
+
+        <!-- ═══ Подэкран: просмотр журнала ═══ -->
+        <Grid RowDefinitions="Auto,*,Auto" Margin="18,18,18,10" IsVisible="{Binding IsLogPage}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Button Classes="bare back" Command="{Binding BackCommand}">
+                    <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                </Button>
+                <TextBlock Grid.Column="1" Classes="subTitle" Text="{Binding SelectedLogFile.Label}" FontSize="{s:Fs 24}"/>
+                <Button Grid.Column="2" Classes="circle" Margin="10,0,0,0" Command="{Binding RefreshLogCommand}" ToolTip.Tip="Обновить">
+                    <Path Classes="icon teal" Data="{StaticResource IconRefresh}" Width="16" Height="16"/>
+                </Button>
+            </Grid>
+            <c:GlassPanel Grid.Row="1" Classes="card" CornerRadius="24" Margin="0,14,0,0">
+                <Panel Margin="4">
+                    <TextBox Name="LogBox" Classes="bare" Text="{Binding LogContent}" IsReadOnly="True" TextWrapping="NoWrap"
+                             FontFamily="Menlo, Consolas, Courier New" FontSize="{s:Fs 10.5}" Padding="8" VerticalContentAlignment="Top"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                    <TextBlock Classes="muted" Text="Журнал пока пуст." FontSize="{s:Fs 13}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               IsHitTestVisible="False" IsVisible="{Binding IsLogEmpty}"/>
+                </Panel>
+            </c:GlassPanel>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0" Spacing="8">
+                <Button Classes="chip" Content="Копировать всё" Command="{Binding CopyLogCommand}"/>
+                <Button Classes="chip" Content="Открыть папку" Command="{Binding OpenLogsFolderCommand}"/>
+            </StackPanel>
+        </Grid>
+
+    </Panel>
+</UserControl>

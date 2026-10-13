@@ -1,0 +1,515 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+                    xmlns:controls="clr-namespace:GodjiVpn.Controls">
+
+    <!-- Компоненты «Goji Expressive» (Material 3 Expressive, порт ui/theme/* из Android 163f5ab;
+         имена стилей v5 «Стекло» сохранены, чтобы не трогать экраны). Цвета — только
+         DynamicResource из словаря темы (Themes/LightTheme.xaml / DarkTheme.xaml), чтобы смена
+         темы в рантайме перекрашивала всё без перезапуска. -->
+
+    <!-- ── Поверхности (тональные, без теней и бликов) ─────────── -->
+    <Style TargetType="controls:GlassPanel">
+        <Setter Property="GlassColor" Value="{DynamicResource GlassColor}"/>
+        <Setter Property="GlassStrongColor" Value="{DynamicResource GlassStrongColor}"/>
+        <Setter Property="GlassFaintColor" Value="{DynamicResource GlassFaintColor}"/>
+        <Setter Property="SpotColor" Value="{DynamicResource GlassSpotColor}"/>
+        <Setter Property="GlossColor" Value="{DynamicResource GlassGlossColor}"/>
+        <Setter Property="RimAColor" Value="{DynamicResource RimAColor}"/>
+        <Setter Property="RimBColor" Value="{DynamicResource RimBColor}"/>
+        <Setter Property="RimCColor" Value="{DynamicResource RimCColor}"/>
+        <Setter Property="RimDColor" Value="{DynamicResource RimDColor}"/>
+        <Setter Property="InnerTopColor" Value="{DynamicResource InnerTopColor}"/>
+        <Setter Property="InnerBottomColor" Value="{DynamicResource InnerBottomColor}"/>
+        <Setter Property="ShadowColor" Value="{DynamicResource GlassShadowColor}"/>
+        <Setter Property="AccentColor" Value="{DynamicResource TealColor}"/>
+    </Style>
+
+    <!-- godjiCard: карточка-модуль, surfaceContainer, радиус 24. -->
+    <Style x:Key="GlassCard" TargetType="controls:GlassPanel" BasedOn="{StaticResource {x:Type controls:GlassPanel}}">
+        <Setter Property="CornerRadius" Value="24"/>
+        <Setter Property="Level" Value="Normal"/>
+        <Setter Property="Shadow" Value="Card"/>
+    </Style>
+
+    <!-- godjiGlassPill: плашки, круглые кнопки 40, статусы, чипы — surfaceContainerHigh. -->
+    <Style x:Key="GlassPill" TargetType="controls:GlassPanel" BasedOn="{StaticResource {x:Type controls:GlassPanel}}">
+        <Setter Property="CornerRadius" Value="999"/>
+        <Setter Property="Level" Value="Strong"/>
+        <Setter Property="Shadow" Value="Pill"/>
+    </Style>
+
+    <!-- godjiGlassStrong: лист входа, тост — уровень выше карточки (surfaceContainerHigh). -->
+    <Style x:Key="GlassStrong" TargetType="controls:GlassPanel" BasedOn="{StaticResource {x:Type controls:GlassPanel}}">
+        <Setter Property="CornerRadius" Value="28"/>
+        <Setter Property="Level" Value="Strong"/>
+        <Setter Property="Shadow" Value="Strong"/>
+    </Style>
+
+    <!-- godjiGlassFlat: строка/чип внутри карточки — surfaceContainerHighest. -->
+    <Style x:Key="GlassFlat" TargetType="controls:GlassPanel" BasedOn="{StaticResource {x:Type controls:GlassPanel}}">
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Level" Value="Faint"/>
+        <Setter Property="Shadow" Value="None"/>
+    </Style>
+
+    <!-- ── Текст ───────────────────────────────────────────────── -->
+    <!-- Заголовки экранов: Manrope Bold 26 (Android 1.0.115: 30 → 26). -->
+    <Style x:Key="ScreenTitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 26}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+
+    <!-- Подпись секции ("НОВОСТИ", "ВНЕШНИЙ ВИД"): 11 SemiBold, padding 8/8/0. -->
+    <Style x:Key="SectionLabel" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="{s:Fs 11}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Margin" Value="8,8,8,0"/>
+    </Style>
+
+    <Style x:Key="RowTitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="{s:Fs 14}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <Style x:Key="RowSubtitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontSize" Value="{s:Fs 11}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Margin" Value="0,2,0,0"/>
+    </Style>
+
+    <!-- Разделитель внутри карточек: в M3 Expressive группы разделены «щелью» цвета фона
+         (Android: HorizontalDivider 2dp SurfaceBase), а не тонкой линией. -->
+    <Style x:Key="Hair" TargetType="Rectangle">
+        <Setter Property="Height" Value="2"/>
+        <Setter Property="Fill" Value="{DynamicResource BgSolidBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="VHair" TargetType="Rectangle">
+        <Setter Property="Width" Value="2"/>
+        <Setter Property="Fill" Value="{DynamicResource BgSolidBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <!-- Иконка-путь (заливка). Размер задаётся Width/Height на месте. -->
+    <Style x:Key="Icon" TargetType="Path">
+        <Setter Property="Stretch" Value="Uniform"/>
+        <Setter Property="Fill" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="False"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ── Кнопки ─────────────────────────────────────────────── -->
+    <!-- Базовая "голая" кнопка: всё оформление — внутри Content, у самой кнопки только
+         курсор, отсутствие фокусной рамки и сжатие при нажатии. -->
+    <Style x:Key="BareButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        <Setter Property="controls:Press.Scale" Value="0.96"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Строка-кнопка на всю ширину карточки: подсветка при нажатии, без сжатия. -->
+    <Style x:Key="RowButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="14,13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PressedRowBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Капсула с акцентным градиентом ("Продлить", "Скачать и установить"). -->
+    <Style x:Key="AccentPillButton" TargetType="Button" BasedOn="{StaticResource BareButton}">
+        <Setter Property="Height" Value="48"/>
+        <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 14}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <controls:PillBorder x:Name="Bd" Background="{DynamicResource AccentGradientBrush}" Padding="16,0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </controls:PillBorder>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Сплошная "чернильная" капсула (вход через сайт). -->
+    <Style x:Key="InkPillButton" TargetType="Button" BasedOn="{StaticResource BareButton}">
+        <Setter Property="Height" Value="52"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 15}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <controls:PillBorder x:Name="Bd" Background="{DynamicResource InkBtnBrush}" Padding="16,0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource InkBtnTextBrush}"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </controls:PillBorder>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Капсула-чип (Chip + обводка), текст акцентный: "Проверить обновления", "Проверить". -->
+    <Style x:Key="ChipButton" TargetType="Button" BasedOn="{StaticResource BareButton}">
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="{s:Fs 12}"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="controls:Press.Scale" Value="0.95"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <controls:PillBorder x:Name="Bd" Background="{DynamicResource ChipBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                                         BorderThickness="1" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </controls:PillBorder>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Круглая стеклянная кнопка 40 ("Обновить"/"Пинг", обновление подписки). -->
+    <Style x:Key="GlassCircleButton" TargetType="Button" BasedOn="{StaticResource BareButton}">
+        <Setter Property="Width" Value="40"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="controls:Press.Scale" Value="0.92"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <controls:GlassPanel x:Name="Bd" Style="{StaticResource GlassPill}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </controls:GlassPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Текстовая ссылка (TealDeep, без фона). -->
+    <Style x:Key="GlassLinkButton" TargetType="Button" BasedOn="{StaticResource BareButton}">
+        <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="{s:Fs 13}"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ── Переключатель v5 ───────────────────────────────────── -->
+    <!-- Трек 54×32 (Teal / TrackBg), бегунок-капсула 36×26 белый .95, left 3 → 15, пружина. -->
+    <Style x:Key="GlassSwitch" TargetType="ToggleButton">
+        <Setter Property="Width" Value="54"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid>
+                        <Border x:Name="Track" CornerRadius="16" Background="{DynamicResource TrackBgBrush}"/>
+                        <Border x:Name="Knob" Width="36" Height="26" CornerRadius="13" Background="#F2FFFFFF"
+                                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,3,0,0">
+                            <Border.RenderTransform>
+                                <TranslateTransform X="3"/>
+                            </Border.RenderTransform>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="6" ShadowDepth="1" Direction="270" Opacity="0.22"/>
+                            </Border.Effect>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource TealBrush}"/>
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="(Border.RenderTransform).(TranslateTransform.X)"
+                                                         To="15" Duration="0:0:0.32">
+                                            <DoubleAnimation.EasingFunction><BackEase Amplitude="0.45" EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="(Border.RenderTransform).(TranslateTransform.X)"
+                                                         To="3" Duration="0:0:0.32">
+                                            <DoubleAnimation.EasingFunction><BackEase Amplitude="0.45" EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ── Полоса прокрутки ───────────────────────────────────── -->
+    <!-- Тонкая полупрозрачная капсула без стрелок и дорожки — как оверлейный скроллбар Android,
+         вместо классической серой полосы Windows, которая выбивалась бы из стекла. -->
+    <Style x:Key="GlassScrollThumb" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="T" CornerRadius="3" Background="{DynamicResource TextMutedBrush}" Opacity="0.35"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="T" Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="T" Property="Opacity" Value="0.75"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Width" Value="6"/>
+        <Setter Property="MinWidth" Value="6"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="0,4">
+                        <Track.Thumb>
+                            <Thumb Style="{StaticResource GlassScrollThumb}" Margin="1,0"/>
+                        </Track.Thumb>
+                    </Track>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Height" Value="6"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Track x:Name="PART_Track" Margin="4,0">
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource GlassScrollThumb}" Margin="0,1"/>
+                                </Track.Thumb>
+                            </Track>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ── Поля ввода v5 ──────────────────────────────────────── -->
+    <!-- Поле на стекле: Chip-подложка, обводка CardBorder, при фокусе — акцентная. -->
+    <Style x:Key="GlassTextBox" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontSize" Value="{s:Fs 14}"/>
+        <Setter Property="Padding" Value="14,11"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd" Background="{DynamicResource ChipBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                            BorderThickness="1.5" CornerRadius="16">
+                        <!-- Без Margin=Padding: TextBox сам применяет Padding внутри своего
+                             TextBoxView, иначе отступ удваивался и поле выходило вдвое выше. -->
+                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TealBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ── Список без прокрутки (Controls/PagedItems) ─────────── -->
+    <!-- Строки текущей страницы + "‹ 1 / 3 ›" под ними (только если страниц больше одной).
+         Разделитель над первой строкой каждой страницы прячет стиль PagedSep. -->
+    <Style x:Key="PagerButton" TargetType="Button" BasedOn="{StaticResource BareButton}">
+        <Setter Property="Width" Value="40"/>
+        <Setter Property="Height" Value="32"/>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.3"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style TargetType="controls:PagedItems">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="controls:PagedItems">
+                    <DockPanel>
+                        <Grid x:Name="Pager" DockPanel.Dock="Bottom" Visibility="Collapsed">
+                            <Rectangle Style="{StaticResource Hair}" VerticalAlignment="Top"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4">
+                                <Button Style="{StaticResource PagerButton}" AutomationProperties.Name="Предыдущая страница"
+                                        Command="{Binding PrevCommand, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <Path Data="{StaticResource IconChevronLeft}" Style="{StaticResource Icon}" Width="18" Height="18"
+                                          Fill="{DynamicResource TextPrimaryBrush}"/>
+                                </Button>
+                                <TextBlock Text="{TemplateBinding PagerText}" FontWeight="Bold" FontSize="{s:Fs 12}" MinWidth="44"
+                                           TextAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <Button Style="{StaticResource PagerButton}" AutomationProperties.Name="Следующая страница"
+                                        Command="{Binding NextCommand, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <Path Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="18" Height="18"
+                                          Fill="{DynamicResource TextPrimaryBrush}"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                        <ItemsPresenter/>
+                    </DockPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="HasPages" Value="True">
+                            <Setter TargetName="Pager" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- Разделитель строки в PagedItems: скрыт над первой строкой страницы. -->
+    <Style x:Key="PagedSep" TargetType="Rectangle" BasedOn="{StaticResource Hair}">
+        <Style.Triggers>
+            <Trigger Property="controls:PagedPanel.IsPageStart" Value="True">
+                <Setter Property="Opacity" Value="0"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>

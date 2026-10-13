@@ -1,0 +1,139 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+             xmlns:c="using:GodjiVpn.Controls"
+             xmlns:conv="using:GodjiVpn.Converters"
+             x:Class="GodjiVpn.Views.TicketChatView">
+    <!-- Переписка: круглая "назад" + тема, пузыри (свои — чернильные справа, поддержки —
+         светлое стекло слева, события — по центру), стеклянная капсула ввода со скрепкой. -->
+    <UserControl.Styles>
+        <Style Selector="Border.bubble">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Background" Value="{DynamicResource ThumbBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+        </Style>
+        <Style Selector="Border.bubble.mine">
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Background" Value="{DynamicResource InkBtnBrush}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style Selector="Border.bubble TextBlock.body">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Border.bubble.mine TextBlock.body">
+            <Setter Property="Foreground" Value="{DynamicResource InkBtnTextBrush}"/>
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Grid ColumnDefinitions="Auto,*" Margin="16,16,16,8">
+            <Button Classes="circle" Command="{Binding BackCommand}" ToolTip.Tip="Назад">
+                <Path Classes="icon" Data="{StaticResource IconChevronLeft}" Width="20" Height="20"/>
+            </Button>
+            <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold" FontSize="{s:Fs 19}" Margin="12,0,0,0"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </Grid>
+
+        <Panel Grid.Row="1">
+            <c:Spinner Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding Loading}"/>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding LoadError}">
+                <TextBlock Classes="muted" Text="Не удалось загрузить переписку" FontSize="{s:Fs 12.5}"/>
+                <Button Classes="chip" Content="Повторить" Margin="0,10,0,0" HorizontalAlignment="Center" Command="{Binding RetryCommand}"/>
+            </StackPanel>
+            <ScrollViewer Name="MessagesScroll" IsVisible="{Binding !Loading}">
+                <ItemsControl ItemsSource="{Binding Messages}" Margin="16,4,16,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Panel Margin="0,5">
+                                <TextBlock Classes="muted" Text="{Binding Text}" FontSize="{s:Fs 10.5}" HorizontalAlignment="Center"
+                                           TextAlignment="Center" Margin="0,4" IsVisible="{Binding IsEvent}"/>
+                                <Border Classes="bubble" Classes.mine="{Binding IsMine}" MaxWidth="330" Padding="12,10" CornerRadius="18"
+                                        BorderThickness="1" IsVisible="{Binding !IsEvent}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding SenderName}" FontSize="{s:Fs 10.5}" FontWeight="Bold" Foreground="{DynamicResource TealDeepBrush}"
+                                                   Margin="0,0,0,2" IsVisible="{Binding HasSenderName}"/>
+                                        <TextBlock Classes="body" Text="{Binding Text}" FontWeight="Medium" FontSize="{s:Fs 13}" LineHeight="{s:Fs 18}" TextWrapping="Wrap"/>
+                                        <ItemsControl ItemsSource="{Binding AttachmentNames}" IsVisible="{Binding HasAttachments}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Classes="body" Text="{Binding StringFormat='📎 {0}'}" FontSize="{s:Fs 11.5}" Opacity="0.85"
+                                                               Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Classes="body" Text="{Binding TimeLabel}" FontSize="{s:Fs 9.5}" Opacity="0.6" Margin="0,4,0,0"
+                                                   IsVisible="{Binding TimeLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Panel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Panel>
+
+        <TextBlock Grid.Row="2" Classes="muted" Text="Обращение закрыто" FontWeight="SemiBold" FontSize="{s:Fs 11.5}"
+                   HorizontalAlignment="Center" Margin="0,4,0,16" IsVisible="{Binding IsClosed}"/>
+
+        <StackPanel Grid.Row="2" Margin="16,4,16,14" IsVisible="{Binding !IsClosed}">
+            <TextBlock Classes="error" Text="Не удалось отправить сообщение" FontSize="{s:Fs 11}" Margin="4,0,0,6" IsVisible="{Binding SendError}"/>
+
+            <WrapPanel Margin="0,0,0,8" IsVisible="{Binding ShowAttachMenu}">
+                <Button Classes="chip" Content="Фото/видео" Margin="0,0,6,0" Command="{Binding PickMediaCommand}"/>
+                <Button Classes="chip" Content="PDF-файл" Margin="0,0,6,0" Command="{Binding PickPdfCommand}"/>
+                <Button Classes="chip" Content="Логи приложения" Command="{Binding ToggleLogPickerCommand}"/>
+            </WrapPanel>
+
+            <WrapPanel Margin="0,0,0,8" IsVisible="{Binding ShowLogPicker}">
+                <Button Classes="chip" Content="Приложение" Margin="0,0,6,6" Command="{Binding InsertLogCommand}" CommandParameter="engine.log"/>
+                <Button Classes="chip" Content="VPN-ядро" Margin="0,0,6,6" Command="{Binding InsertLogCommand}" CommandParameter="xray.log"/>
+                <Button Classes="chip" Content="VPN-туннель" Margin="0,0,6,6" Command="{Binding InsertLogCommand}" CommandParameter="sing-box.log"/>
+            </WrapPanel>
+
+            <ItemsControl ItemsSource="{Binding Attachments}" Margin="0,0,0,6"
+                          IsVisible="{Binding Attachments.Count, Converter={x:Static conv:Conv.NonZero}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border CornerRadius="15" Background="{DynamicResource ChipBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                                BorderThickness="1" Height="30" Padding="11,0,6,0" Margin="0,0,6,6">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="{s:Fs 11}" MaxWidth="150" TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center"/>
+                                <Button Classes="bare" Width="20" Height="20" Margin="4,0,0,0"
+                                        Command="{Binding $parent[ItemsControl].DataContext.RemoveAttachmentCommand}" CommandParameter="{Binding}">
+                                    <Path Classes="icon secondary" Data="{StaticResource IconClose}" Width="11" Height="11"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Classes="error" Text="{Binding AttachmentError}" FontSize="{s:Fs 11}" Margin="4,0,0,6"
+                       IsVisible="{Binding AttachmentError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+            <c:GlassPanel Classes="strong" CornerRadius="26" Padding="5">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Button Classes="bare" Width="42" Height="42" VerticalAlignment="Bottom" Command="{Binding ToggleAttachMenuCommand}" ToolTip.Tip="Вложение">
+                        <Border CornerRadius="21" Background="{DynamicResource ChipBrush}">
+                            <Path Classes="icon" Data="{StaticResource IconAttach}" Width="19" Height="19"/>
+                        </Border>
+                    </Button>
+                    <TextBox Grid.Column="1" Classes="bare" Margin="8,0" VerticalAlignment="Center" Watermark="Сообщение…"
+                             Text="{Binding Input}" FontSize="{s:Fs 13}" FontWeight="Medium" TextWrapping="Wrap" AcceptsReturn="True" MaxHeight="96"/>
+                    <Button Grid.Column="2" Classes="bare" Width="42" Height="42" VerticalAlignment="Bottom" Command="{Binding SendCommand}" ToolTip.Tip="Отправить">
+                        <Border CornerRadius="21" Background="{DynamicResource InkBtnBrush}">
+                            <Panel>
+                                <Path Classes="icon inkText" Data="{StaticResource IconSend}" Width="17" Height="17"
+                                      Margin="2,0,0,0" IsVisible="{Binding !Sending}"/>
+                                <c:Spinner Foreground="{DynamicResource InkBtnTextBrush}" IsVisible="{Binding Sending}"/>
+                            </Panel>
+                        </Border>
+                    </Button>
+                </Grid>
+            </c:GlassPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

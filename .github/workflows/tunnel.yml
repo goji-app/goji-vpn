@@ -1,0 +1,67 @@
+name: macOS tunnel test
+
+# Быстрая проверка туннеля на настоящем Mac без сборки приложения: xray (SOCKS) ← sing-box (TUN)
+# с тем же конфигом, что в приложении, для обеих архитектур ядра.
+on:
+  workflow_dispatch:
+
+jobs:
+  tunnel:
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: macos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Кэш ядра для старых macOS
+        id: cores
+        uses: actions/cache@v4
+        with:
+          path: |
+            macos/Runtime/x64/xray
+            macos/Runtime/arm64/xray
+            macos/Runtime/arm64/sing-box
+          key: legacy-cores-${{ hashFiles('macos/Runtime/build-legacy-cores.sh') }}
+
+      - name: Сборка ядра для старых macOS
+        if: steps.cores.outputs.cache-hit != 'true'
+        run: bash Runtime/build-legacy-cores.sh
+
+      - name: Готовые части ядра
+        run: sh Runtime/fetch.sh
+
+      - name: Карантин
+        if: always()
+        run: bash packaging/quarantine-test.sh
+
+      - name: Туннель arm64
+        run: bash packaging/tunnel-test.sh arm64
+
+      - name: Туннель x64 (Rosetta)
+        if: always()
+        run: bash packaging/tunnel-test.sh x64
+
+      - uses: actions/setup-dotnet@v4
+        if: always()
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Обёртка через osascript (как в приложении)
+        if: always()
+        run: bash packaging/osascript-test.sh arm64
+
+      - name: Обёртка приложения arm64
+        if: always()
+        run: bash packaging/wrapper-test.sh arm64
+
+      - name: Обёртка приложения x64
+        if: always()
+        run: bash packaging/wrapper-test.sh x64
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tunnel
+          path: macos/smoke/

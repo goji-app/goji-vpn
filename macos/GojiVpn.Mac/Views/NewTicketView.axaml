@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+             xmlns:c="using:GodjiVpn.Controls"
+             x:Class="GodjiVpn.Views.NewTicketView">
+    <!-- Новое обращение: очередь капсулами, тема, сообщение, "Отправить". -->
+    <UserControl.Styles>
+        <Style Selector="Border.queue">
+            <Setter Property="Background" Value="{DynamicResource ChipBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+        </Style>
+        <Style Selector="Border.queue TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Border.queue.selected">
+            <Setter Property="Background" Value="{DynamicResource InkBtnBrush}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style Selector="Border.queue.selected TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource InkBtnTextBrush}"/>
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="Auto,*" Margin="16,16,16,10">
+            <Button Classes="circle" Command="{Binding BackCommand}" ToolTip.Tip="Назад">
+                <Path Classes="icon" Data="{StaticResource IconChevronLeft}" Width="20" Height="20"/>
+            </Button>
+            <TextBlock Grid.Column="1" Classes="subTitle" Text="Новое обращение" Margin="12,0,0,0"/>
+        </Grid>
+
+        <!-- Без прокрутки: форма на всё оставшееся место, поле сообщения растягивается. -->
+        <Panel Grid.Row="1" Margin="16,0,16,16">
+                <c:Spinner Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0" IsVisible="{Binding Loading}"/>
+
+                <Panel IsVisible="{Binding !Loading}">
+                    <c:GlassPanel Classes="card" CornerRadius="24" Tint="{DynamicResource TerracottaTintBrush}" VerticalAlignment="Top" IsVisible="{Binding !CanCreate}">
+                        <StackPanel Margin="18">
+                            <TextBlock Text="Уже есть активное обращение" FontWeight="Bold" FontSize="{s:Fs 15}" TextWrapping="Wrap"/>
+                            <TextBlock Classes="muted" Text="Продолжите переписку в существующем обращении." FontSize="{s:Fs 12.5}" Margin="0,5,0,0"/>
+                            <Button Classes="ink" Height="46" FontSize="{s:Fs 14}" Margin="0,14,0,0" Content="Перейти к обращению"
+                                    Command="{Binding OpenActiveTicketCommand}" IsVisible="{Binding HasActiveTicketId}"/>
+                        </StackPanel>
+                    </c:GlassPanel>
+
+                    <c:GlassPanel Classes="card" CornerRadius="24" IsVisible="{Binding CanCreate}">
+                        <Grid Margin="16" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
+                            <StackPanel Grid.Row="0" IsVisible="{Binding ShowQueuePicker}" Margin="0,0,0,14">
+                                <TextBlock Classes="section" Text="КУДА ОБРАТИТЬСЯ" Margin="4,0,0,8"/>
+                                <ItemsControl ItemsSource="{Binding Queues}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Classes="bare" Margin="0,0,6,6"
+                                                    Command="{Binding $parent[ItemsControl].DataContext.SelectQueueCommand}" CommandParameter="{Binding}">
+                                                <Border Classes="queue" Classes.selected="{Binding IsSelected}" CornerRadius="17" Height="34"
+                                                        Padding="14,0" BorderThickness="1">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{s:Fs 12}" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="1" Classes="section" Text="ТЕМА (НЕОБЯЗАТЕЛЬНО)" Margin="4,0,0,8"/>
+                            <TextBox Grid.Row="2" Classes="glass" FontSize="{s:Fs 13}" Text="{Binding Subject}"/>
+
+                            <TextBlock Grid.Row="3" Classes="section" Text="СООБЩЕНИЕ" Margin="4,14,0,8"/>
+                            <TextBox Grid.Row="4" Classes="glass" FontSize="{s:Fs 13}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="80" VerticalAlignment="Stretch"
+                                     VerticalContentAlignment="Top" Watermark="Что случилось? Чем подробнее — тем быстрее поможем"
+                                     Text="{Binding Message}"/>
+
+                            <TextBlock Grid.Row="5" Classes="error" Text="{Binding ErrorMessage}" FontSize="{s:Fs 11.5}" Margin="4,10,0,0"
+                                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                            <Panel Grid.Row="6" Margin="0,14,0,0">
+                                <Button Classes="accent" Content="Отправить" Command="{Binding SubmitCommand}" IsVisible="{Binding !Submitting}"/>
+                                <c:Spinner Width="22" Height="22" HorizontalAlignment="Center" IsVisible="{Binding Submitting}"/>
+                            </Panel>
+                        </Grid>
+                    </c:GlassPanel>
+                </Panel>
+        </Panel>
+    </Grid>
+</UserControl>

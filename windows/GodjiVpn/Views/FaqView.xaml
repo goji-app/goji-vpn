@@ -1,0 +1,104 @@
+<UserControl x:Class="GodjiVpn.Views.FaqView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+             xmlns:vm="clr-namespace:GodjiVpn.ViewModels"
+             xmlns:controls="clr-namespace:GodjiVpn.Controls">
+    <!-- Частые вопросы v5 «Стекло» — FaqScreen.kt. Без прокрутки: разделы и вопросы одним
+         постраничным списком в стеклянной карточке, ответ — отдельным подэкраном
+         (прокрутка — только внутри очень длинного ответа, как в просмотре журнала). -->
+    <Grid Background="{DynamicResource BgBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="16,16,16,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button Style="{StaticResource GlassCircleButton}" Command="{Binding BackCommand}" AutomationProperties.Name="Назад">
+                <Path Data="{StaticResource IconChevronLeft}" Style="{StaticResource Icon}" Width="20" Height="20" Fill="{DynamicResource TextPrimaryBrush}"/>
+            </Button>
+            <TextBlock Grid.Column="1" Text="Частые вопросы" FontWeight="SemiBold" FontSize="{s:Fs 22}" Margin="12,0,0,0"
+                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
+                       Visibility="{Binding IsListOpen, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBlock Grid.Column="1" Text="Ответ" FontWeight="SemiBold" FontSize="{s:Fs 22}" Margin="12,0,0,0"
+                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
+                       Visibility="{Binding IsAnswerOpen, Converter={StaticResource BoolToVisibilityConverter}}"/>
+        </Grid>
+
+        <!-- ═══ Список вопросов ═══ -->
+        <Grid Grid.Row="1" Margin="16,0,16,16" Visibility="{Binding IsListOpen, Converter={StaticResource BoolToVisibilityConverter}}">
+            <controls:Spinner Foreground="{DynamicResource TealBrush}" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0"
+                              Visibility="{Binding Loading, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" VerticalAlignment="Top"
+                                 Visibility="{Binding LoadError, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel Margin="20" HorizontalAlignment="Center">
+                    <TextBlock Text="Не удалось загрузить вопросы" FontWeight="Medium" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <Button Style="{StaticResource ChipButton}" Content="Повторить" Margin="0,10,0,0" HorizontalAlignment="Center"
+                            Command="{Binding RetryCommand}"/>
+                </StackPanel>
+            </controls:GlassPanel>
+
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" VerticalAlignment="Top"
+                                 Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Пока нет вопросов" Margin="20" HorizontalAlignment="Center" FontWeight="Medium" FontSize="{s:Fs 12.5}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </controls:GlassPanel>
+
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" VerticalAlignment="Top">
+                <controls:GlassPanel.Visibility>
+                    <Binding Path="Rows.Count" Converter="{StaticResource ZeroToVisibilityConverter}"/>
+                </controls:GlassPanel.Visibility>
+                <controls:PagedItems ItemsSource="{Binding Rows}">
+                    <controls:PagedItems.Resources>
+                        <!-- Заголовок раздела. -->
+                        <DataTemplate DataType="{x:Type vm:FaqHeaderRow}">
+                            <StackPanel>
+                                <Rectangle Style="{StaticResource PagedSep}"/>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TealDeepBrush}"
+                                           Margin="16,14,16,4" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </DataTemplate>
+                        <!-- Вопрос: нажатие открывает ответ. -->
+                        <DataTemplate DataType="{x:Type vm:FaqItemUi}">
+                            <StackPanel>
+                                <Rectangle Style="{StaticResource PagedSep}"/>
+                                <Button Style="{StaticResource RowButton}" Padding="16,13" AutomationProperties.Name="{Binding Question}"
+                                        Command="{Binding DataContext.OpenAnswerCommand, RelativeSource={RelativeSource AncestorType=controls:PagedItems}}"
+                                        CommandParameter="{Binding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Question}" FontWeight="SemiBold" FontSize="{s:Fs 13}" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Path Grid.Column="1" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="15" Height="15"
+                                              Fill="{DynamicResource TextSecondaryBrush}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </controls:PagedItems.Resources>
+                </controls:PagedItems>
+            </controls:GlassPanel>
+        </Grid>
+
+        <!-- ═══ Ответ ═══ -->
+        <controls:GlassPanel Grid.Row="1" Style="{StaticResource GlassCard}" CornerRadius="24" Margin="16,0,16,16" VerticalAlignment="Top"
+                             Visibility="{Binding IsAnswerOpen, Converter={StaticResource BoolToVisibilityConverter}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="18,16">
+                    <TextBlock Text="{Binding OpenedItem.Question}" FontWeight="Bold" FontSize="{s:Fs 15}" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding OpenedItem.Answer}" FontWeight="Medium" FontSize="{s:Fs 13}" LineHeight="{s:Fs 19}" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,10,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </controls:GlassPanel>
+    </Grid>
+</UserControl>

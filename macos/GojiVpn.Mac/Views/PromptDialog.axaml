@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+        xmlns:c="using:GodjiVpn.Controls"
+        x:Class="GodjiVpn.Views.PromptDialog"
+        Title="Goji VPN" Width="380" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource BgSolidBrush}">
+    <!-- Общий диалог: заголовок + текст/поле + "Отмена"/основное действие (переименование и
+         удаление устройства) — как PromptDialog Windows-клиента. -->
+    <Panel>
+        <c:GlassBackdrop/>
+        <c:GlassPanel Classes="strong" CornerRadius="28" Margin="16">
+            <StackPanel Margin="20">
+                <TextBlock Name="TitleBlock" FontWeight="Bold" FontSize="{s:Fs 18}" TextWrapping="Wrap"/>
+                <TextBlock Name="MessageBlock" Classes="muted" FontSize="{s:Fs 12.5}" LineHeight="{s:Fs 18}" Margin="0,8,0,0" IsVisible="False"/>
+                <TextBlock Name="InputLabelBlock" FontWeight="SemiBold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="6,14,0,6"/>
+                <TextBox Name="InputBox" Classes="glass" FontSize="{s:Fs 13.5}"/>
+                <Grid ColumnDefinitions="*,10,*" Margin="0,18,0,0">
+                    <Button Name="SecondaryBtn" Classes="chip" Height="44" Content="Отмена" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{s:Fs 13.5}"
+                            HorizontalAlignment="Stretch"/>
+                    <Button Name="PrimaryBtn" Grid.Column="2" Classes="ink" Height="44" FontSize="{s:Fs 13.5}"/>
+                </Grid>
+            </StackPanel>
+        </c:GlassPanel>
+    </Panel>
+</Window>

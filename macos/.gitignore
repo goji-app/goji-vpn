@@ -1,0 +1,14 @@
+bin/
+obj/
+out/
+dist/
+_downloads/
+.vs/
+.claude/
+
+# Бинарники ядра (Xray-core, sing-box, geoip/geosite) и rcodesign — не входят в исходники,
+# скачиваются отдельно по инструкции в Runtime/README.md.
+Runtime/arm64/*
+Runtime/x64/*
+tools/*.exe
+smoke/

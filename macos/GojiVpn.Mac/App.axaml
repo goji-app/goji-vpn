@@ -1,0 +1,34 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="GodjiVpn.App"
+             Name="Goji VPN"
+             xmlns:vm="using:GodjiVpn.ViewModels"
+             xmlns:v="using:GodjiVpn.Views"
+             RequestedThemeVariant="Light">
+    <!-- Какая View показывается для какой ViewModel (главное окно и окно поддержки). -->
+    <Application.DataTemplates>
+        <DataTemplate DataType="vm:LoginViewModel"><v:LoginView/></DataTemplate>
+        <DataTemplate DataType="vm:ShellViewModel"><v:ShellView/></DataTemplate>
+        <DataTemplate DataType="vm:ConnectViewModel"><v:ConnectView/></DataTemplate>
+        <DataTemplate DataType="vm:ServersViewModel"><v:ServersView/></DataTemplate>
+        <DataTemplate DataType="vm:PlansViewModel"><v:PlansView/></DataTemplate>
+        <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView/></DataTemplate>
+        <DataTemplate DataType="vm:SupportListViewModel"><v:SupportListView/></DataTemplate>
+        <DataTemplate DataType="vm:TicketChatViewModel"><v:TicketChatView/></DataTemplate>
+        <DataTemplate DataType="vm:NewTicketViewModel"><v:NewTicketView/></DataTemplate>
+        <DataTemplate DataType="vm:FaqViewModel"><v:FaqView/></DataTemplate>
+    </Application.DataTemplates>
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://GojiVpn/Themes/Tokens.axaml"/>
+                <ResourceInclude Source="avares://GojiVpn/Themes/Icons.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <FontFamily x:Key="Manrope">avares://GojiVpn/Assets/Fonts#Manrope</FontFamily>
+        </ResourceDictionary>
+    </Application.Resources>
+    <Application.Styles>
+        <FluentTheme/>
+        <StyleInclude Source="avares://GojiVpn/Themes/Glass.axaml"/>
+    </Application.Styles>
+</Application>

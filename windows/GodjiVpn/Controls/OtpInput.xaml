@@ -1,0 +1,44 @@
+<UserControl x:Class="GodjiVpn.Controls.OtpInput"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils">
+    <!-- Сегментированный ввод OTP-кода — 6 клеток вместо одного текстового поля, порт из
+         Android VerifyEmailScreen.kt (OtpCodeInput/DigitCell). Вся логика (автопереход фокуса,
+         Backspace на пустой клетке, вставка кода целиком, подсветка активной/заполненной/
+         ошибочной клетки) — в code-behind, см. OtpInput.xaml.cs. -->
+    <UserControl.Resources>
+        <!-- v5 «Стекло»: клетки высотой 56 делят ширину поровну (как в эталоне verify) на Chip-подложке, скругление 16; цвет/толщина рамки
+             (активная — Teal, ошибка — Danger) выставляются из code-behind. -->
+        <Style x:Key="OtpCellStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MaxLength" Value="1"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="{s:Fs 20}"/>
+            <Setter Property="Background" Value="{DynamicResource ChipBrush}"/>
+            <Setter Property="BorderThickness" Value="1.3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="16">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <UniformGrid Rows="1">
+        <TextBox x:Name="Cell0" Style="{StaticResource OtpCellStyle}"/>
+        <TextBox x:Name="Cell1" Style="{StaticResource OtpCellStyle}"/>
+        <TextBox x:Name="Cell2" Style="{StaticResource OtpCellStyle}"/>
+        <TextBox x:Name="Cell3" Style="{StaticResource OtpCellStyle}"/>
+        <TextBox x:Name="Cell4" Style="{StaticResource OtpCellStyle}"/>
+        <TextBox x:Name="Cell5" Style="{StaticResource OtpCellStyle}"/>
+    </UniformGrid>
+</UserControl>

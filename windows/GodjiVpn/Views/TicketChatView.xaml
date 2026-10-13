@@ -1,0 +1,219 @@
+<UserControl x:Class="GodjiVpn.Views.TicketChatView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+             xmlns:controls="clr-namespace:GodjiVpn.Controls">
+    <!-- Переписка по обращению v5 «Стекло» — TicketChatScreen.kt: круглая "назад" + тема,
+         пузыри (свои — чернильные справа, поддержки — светлое стекло слева, события — по
+         центру), снизу стеклянная капсула ввода: скрепка (меню вложений), поле, отправка. -->
+    <UserControl.Resources>
+        <Style x:Key="BubbleText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsMine}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource InkBtnTextBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource BgBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="16,16,16,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button Style="{StaticResource GlassCircleButton}" Command="{Binding BackCommand}" AutomationProperties.Name="Назад">
+                <Path Data="{StaticResource IconChevronLeft}" Style="{StaticResource Icon}" Width="20" Height="20" Fill="{DynamicResource TextPrimaryBrush}"/>
+            </Button>
+            <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold" FontSize="{s:Fs 19}" Margin="12,0,0,0"
+                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <controls:Spinner Foreground="{DynamicResource TealBrush}" Width="24" Height="24"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Visibility="{Binding Loading, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding LoadError, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Не удалось загрузить переписку" FontWeight="Medium" FontSize="{s:Fs 12.5}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <Button Style="{StaticResource ChipButton}" Content="Повторить" Margin="0,10,0,0" HorizontalAlignment="Center"
+                        Command="{Binding RetryCommand}"/>
+            </StackPanel>
+
+            <ScrollViewer x:Name="MessagesScroll" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding Loading, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                <ItemsControl ItemsSource="{Binding Messages}" Margin="16,4,16,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,5">
+                                <!-- Системное событие ленты ("создано/назначено/закрыто") — по центру, без пузыря. -->
+                                <TextBlock Text="{Binding Text}" FontWeight="Medium" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4"
+                                           Visibility="{Binding IsEvent, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                                <Border MaxWidth="330" Padding="12,10" CornerRadius="18" BorderThickness="1"
+                                        Visibility="{Binding IsEvent, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="HorizontalAlignment" Value="Left"/>
+                                            <Setter Property="Background" Value="{DynamicResource ThumbBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMine}" Value="True">
+                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                    <Setter Property="Background" Value="{DynamicResource InkBtnBrush}"/>
+                                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding SenderName}" FontSize="{s:Fs 10.5}" FontWeight="Bold"
+                                                   Foreground="{DynamicResource TealDeepBrush}" Margin="0,0,0,2"
+                                                   Visibility="{Binding HasSenderName, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <TextBlock Text="{Binding Text}" FontWeight="Medium" FontSize="{s:Fs 13}" LineHeight="{s:Fs 18}" TextWrapping="Wrap"
+                                                   Style="{StaticResource BubbleText}"/>
+                                        <ItemsControl ItemsSource="{Binding AttachmentNames}"
+                                                      Visibility="{Binding HasAttachments, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding StringFormat='📎 {0}'}" FontSize="{s:Fs 11.5}" Opacity="0.85"
+                                                               Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding DataContext.IsMine, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource InkBtnTextBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{Binding TimeLabel}" FontSize="{s:Fs 9.5}" Opacity="0.6" Margin="0,4,0,0"
+                                                   Style="{StaticResource BubbleText}"
+                                                   Visibility="{Binding TimeLabel, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Обращение закрыто — панель ввода скрыта целиком, как в Android. -->
+        <TextBlock Grid.Row="2" Text="Обращение закрыто" FontWeight="SemiBold" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}"
+                   HorizontalAlignment="Center" Margin="0,4,0,16"
+                   Visibility="{Binding IsClosed, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+        <StackPanel Grid.Row="2" Margin="16,4,16,14"
+                    Visibility="{Binding IsClosed, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+
+            <TextBlock Text="Не удалось отправить сообщение" FontSize="{s:Fs 11}" Foreground="{DynamicResource DangerBrush}" Margin="4,0,0,6"
+                       Visibility="{Binding SendError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+            <!-- Меню скрепки: фото/видео, PDF, логи (DropdownMenu в Android). -->
+            <WrapPanel Margin="0,0,0,8" Visibility="{Binding ShowAttachMenu, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Button Style="{StaticResource ChipButton}" Content="Фото/видео" Margin="0,0,6,0" Command="{Binding PickMediaCommand}"/>
+                <Button Style="{StaticResource ChipButton}" Content="PDF-файл" Margin="0,0,6,0" Command="{Binding PickPdfCommand}"/>
+                <Button Style="{StaticResource ChipButton}" Content="Логи приложения" Command="{Binding ToggleLogPickerCommand}"/>
+            </WrapPanel>
+
+            <!-- Журналы вставляются текстом прямо в поле (бэкенд отвечает 415 на текстовые файлы),
+                 категории — те же, что в Настройках → Журналы. -->
+            <WrapPanel Margin="0,0,0,8" Visibility="{Binding ShowLogPicker, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Button Style="{StaticResource ChipButton}" Content="Приложение" Margin="0,0,6,6" Command="{Binding InsertLogCommand}" CommandParameter="engine.log"/>
+                <Button Style="{StaticResource ChipButton}" Content="VPN-ядро" Margin="0,0,6,6" Command="{Binding InsertLogCommand}" CommandParameter="xray.log"/>
+                <Button Style="{StaticResource ChipButton}" Content="VPN-туннель" Margin="0,0,6,6" Command="{Binding InsertLogCommand}" CommandParameter="sing-box.log"/>
+                <Button Style="{StaticResource ChipButton}" Content="Сбои" Margin="0,0,6,6" Command="{Binding InsertLogCommand}" CommandParameter="crash.log"/>
+            </WrapPanel>
+
+            <ItemsControl ItemsSource="{Binding Attachments}" Margin="0,0,0,6"
+                          Visibility="{Binding Attachments.Count, Converter={StaticResource InverseZeroToVisibilityConverter}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:PillBorder Background="{DynamicResource ChipBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                             Height="30" Padding="11,0,6,0" Margin="0,0,6,6">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="{s:Fs 11}" MaxWidth="150" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <Button Style="{StaticResource BareButton}" Width="20" Height="20" Margin="4,0,0,0" AutomationProperties.Name="Убрать вложение"
+                                        Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}">
+                                    <Path Data="{StaticResource IconClose}" Style="{StaticResource Icon}" Width="11" Height="11" Fill="{DynamicResource TextSecondaryBrush}"/>
+                                </Button>
+                            </StackPanel>
+                        </controls:PillBorder>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="{Binding AttachmentError}" FontSize="{s:Fs 11}" Foreground="{DynamicResource DangerBrush}"
+                       TextWrapping="Wrap" Margin="4,0,0,6"
+                       Visibility="{Binding AttachmentError, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+            <controls:GlassPanel Style="{StaticResource GlassStrong}" CornerRadius="26" Padding="5">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Style="{StaticResource BareButton}" Width="42" Height="42" VerticalAlignment="Bottom"
+                            Command="{Binding ToggleAttachMenuCommand}" ToolTip="Вложение" AutomationProperties.Name="Вложение">
+                        <Border CornerRadius="21" Background="{DynamicResource ChipBrush}">
+                            <Path Data="{StaticResource IconAttach}" Style="{StaticResource Icon}" Width="19" Height="19" Fill="{DynamicResource TextPrimaryBrush}"/>
+                        </Border>
+                    </Button>
+
+                    <Grid Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
+                        <TextBox x:Name="InputBox" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" FontSize="{s:Fs 13}" FontWeight="Medium"
+                                 TextWrapping="Wrap" AcceptsReturn="True" BorderThickness="0" Background="Transparent" Padding="2,6"
+                                 VerticalScrollBarVisibility="Auto" MaxHeight="96"/>
+                        <TextBlock Text="Сообщение…" FontWeight="Medium" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="4,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Input}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <Button Grid.Column="2" Style="{StaticResource BareButton}" Width="42" Height="42" VerticalAlignment="Bottom"
+                            Command="{Binding SendCommand}" ToolTip="Отправить" AutomationProperties.Name="Отправить">
+                        <Border CornerRadius="21" Background="{DynamicResource InkBtnBrush}">
+                            <Grid>
+                                <Path Data="{StaticResource IconSend}" Style="{StaticResource Icon}" Width="17" Height="17" Fill="{DynamicResource InkBtnTextBrush}"
+                                      Margin="2,0,0,0" Visibility="{Binding Sending, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                <controls:Spinner Foreground="{DynamicResource InkBtnTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Visibility="{Binding Sending, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </Grid>
+                        </Border>
+                    </Button>
+                </Grid>
+            </controls:GlassPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

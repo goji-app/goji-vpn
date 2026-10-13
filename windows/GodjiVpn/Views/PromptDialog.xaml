@@ -1,0 +1,68 @@
+<Window x:Class="GodjiVpn.Views.PromptDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+        xmlns:controls="clr-namespace:GodjiVpn.Controls"
+        Title="Godji VPN" Width="380" SizeToContent="Height"
+        MinWidth="320" ResizeMode="NoResize"
+        Background="{DynamicResource BgSolidBrush}"
+        WindowStartupLocation="CenterOwner"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+    <!-- Общий модальный диалог "название + опциональный текст/поле ввода + две кнопки" —
+         переиспользуется для переименования устройства (ShowInput=true) и для подтверждений
+         удаления/поддержки на экране "Твоя подписка" (ShowInput=false), портировано с Android
+         AlertDialog в PlansScreen.kt (DevicesSection). Оформление v5 «Стекло»: общий фон,
+         плотная стеклянная карточка, поле на стекле, капсулы-кнопки. -->
+    <Window.Resources>
+        <!-- Основная кнопка: чернильная капсула; для опасного действия — красная (IsPrimaryDanger). -->
+        <Style x:Key="DangerPillButton" TargetType="Button" BasedOn="{StaticResource BareButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <controls:PillBorder x:Name="Bd" Background="{DynamicResource DangerBrush}" Padding="16,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                        </controls:PillBorder>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <controls:GlassBackdrop/>
+        <controls:GlassPanel Style="{StaticResource GlassStrong}" CornerRadius="28" Margin="16">
+            <StackPanel Margin="20">
+                <TextBlock x:Name="TitleBlock" FontWeight="Bold" FontSize="{s:Fs 18}" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock x:Name="MessageBlock" FontWeight="Medium" FontSize="{s:Fs 12.5}" LineHeight="{s:Fs 18}" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,8,0,0" Visibility="Collapsed"/>
+                <TextBlock x:Name="InputLabelBlock" FontWeight="SemiBold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="6,14,0,6"/>
+                <TextBox x:Name="InputBox" Style="{StaticResource GlassTextBox}" FontSize="{s:Fs 13.5}"/>
+                <Grid Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="SecondaryBtn" Content="Отмена" Height="44" Click="OnSecondaryClick">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ChipButton}">
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="FontSize" Value="{s:Fs 13.5}"/>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button x:Name="PrimaryBtn" Grid.Column="2" Style="{StaticResource InkPillButton}" Height="44" FontSize="{s:Fs 13.5}"
+                            Click="OnPrimaryClick"/>
+                </Grid>
+            </StackPanel>
+        </controls:GlassPanel>
+    </Grid>
+</Window>

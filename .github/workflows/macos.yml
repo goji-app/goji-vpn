@@ -1,0 +1,66 @@
+name: macOS build
+
+# Сборка на настоящем Mac: штатная подпись codesign, установщики .dmg, zip для автообновления
+# и пробный запуск со снимками экрана (артефакт "smoke").
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: macos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pillow
+        run: pip install pillow
+
+      # xray и arm64/sing-box для macOS 10.15+/11+ собираются Go 1.26 с патчами;
+      # результат кэшируется до изменения скрипта (версий ядра, Go, патчей).
+      - name: Кэш ядра для старых macOS
+        id: cores
+        uses: actions/cache@v4
+        with:
+          path: |
+            macos/Runtime/x64/xray
+            macos/Runtime/arm64/xray
+            macos/Runtime/arm64/sing-box
+          key: legacy-cores-${{ hashFiles('macos/Runtime/build-legacy-cores.sh') }}
+
+      - name: Сборка ядра для старых macOS
+        if: steps.cores.outputs.cache-hit != 'true'
+        run: bash Runtime/build-legacy-cores.sh
+
+      - name: Готовые части ядра со сверкой SHA-256
+        run: sh Runtime/fetch.sh
+
+      - name: Сборка arm64 и x64
+        run: python build-macos.py arm64 x64
+
+      - name: Пробный запуск
+        run: bash packaging/smoke-test.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers
+          path: |
+            macos/dist/*.dmg
+            macos/dist/*.zip
+          compression-level: 0
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke
+          path: macos/smoke/

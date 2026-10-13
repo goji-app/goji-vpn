@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+             xmlns:c="using:GodjiVpn.Controls"
+             xmlns:vm="using:GodjiVpn.ViewModels"
+             xmlns:conv="using:GodjiVpn.Converters"
+             x:Class="GodjiVpn.Views.FaqView">
+    <!-- Частые вопросы — как FaqView Windows-клиента. Без прокрутки: разделы и вопросы одним
+         постраничным списком в стеклянной карточке, ответ — отдельным экраном (прокрутка —
+         только внутри очень длинного ответа, как в просмотре журнала). -->
+    <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="Auto,*" Margin="16,16,16,10">
+            <Button Classes="circle" Command="{Binding BackCommand}" ToolTip.Tip="Назад" AutomationProperties.Name="Назад">
+                <Path Classes="icon" Data="{StaticResource IconChevronLeft}" Width="20" Height="20"/>
+            </Button>
+            <TextBlock Grid.Column="1" Classes="subTitle" Text="Частые вопросы" Margin="12,0,0,0" IsVisible="{Binding IsListOpen}"/>
+            <TextBlock Grid.Column="1" Classes="subTitle" Text="Ответ" Margin="12,0,0,0" IsVisible="{Binding IsAnswerOpen}"/>
+        </Grid>
+
+        <!-- ═══ Список вопросов ═══ -->
+        <Panel Grid.Row="1" Margin="16,0,16,16" IsVisible="{Binding IsListOpen}">
+            <c:Spinner Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0" IsVisible="{Binding Loading}"/>
+
+            <c:GlassPanel Classes="card" CornerRadius="24" VerticalAlignment="Top" IsVisible="{Binding LoadError}">
+                <StackPanel Margin="20" HorizontalAlignment="Center">
+                    <TextBlock Classes="muted" Text="Не удалось загрузить вопросы" FontSize="{s:Fs 12.5}"/>
+                    <Button Classes="chip" Content="Повторить" Margin="0,10,0,0" HorizontalAlignment="Center" Command="{Binding RetryCommand}"/>
+                </StackPanel>
+            </c:GlassPanel>
+
+            <c:GlassPanel Classes="card" CornerRadius="24" VerticalAlignment="Top" IsVisible="{Binding IsEmpty}">
+                <TextBlock Classes="muted" Text="Пока нет вопросов" Margin="20" HorizontalAlignment="Center" FontSize="{s:Fs 12.5}"/>
+            </c:GlassPanel>
+
+            <c:GlassPanel Classes="card" CornerRadius="24" VerticalAlignment="Top"
+                          IsVisible="{Binding Rows.Count, Converter={x:Static conv:Conv.NonZero}}">
+                <c:PagedItems ItemsSource="{Binding Rows}">
+                    <c:PagedItems.DataTemplates>
+                        <!-- Заголовок раздела. -->
+                        <DataTemplate DataType="vm:FaqHeaderRow">
+                            <StackPanel>
+                                <Rectangle Classes="hair pagedSep"/>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{s:Fs 12}" Foreground="{DynamicResource TealDeepBrush}"
+                                           Margin="16,14,16,4" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </DataTemplate>
+                        <!-- Вопрос: нажатие открывает ответ. -->
+                        <DataTemplate DataType="vm:FaqItemUi">
+                            <StackPanel>
+                                <Rectangle Classes="hair pagedSep"/>
+                                <Button Classes="row" Padding="16,13" AutomationProperties.Name="{Binding Question}"
+                                        Command="{Binding $parent[ItemsControl].DataContext.OpenAnswerCommand}" CommandParameter="{Binding}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{Binding Question}" FontWeight="SemiBold" FontSize="{s:Fs 13}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                        <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15"
+                                              Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </c:PagedItems.DataTemplates>
+                </c:PagedItems>
+            </c:GlassPanel>
+        </Panel>
+
+        <!-- ═══ Ответ ═══ -->
+        <c:GlassPanel Grid.Row="1" Classes="card" CornerRadius="24" Margin="16,0,16,16" VerticalAlignment="Top" IsVisible="{Binding IsAnswerOpen}">
+            <ScrollViewer>
+                <StackPanel Margin="18,16">
+                    <TextBlock Text="{Binding OpenedItem.Question}" FontWeight="Bold" FontSize="{s:Fs 15}" TextWrapping="Wrap"/>
+                    <TextBlock Classes="muted" Text="{Binding OpenedItem.Answer}" FontSize="{s:Fs 13}" LineHeight="{s:Fs 19}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </c:GlassPanel>
+    </Grid>
+</UserControl>

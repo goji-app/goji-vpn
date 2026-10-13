@@ -1,0 +1,399 @@
+<Application x:Class="GodjiVpn.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+             xmlns:local="clr-namespace:GodjiVpn"
+             xmlns:vm="clr-namespace:GodjiVpn.ViewModels"
+             xmlns:views="clr-namespace:GodjiVpn.Views"
+             xmlns:conv="clr-namespace:GodjiVpn.Converters"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Светлая/тёмная палитра — оба набора ключей идентичны (BgBrush,
+                     SurfaceBrush, TealBrush и т.д.), см. Themes/LightTheme.xaml,
+                     Themes/DarkTheme.xaml — 1:1 с Android GodjiColors.applyLight()/applyDark()
+                     (Color.kt). Этот Source — просто дефолт на случай дизайн-тайм превью;
+                     реальный выбор темы применяет ThemeService при старте (см. App.xaml.cs),
+                     подменяя этот элемент MergedDictionaries на нужный словарь по сохранённому
+                     предпочтению пользователя. Все места, где ключ *Brush используется —
+                     обязательно {DynamicResource}, не {StaticResource}: только Dynamic
+                     переоценивается, когда ThemeService меняет словарь в рантайме. -->
+                <ResourceDictionary Source="Themes/LightTheme.xaml"/>
+                <!-- Иконки и компоненты дизайна v5 «Стекло». Тема ОБЯЗАТЕЛЬНО остаётся первым
+                     элементом — ThemeService подменяет именно MergedDictionaries[0]. -->
+                <ResourceDictionary Source="Themes/Icons.xaml"/>
+                <ResourceDictionary Source="Themes/Glass.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+            <conv:InverseBoolConverter x:Key="InverseBoolConverter"/>
+            <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <conv:NullToBoolConverter x:Key="NullToBoolConverter"/>
+            <conv:InverseNullToVisibilityConverter x:Key="InverseNullToVisibilityConverter"/>
+            <conv:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
+            <conv:InverseZeroToVisibilityConverter x:Key="InverseZeroToVisibilityConverter"/>
+            <conv:IntEqualsConverter x:Key="IntEqualsConverter"/>
+            <conv:IntEqualsToVisibilityConverter x:Key="IntEqualsToVisibilityConverter"/>
+
+            <!-- Шрифты — встроены как ресурсы сборки (см. GodjiVpn.csproj, Resource
+                 Include="Assets\Fonts\**\*"), файлы 1:1 скопированы из Android res/font.
+                 Family-имена ниже — реальные внутренние имена шрифтов (проверено через
+                 System.Drawing.Text.PrivateFontCollection), не имена файлов. -->
+            <FontFamily x:Key="ManropeFamily">pack://application:,,,/Assets/Fonts/#Manrope</FontFamily>
+            <FontFamily x:Key="ManropeExtraLightFamily">pack://application:,,,/Assets/Fonts/#Manrope ExtraLight</FontFamily>
+            <FontFamily x:Key="ManropeLightFamily">pack://application:,,,/Assets/Fonts/#Manrope Light</FontFamily>
+            <FontFamily x:Key="ManropeMediumFamily">pack://application:,,,/Assets/Fonts/#Manrope Medium</FontFamily>
+            <FontFamily x:Key="ManropeSemiBoldFamily">pack://application:,,,/Assets/Fonts/#Manrope SemiBold</FontFamily>
+            <FontFamily x:Key="ManropeExtraBoldFamily">pack://application:,,,/Assets/Fonts/#Manrope ExtraBold</FontFamily>
+            <FontFamily x:Key="InstrumentSerifFamily">pack://application:,,,/Assets/Fonts/#Instrument Serif</FontFamily>
+
+            <!-- v5 «Стекло»: во всём приложении один шрифт — Manrope (как в эталоне и в Android
+                 Type.kt). SpaceGroteskFamily / JetBrainsMonoFamily оставлены ПСЕВДОНИМАМИ Manrope,
+                 чтобы места, которые на них ссылаются, рисовали Manrope без правок. WPF видит
+                 все статичные начертания Manrope одним семейством "Manrope" (ExtraLight…ExtraBold),
+                 насыщенность задаётся FontWeight. -->
+            <FontFamily x:Key="SpaceGroteskFamily">pack://application:,,,/Assets/Fonts/#Manrope</FontFamily>
+            <FontFamily x:Key="JetBrainsMonoFamily">pack://application:,,,/Assets/Fonts/#Manrope</FontFamily>
+
+            <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource ManropeFamily}"/>
+            </Style>
+
+            <!-- Headline — заголовки экранов v5: Manrope Bold 30. -->
+            <Style x:Key="Headline" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                <Setter Property="FontFamily" Value="{StaticResource ManropeFamily}"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="FontSize" Value="{s:Fs 30}"/>
+            </Style>
+
+            <Style x:Key="MutedText" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource ManropeMediumFamily}"/>
+                <Setter Property="FontSize" Value="{s:Fs 12}"/>
+            </Style>
+
+            <Style TargetType="TextBox">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource ManropeFamily}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1.5"/>
+                <Setter Property="Padding" Value="12,10"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="FontSize" Value="{s:Fs 14}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="12">
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Пружинный "press-scale" — та же тактильная реакция, что и
+                 rememberPressScale() в Android (сжатие до ~0.96 при нажатии). Общий для всех
+                 кнопок ниже через BasedOn/переиспользование ControlTemplate-триггера. -->
+            <Style x:Key="PressScaleButtonBase" TargetType="Button">
+                <Setter Property="FontFamily" Value="{StaticResource ManropeSemiBoldFamily}"/>
+                <Setter Property="FontSize" Value="{s:Fs 14}"/>
+                <Setter Property="Padding" Value="16,10"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                <Setter Property="RenderTransform">
+                    <Setter.Value>
+                        <ScaleTransform ScaleX="1" ScaleY="1"/>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="14">
+                                <!-- Content обычно задаётся простой строкой ("Включить", "Продолжить через
+                                     Google" и т.п.) — WPF заворачивает такую строку в свой собственный
+                                     TextBlock. У этого TextBlock нет явного Style, поэтому он подхватывает
+                                     ГЛОБАЛЬНЫЙ неявный Style TargetType="TextBlock" из App.xaml (Foreground=
+                                     TextPrimaryBrush) — Setter стиля побеждает property-value-inheritance
+                                     от Button.Foreground, то есть заданный в стиле кнопки Foreground (тот же
+                                     SurfaceBrush у InkButton/PrimaryButton) реально никогда не применяется.
+                                     На тёмных Ink/Teal фонах текст TextPrimaryBrush сливается с фоном почти
+                                     до нечитаемости (сильнее всего заметно на "Продолжить через Google").
+                                     Фикс: переопределяем implicit-стиль TextBlock локально в границах этого
+                                     ContentPresenter — резолвинг ресурсов ищет ближайший словарь, поэтому
+                                     этот вложенный Style полностью перекрывает Application-level, и
+                                     Foreground берётся из самой кнопки через RelativeSource. -->
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}">
+                                    <ContentPresenter.Resources>
+                                        <!-- TextTrimming/NoWrap — порт из Android (fbfd20b): чипы вроде
+                                             периода подписки/вкладок "Программа" сидят в UniformGrid
+                                             фиксированной ширины (PlansView.xaml) — если подпись туда не
+                                             помещается, читаемая деградация (многоточие), а не наложение
+                                             текста, как было бы без явного ограничения. Не меняет вид
+                                             кнопок, которым ширины хватает (большинство). -->
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                            <Setter Property="TextWrapping" Value="NoWrap"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.92"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.96" Duration="0:0:0.08"/>
+                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.96" Duration="0:0:0.08"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.25">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <BackEase Amplitude="0.6" EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.25">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <BackEase Amplitude="0.6" EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Teal — основной CTA (вкл./далее/подтвердить). -->
+            <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource PressScaleButtonBase}">
+                <Setter Property="Background" Value="{DynamicResource TealBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+            </Style>
+
+            <!-- Ink — сплошная тёмная кнопка (Google-вход, "Продлить" на Plans). -->
+            <Style x:Key="InkButton" TargetType="Button" BasedOn="{StaticResource PressScaleButtonBase}">
+                <Setter Property="Background" Value="{DynamicResource InkBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+            </Style>
+
+            <!-- Outline — вторичные действия (Яндекс-вход, "Изменить email"). -->
+            <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PressScaleButtonBase}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1.5"/>
+            </Style>
+
+            <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PressScaleButtonBase}">
+                <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+            </Style>
+
+            <!-- Обычная текстовая ссылка-кнопка (TealDeep, без фона) — "Через email…",
+                 "← Другие способы входа" и т.п. -->
+            <Style x:Key="LinkButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource ManropeSemiBoldFamily}"/>
+                <Setter Property="FontSize" Value="{s:Fs 13}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <!-- Тот же фикс implicit-TextBlock-стиля, что и в PressScaleButtonBase выше —
+                                 без него текст ссылки показывался бы TextPrimaryBrush вместо TealDeepBrush. -->
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Нижняя навигация (3 вкладки, эмодзи-иконка растёт при выборе — как в Android
+                 NavigationBar с increaseIcon spring-анимацией 1.0→1.22). -->
+            <Style x:Key="TabButton" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource ManropeSemiBoldFamily}"/>
+                <Setter Property="FontSize" Value="{s:Fs 10.5}"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <!-- Тот же implicit-TextBlock-стиль бьёт и тут: без явного локального
+                                 Foreground на Icon и без scoped-переопределения на ContentPresenter обе
+                                 подписи вкладки всегда показывались бы TextPrimaryBrush, а не приглушённым/
+                                 teal цветом из триггера IsChecked ниже (Setter Property="Foreground" без
+                                 TargetName — он меняет Foreground самого RadioButton, а не подхватывается
+                                 детьми из-за той же проблемы приоритета). -->
+                            <StackPanel HorizontalAlignment="Center" Margin="0,8">
+                                <TextBlock x:Name="Icon" Text="{TemplateBinding Tag}" FontSize="{s:Fs 20}" HorizontalAlignment="Center"
+                                           Foreground="{TemplateBinding Foreground}" RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <ScaleTransform ScaleX="1" ScaleY="1"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                                <!-- MaxWidth+TextTrimming — порт из Android (fbfd20b): подписи вкладок
+                                     ("НАСТРОЙКИ"/"ПОДПИСКА") на узком окне могли наложиться друг на
+                                     друга без явного ограничения ширины/переноса, как в Compose до
+                                     фикса, где сжатие до нуля рвало текст по одной букве на строку.
+                                     Здесь то же самое читаемое вырождение — многоточие, а не разрыв. -->
+                                <ContentPresenter Margin="0,3,0,0" HorizontalAlignment="Center" MaxWidth="70">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+                                            <Setter Property="TextWrapping" Value="NoWrap"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="Icon" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.22" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction><BackEase Amplitude="0.7" EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetName="Icon" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.22" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction><BackEase Amplitude="0.7" EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="Icon" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.2"/>
+                                                <DoubleAnimation Storyboard.TargetName="Icon" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.2"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Карточка со press-scale при клике (узел сервера, тарифный план, баннер-ссылка). -->
+            <Style x:Key="PressScaleBorder" TargetType="Border">
+                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                <Setter Property="RenderTransform">
+                    <Setter.Value><ScaleTransform ScaleX="1" ScaleY="1"/></Setter.Value>
+                </Setter>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Style.Triggers>
+                    <EventTrigger RoutedEvent="Border.PreviewMouseLeftButtonDown">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.97" Duration="0:0:0.08"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.97" Duration="0:0:0.08"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                    <EventTrigger RoutedEvent="Border.PreviewMouseLeftButtonUp">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.25">
+                                    <DoubleAnimation.EasingFunction><BackEase Amplitude="0.6" EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.25">
+                                    <DoubleAnimation.EasingFunction><BackEase Amplitude="0.6" EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Пульсирующая точка статуса (Teal/Warning/приглушённая — off/connecting/on),
+                 та же анимация 1↔0.35 каждые 900мс, что и в ConnectScreen/PlansScreen Android. -->
+            <Style x:Key="PulseDot" TargetType="Ellipse">
+                <Style.Triggers>
+                    <Trigger Property="Tag" Value="pulse">
+                        <Trigger.EnterActions>
+                            <BeginStoryboard>
+                                <Storyboard RepeatBehavior="4x" AutoReverse="True">
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.35" Duration="0:0:0.9"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </Trigger.EnterActions>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <DataTemplate DataType="{x:Type vm:LoginViewModel}">
+                <views:LoginView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ShellViewModel}">
+                <views:ShellView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ConnectViewModel}">
+                <views:ConnectView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ServersViewModel}">
+                <views:ServersView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PlansViewModel}">
+                <views:PlansView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+                <views:SettingsView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:SupportListViewModel}">
+                <views:SupportListView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:NewTicketViewModel}">
+                <views:NewTicketView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:TicketChatViewModel}">
+                <views:TicketChatView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:FaqViewModel}">
+                <views:FaqView/>
+            </DataTemplate>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

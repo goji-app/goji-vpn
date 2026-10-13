@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- windows10.0.19041.0, а не голый net8.0-windows — нужно WebView2CompositionControl
+         (Microsoft.Windows.SDK.NET.dll/WinRT-проекции подтягиваются только с версионным
+         Windows-TFM, без него CompositionControl падает при старте с
+         FileNotFoundException на Microsoft.Windows.SDK.NET). -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- Трей-иконка — Hardcodet.NotifyIcon.Wpf (не System.Windows.Forms.NotifyIcon), поэтому
+         UseWindowsForms не нужен и не конфликтует с System.Windows.Application/UserControl. -->
+    <RootNamespace>GodjiVpn</RootNamespace>
+    <AssemblyName>GodjiVpn</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <Version>1.0.74</Version>
+    <ApplicationIcon>Assets\Images\app.ico</ApplicationIcon>
+    <!-- Экономия памяти: без фонового (конкурентного) GC — нет лишнего потока и резерва под
+         него; ConserveMemory — сборщик охотнее уплотняет кучу вместо того, чтобы её растить.
+         Для UI-клиента с небольшой кучей разницы в отзывчивости не видно. -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2957.106" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Runtime\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- globe.html/goji-globe.js должны существовать как обычные файлы на диске рядом с exe —
+         WebView2 (отдельный браузерный процесс) не умеет читать pack://-ресурсы, встроенные в
+         сборку, поэтому это Content, а не Resource (в отличие от шрифтов/картинок ниже). -->
+    <Content Include="Assets\Globe\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Шрифты и картинки — встроенные WPF-ресурсы (pack://application:,,,/...), читаются
+         самим WPF-процессом напрямую, не нужны как файлы на диске. -->
+    <Resource Include="Assets\Fonts\**\*" />
+    <Resource Include="Assets\Images\**\*" />
+  </ItemGroup>
+
+</Project>

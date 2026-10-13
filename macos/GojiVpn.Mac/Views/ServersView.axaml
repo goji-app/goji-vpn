@@ -1,0 +1,131 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+             xmlns:c="using:GodjiVpn.Controls"
+             xmlns:conv="using:GodjiVpn.Converters"
+             x:Class="GodjiVpn.Views.ServersView">
+    <!-- Серверы v5 «Стекло»: заголовок, "Обновить"/"Пинг", сортировка, баннер результата,
+         все узлы — одна стеклянная карточка со строками через разделитель. -->
+    <UserControl.Styles>
+        <Style Selector="Grid.nodeRow"><Setter Property="Background" Value="Transparent"/></Style>
+        <Style Selector="Grid.nodeRow.selected"><Setter Property="Background" Value="{DynamicResource SelBgBrush}"/></Style>
+        <Style Selector="Border.flag"><Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/></Style>
+        <Style Selector="Border.flag.selected"><Setter Property="BorderBrush" Value="{DynamicResource TealBrush}"/></Style>
+        <Style Selector="Path.star">
+            <Setter Property="Data" Value="{StaticResource IconStarOutline}"/>
+            <Setter Property="Fill" Value="{DynamicResource TextMutedBrush}"/>
+        </Style>
+        <Style Selector="Path.star.on">
+            <Setter Property="Data" Value="{StaticResource IconStar}"/>
+            <Setter Property="Fill" Value="{DynamicResource WarningBrush}"/>
+        </Style>
+        <Style Selector="TextBlock.ping"><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/></Style>
+        <Style Selector="TextBlock.ping.good"><Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/></Style>
+        <Style Selector="TextBlock.ping.mid"><Setter Property="Foreground" Value="#C98B12"/></Style>
+        <Style Selector="TextBlock.ping.bad"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></Style>
+        <Style Selector="c|GlassPanel.banner"><Setter Property="Tint" Value="{DynamicResource BannerOkBrush}"/></Style>
+        <Style Selector="c|GlassPanel.banner.error"><Setter Property="Tint" Value="{DynamicResource BannerWarnBrush}"/></Style>
+        <Style Selector="Ellipse.bannerDot"><Setter Property="Fill" Value="{DynamicResource TealBrush}"/></Style>
+        <Style Selector="Ellipse.bannerDot.error"><Setter Property="Fill" Value="{DynamicResource TerracottaBrush}"/></Style>
+        <Style Selector="Path.bannerIcon"><Setter Property="Data" Value="{StaticResource IconCheck}"/></Style>
+        <Style Selector="Path.bannerIcon.error"><Setter Property="Data" Value="{StaticResource IconPriorityHigh}"/></Style>
+    </UserControl.Styles>
+    <!-- Без прокрутки: список узлов занимает оставшееся место и листается страницами. -->
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="16">
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="4,0">
+                <StackPanel VerticalAlignment="Bottom">
+                    <TextBlock Classes="title" Text="Где выйти в сеть" TextWrapping="Wrap"/>
+                    <TextBlock Classes="muted" Margin="0,3,0,0" Text="{Binding Nodes.Count, StringFormat='{}{0} узлов в подписке'}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0" Spacing="8">
+                    <StackPanel>
+                        <Button Classes="circle" Command="{Binding RefreshCommand}">
+                            <Panel>
+                                <Path Classes="icon terra" Data="{StaticResource IconRefresh}" Width="16" Height="16"
+                                      IsVisible="{Binding !IsRefreshing}"/>
+                                <c:Spinner Foreground="{DynamicResource TerracottaBrush}" IsVisible="{Binding IsRefreshing}"/>
+                            </Panel>
+                        </Button>
+                        <TextBlock Text="Обновить" FontWeight="Bold" FontSize="{s:Fs 9.5}" Foreground="{DynamicResource TerracottaBrush}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                    </StackPanel>
+                    <StackPanel>
+                        <Button Classes="circle" Command="{Binding PingAllCommand}">
+                            <Panel>
+                                <Path Classes="icon teal" Data="{StaticResource IconBolt}" Width="16" Height="16"
+                                      IsVisible="{Binding !IsCheckingAll}"/>
+                                <c:Spinner Foreground="{DynamicResource TealDeepBrush}" IsVisible="{Binding IsCheckingAll}"/>
+                            </Panel>
+                        </Button>
+                        <TextBlock Text="Пинг" FontWeight="Bold" FontSize="{s:Fs 9.5}" Foreground="{DynamicResource TealDeepBrush}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <c:SegmentedControl Grid.Row="1" ItemsSource="{Binding SortOptions}" SelectedIndex="{Binding SortIndex}" ItemHeight="32" LabelFontSize="12" Margin="0,12,0,0"/>
+
+            <c:GlassPanel Grid.Row="2" Classes="pill banner" Classes.error="{Binding RefreshResultIsError}" CornerRadius="20" Padding="13,11" Margin="0,12,0,0"
+                          IsVisible="{Binding RefreshResultMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Panel Width="24" Height="24">
+                        <Ellipse Classes="bannerDot" Classes.error="{Binding RefreshResultIsError}"/>
+                        <Path Classes="icon bannerIcon white" Classes.error="{Binding RefreshResultIsError}" Width="13" Height="13"/>
+                    </Panel>
+                    <TextBlock Grid.Column="1" Text="{Binding RefreshResultMessage}" FontWeight="SemiBold" FontSize="{s:Fs 12}" TextWrapping="Wrap"
+                               VerticalAlignment="Center" Margin="10,0"/>
+                    <Button Grid.Column="2" Classes="bare" Command="{Binding DismissRefreshResultCommand}" VerticalAlignment="Center">
+                        <Border Width="22" Height="22" CornerRadius="11" Background="{DynamicResource HairBrush}">
+                            <Path Classes="icon" Data="{StaticResource IconClose}" Width="10" Height="10"/>
+                        </Border>
+                    </Button>
+                </Grid>
+            </c:GlassPanel>
+
+            <c:GlassPanel Grid.Row="3" Classes="card" Margin="0,12,0,0" VerticalAlignment="Top">
+                <c:PagedItems ItemsSource="{Binding Nodes}">
+                    <c:PagedItems.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <Rectangle Classes="hair pagedSep"/>
+                                <Grid Classes="nodeRow" Classes.selected="{Binding IsSelected}" ColumnDefinitions="*,Auto,Auto,Auto">
+                                    <Button Classes="bare" Padding="14,12,0,12"
+                                            Command="{Binding $parent[ItemsControl].DataContext.SelectCommand}" CommandParameter="{Binding}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Classes="flag" Classes.selected="{Binding IsSelected}" Width="36" Height="36" CornerRadius="12"
+                                                    Background="{DynamicResource ChipBrush}" BorderThickness="1">
+                                                <Panel>
+                                                    <Border Width="22" Height="16" CornerRadius="3" ClipToBounds="True"
+                                                            IsVisible="{Binding FlagImagePath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                        <Image Source="{Binding FlagImagePath, Converter={x:Static conv:AssetImageConverter.Instance}}" Stretch="UniformToFill"/>
+                                                    </Border>
+                                                    <Path Classes="icon secondary" Data="{StaticResource IconGlobe}" Width="17" Height="17"
+                                                          IsVisible="{Binding FlagImagePath, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                                </Panel>
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontWeight="Bold" FontSize="{s:Fs 13.5}"
+                                                       VerticalAlignment="Center" Margin="12,0,8,0" TextTrimming="CharacterEllipsis"/>
+                                            <Path Grid.Column="2" Classes="icon teal" Data="{StaticResource IconCheck}" Width="18" Height="18" IsVisible="{Binding IsSelected}"/>
+                                        </Grid>
+                                    </Button>
+                                    <Button Grid.Column="1" Classes="bare" Padding="6" Margin="4,0,0,0" VerticalAlignment="Center"
+                                            Command="{Binding $parent[ItemsControl].DataContext.ToggleFavoriteCommand}" CommandParameter="{Binding}">
+                                        <Path Classes="icon star" Classes.on="{Binding IsFavorite}" Width="15" Height="15"/>
+                                    </Button>
+                                    <Button Grid.Column="2" Classes="bare" Margin="4,0,10,0" VerticalAlignment="Center"
+                                            Command="{Binding $parent[ItemsControl].DataContext.PingOneCommand}" CommandParameter="{Binding}">
+                                        <c:GlassPanel Classes="flat" CornerRadius="999" MinWidth="70" Height="30" Padding="11,0">
+                                            <TextBlock Classes="ping" Classes.good="{Binding PingGood}" Classes.mid="{Binding PingMid}" Classes.bad="{Binding PingBad}"
+                                                       Text="{Binding PingLabel}" FontWeight="Bold" FontSize="{s:Fs 11.5}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </c:GlassPanel>
+                                    </Button>
+                                    <Button Grid.Column="3" Classes="bare" Padding="4" Margin="0,0,10,0" VerticalAlignment="Center" IsVisible="{Binding IsCustom}"
+                                            Command="{Binding $parent[ItemsControl].DataContext.RemoveCustomNodeCommand}" CommandParameter="{Binding}">
+                                        <Path Classes="icon danger" Data="{StaticResource IconDelete}" Width="15" Height="15"/>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </DataTemplate>
+                    </c:PagedItems.ItemTemplate>
+                </c:PagedItems>
+            </c:GlassPanel>
+    </Grid>
+</UserControl>
