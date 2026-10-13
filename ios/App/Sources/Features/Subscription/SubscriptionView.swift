@@ -198,7 +198,7 @@ struct SubscriptionView: View {
                             .background(Circle().fill(GojiColor.chip))
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
-                                Text(device.readableName ?? device.platform ?? device.hwid.prefix(8).description)
+                                Text(device.displayName)
                                     .font(GojiFont.manrope(14, .semibold))
                                     .foregroundStyle(GojiColor.textPrimary)
                                     .lineLimit(1)
@@ -206,7 +206,7 @@ struct SubscriptionView: View {
                                     Badge(text: L("devices.this"))
                                 }
                             }
-                            Text([device.platform, DateParsing.dateTime(device.createdAt)].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
+                            Text([device.details, DateParsing.dateTime(device.createdAt)].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
                                 .font(GojiFont.caption())
                                 .foregroundStyle(GojiColor.textSecondary)
                         }

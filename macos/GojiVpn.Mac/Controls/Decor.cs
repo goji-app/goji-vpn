@@ -214,12 +214,17 @@ public class ShimmerBar : AnimatedControl
     }
 }
 
-/// <summary>Кольцо "осталось N дней" 68×68: дуга Teal (доля days/30) по дорожке, ядро RingCore
-/// с числом и "ДНЕЙ".</summary>
+/// <summary>Кольцо "осталось N дней" 68×68: дуга Teal (остаток / длина оплаченного периода —
+/// после продления полное и каждый день убывает, см. SubscriptionPeriod) по дорожке, ядро
+/// RingCore с числом и "ДНЕЙ".</summary>
 public class DaysRing : Panel
 {
     public static readonly StyledProperty<int> DaysProperty = AvaloniaProperty.Register<DaysRing, int>(nameof(Days));
     public int Days { get => GetValue(DaysProperty); set => SetValue(DaysProperty, value); }
+
+    public static readonly StyledProperty<int> TotalDaysProperty = AvaloniaProperty.Register<DaysRing, int>(nameof(TotalDays), 30);
+    /// <summary>Длина оплаченного периода в днях (см. SubscriptionPeriod).</summary>
+    public int TotalDays { get => GetValue(TotalDaysProperty); set => SetValue(TotalDaysProperty, value); }
 
     private readonly TextBlock _number = new() { FontWeight = FontWeight.ExtraBold, [!TextBlock.FontSizeProperty] = FontScale.For(19), HorizontalAlignment = HorizontalAlignment.Center };
 
@@ -246,7 +251,7 @@ public class DaysRing : Panel
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == DaysProperty)
+        if (change.Property == DaysProperty || change.Property == TotalDaysProperty)
         {
             _number.Text = Days.ToString();
             foreach (var ch in Children) if (ch is Ring r) r.InvalidateVisual();
@@ -267,7 +272,7 @@ public class DaysRing : Panel
             var track = this.TryFindResource("TrackBgBrush", ActualThemeVariant, out var t) && t is IBrush tb ? tb : Brushes.LightGray;
             var teal = this.TryFindResource("TealBrush", ActualThemeVariant, out var b) && b is IBrush bb ? bb : Brushes.Teal;
             ctx.DrawEllipse(null, new Pen(track, 7), c, r, r);
-            var fraction = Math.Clamp(_owner.Days / 30.0, 0, 1);
+            var fraction = Math.Clamp(_owner.Days / (double)Math.Max(_owner.TotalDays, 1), 0, 1);
             if (fraction <= 0) return;
             if (fraction >= 0.999)
             {

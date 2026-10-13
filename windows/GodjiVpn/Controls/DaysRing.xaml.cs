@@ -5,7 +5,8 @@ using System.Windows.Media;
 namespace GodjiVpn.Controls;
 
 /// <summary>Кольцевой индикатор "осталось N дней" — аналог DaysRing в PlansScreen.kt v5
-/// (дуга Teal по дорожке TrackBg, доля = daysLeft/30, ограничена [0,1]).</summary>
+/// (дуга Teal по дорожке TrackBg, доля = остаток / длина оплаченного периода — после продления
+/// полное и каждый день убывает, см. SubscriptionPeriod).</summary>
 public partial class DaysRing : UserControl
 {
     public static readonly DependencyProperty DaysProperty = DependencyProperty.Register(
@@ -16,6 +17,17 @@ public partial class DaysRing : UserControl
     {
         get => (int)GetValue(DaysProperty);
         set => SetValue(DaysProperty, value);
+    }
+
+    public static readonly DependencyProperty TotalDaysProperty = DependencyProperty.Register(
+        nameof(TotalDays), typeof(int), typeof(DaysRing),
+        new PropertyMetadata(30, OnDaysChanged));
+
+    /// <summary>Длина оплаченного периода в днях (см. SubscriptionPeriod).</summary>
+    public int TotalDays
+    {
+        get => (int)GetValue(TotalDaysProperty);
+        set => SetValue(TotalDaysProperty, value);
     }
 
     public DaysRing()
@@ -31,7 +43,7 @@ public partial class DaysRing : UserControl
     {
         DaysText.Text = Days.ToString();
 
-        var fraction = Math.Clamp(Days / 30.0, 0.0, 1.0);
+        var fraction = Math.Clamp(Days / (double)Math.Max(TotalDays, 1), 0.0, 1.0);
         var w = ActualWidth > 0 ? ActualWidth : Width;
         var h = ActualHeight > 0 ? ActualHeight : Height;
         if (w <= 0 || h <= 0) return;

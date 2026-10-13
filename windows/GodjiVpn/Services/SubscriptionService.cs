@@ -45,6 +45,8 @@ public sealed class SubscriptionService
         request.Headers.TryAddWithoutValidation("X-HWID", _hwid.Get());
         request.Headers.TryAddWithoutValidation("X-Device-OS", "Windows");
         request.Headers.TryAddWithoutValidation("X-Device-OS-Version", Environment.OSVersion.VersionString);
+        // Версия ОС под тем именем, которое читает Remnawave (os_version в списке устройств).
+        request.Headers.TryAddWithoutValidation("X-Ver-OS", $"{(Environment.OSVersion.Version.Build >= 22000 ? "11" : "10")} ({Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}.{Environment.OSVersion.Version.Build})");
         request.Headers.TryAddWithoutValidation("X-Device-Model", Environment.MachineName);
         request.Headers.TryAddWithoutValidation("X-App-Name", "Godji app (Windows)");
         request.Headers.TryAddWithoutValidation("X-App-Version", "0.1.0");

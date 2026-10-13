@@ -183,14 +183,35 @@ struct DeviceInfo: Decodable, Identifiable, Equatable {
     let platform: String?
     let userAgent: String?
     let createdAt: String?
+    // Модель и версия ОС (заголовки X-Device-Model / X-Ver-OS запроса подписки) — их же показывает
+    // сайт: название = readable_name || device_model || platform.
+    var deviceModel: String? = nil
+    var osVersion: String? = nil
 
     var id: String { hwid }
+
+    /// Название как на сайте: своё имя, иначе модель, иначе платформа.
+    var displayName: String {
+        [readableName, deviceModel, platform]
+            .compactMap { $0?.trimmingCharacters(in: .whitespaces) }
+            .first { !$0.isEmpty } ?? String(hwid.prefix(8))
+    }
+
+    /// Строка под названием, как на сайте: платформа · версия ОС · клиент (User-Agent до «/»).
+    var details: String {
+        [platform, osVersion, userAgent?.split(separator: "/").first.map(String.init)]
+            .compactMap { $0?.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
 
     enum CodingKeys: String, CodingKey {
         case hwid, platform
         case readableName = "readable_name"
         case userAgent = "user_agent"
         case createdAt = "created_at"
+        case deviceModel = "device_model"
+        case osVersion = "os_version"
     }
 }
 

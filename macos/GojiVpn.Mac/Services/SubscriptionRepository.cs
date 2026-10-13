@@ -141,6 +141,7 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
     public void ClearAccount()
     {
         AccountCache.Clear();
+        SubscriptionPeriod.Clear();
         _lastOkRefreshUtc = DateTime.MinValue;
         _subscriptionNodes = Array.Empty<VlessNode>();
         Subscription = null;

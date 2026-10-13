@@ -95,20 +95,12 @@ public sealed partial class DeviceItem : ObservableObject
 {
     public required string Hwid { get; init; }
     [ObservableProperty] private string name = "";
-    public string? Platform { get; init; }
+    /// <summary>Строка под названием, как на сайте: платформа · версия ОС · клиент.</summary>
+    public string? Details { get; init; }
     public string? CreatedAtLabel { get; init; }
-    /// <summary>Через что реально зарегистрировалось устройство на бэкенде (User-Agent запроса
-    /// подписки) — тот же клиент бэкенд запишет для ЛЮБОГО устройства на Goji (см.
-    /// SubscriptionService, там он намеренно подменяется на "v2rayNG/..."), отдаём как есть.</summary>
-    public string? ConnectedVia { get; init; }
     [ObservableProperty] private bool isBusy;
 
-    public string Subtitle => string.Join(" · ", new[]
-    {
-        Platform,
-        !string.IsNullOrEmpty(ConnectedVia) ? $"Через {ConnectedVia}" : null,
-        CreatedAtLabel
-    }.Where(s => !string.IsNullOrEmpty(s)));
+    public string Subtitle => string.Join(" · ", new[] { Details, CreatedAtLabel }.Where(s => !string.IsNullOrEmpty(s)));
 }
 
 public sealed partial class PeriodItem : ObservableObject
@@ -201,7 +193,13 @@ public sealed partial class PlansViewModel : ObservableObject
 
     [ObservableProperty] private string planName = "—";
     [ObservableProperty] private string expiryLabel = "—";
-    [ObservableProperty] private int daysLeft;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSubscriptionActive))]
+    private int daysLeft;
+    /// <summary>«АКТИВНА» — только при настоящей подписке с остатком дней (как на Android).</summary>
+    public bool IsSubscriptionActive => DaysLeft > 0;
+    /// <summary>Длина оплаченного периода (см. SubscriptionPeriod) — кольцо = DaysLeft / DaysTotal.</summary>
+    [ObservableProperty] private int daysTotal = 30;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DevicesCountLabel))]
     [NotifyPropertyChangedFor(nameof(DevicesSectionLabel))]
@@ -439,6 +437,7 @@ public sealed partial class PlansViewModel : ObservableObject
         PlanName = sub?.PlanName ?? "—";
         ExpiryLabel = sub?.ExpireAt is { Length: > 0 } iso ? DateFormat.FormatDate(iso) : "—";
         DaysLeft = sub?.DaysLeft ?? 0;
+        DaysTotal = sub is { } s0 ? SubscriptionPeriod.TotalDays(s0.Id, s0.DaysLeft) : 30;
         DeviceLimit = sub?.DeviceLimit ?? 0;
         CustomerId = _subscription.SelectedNode?.Uuid;
         _subscriptionId = sub?.Id;
@@ -541,8 +540,8 @@ public sealed partial class PlansViewModel : ObservableObject
         _subscriptionId = 1;
         OnPropertyChanged(nameof(HasDevices));
         Devices.Clear();
-        Devices.Add(new DeviceItem { Hwid = "a", Name = "Pixel 8", Platform = "Android", ConnectedVia = "Goji VPN 1.0.107", CreatedAtLabel = "3 сентября" });
-        Devices.Add(new DeviceItem { Hwid = "b", Name = "Рабочий ноутбук", Platform = "Windows", CreatedAtLabel = "12 сентября" });
+        Devices.Add(new DeviceItem { Hwid = "a", Name = "Pixel 8", Details = "Android · Goji VPN 1.0.107", CreatedAtLabel = "3 сентября" });
+        Devices.Add(new DeviceItem { Hwid = "b", Name = "Рабочий ноутбук", Details = "Windows", CreatedAtLabel = "12 сентября" });
         OnPropertyChanged(nameof(DevicesSectionLabel));
         _rawPlans = new List<PlanInfo>
         {
@@ -579,12 +578,13 @@ public sealed partial class PlansViewModel : ObservableObject
     private static DeviceItem ToDeviceItem(DeviceDto d) => new()
     {
         Hwid = d.Hwid,
-        Name = !string.IsNullOrWhiteSpace(d.ReadableName) ? d.ReadableName
-             : !string.IsNullOrWhiteSpace(d.Platform) ? d.Platform
-             : d.Hwid[..Math.Min(8, d.Hwid.Length)],
-        Platform = d.Platform,
-        CreatedAtLabel = d.CreatedAt is { } ca ? DateFormat.FormatDate(ca) : null,
-        ConnectedVia = !string.IsNullOrWhiteSpace(d.UserAgent) ? d.UserAgent : null
+        // Как на сайте: своё имя, иначе модель, иначе платформа; под ним — платформа, версия ОС
+        // и клиент (User-Agent до первого «/»).
+        Name = new[] { d.ReadableName, d.DeviceModel, d.Platform }.Select(x => x?.Trim()).FirstOrDefault(x => !string.IsNullOrEmpty(x))
+             ?? d.Hwid[..Math.Min(8, d.Hwid.Length)],
+        Details = string.Join(" · ", new[] { d.Platform, d.OsVersion, d.UserAgent?.Split('/')[0] }
+            .Select(x => x?.Trim()).Where(x => !string.IsNullOrEmpty(x))),
+        CreatedAtLabel = d.CreatedAt is { } ca ? DateFormat.FormatDate(ca) : null
     };
 
     [RelayCommand]

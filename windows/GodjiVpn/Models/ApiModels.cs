@@ -284,6 +284,14 @@ public sealed class DeviceDto
 
     [JsonPropertyName("created_at")]
     public string? CreatedAt { get; set; }
+
+    // Модель и версия ОС (заголовки X-Device-Model / X-Ver-OS запроса подписки) — их же показывает
+    // сайт: название = readable_name || device_model || platform.
+    [JsonPropertyName("device_model")]
+    public string? DeviceModel { get; set; }
+
+    [JsonPropertyName("os_version")]
+    public string? OsVersion { get; set; }
 }
 
 public sealed class RenameDeviceRequest

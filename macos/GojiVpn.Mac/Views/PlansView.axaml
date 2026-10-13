@@ -64,7 +64,7 @@
                 <Panel>
                     <StackPanel Margin="16">
                         <Grid ColumnDefinitions="Auto,*,Auto">
-                            <c:DaysRing Days="{Binding DaysLeft}"/>
+                            <c:DaysRing Days="{Binding DaysLeft}" TotalDays="{Binding DaysTotal}"/>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,10,0">
                                 <TextBlock FontWeight="Medium" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap">
                                     <Run Text="Ваш тариф: "/><Run Text="{Binding PlanName}" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -78,7 +78,7 @@
                                                Text="{Binding PersonalDiscountPercent, StringFormat='Персональная скидка: −{0}%'}"/>
                                 </StackPanel>
                             </StackPanel>
-                            <c:ActiveBadge Grid.Column="2" Text="АКТИВНА"/>
+                            <c:ActiveBadge Grid.Column="2" Text="АКТИВНА" IsVisible="{Binding IsSubscriptionActive}"/>
                         </Grid>
                         <Button Classes="accent" Margin="0,12,0,0" Command="{Binding OpenRenewCommand}">
                             <StackPanel Orientation="Horizontal">

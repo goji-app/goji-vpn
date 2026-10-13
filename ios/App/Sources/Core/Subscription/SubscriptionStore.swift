@@ -173,6 +173,8 @@ final class SubscriptionStore: ObservableObject {
         request.setValue(DeviceID.hwid, forHTTPHeaderField: "X-HWID")
         request.setValue("iOS", forHTTPHeaderField: "X-Device-OS")
         request.setValue(UIDevice.current.systemVersion, forHTTPHeaderField: "X-Device-OS-Version")
+        // Версия ОС под тем именем, которое читает Remnawave (os_version в списке устройств).
+        request.setValue(UIDevice.current.systemVersion, forHTTPHeaderField: "X-Ver-OS")
         request.setValue(DeviceModel.identifier, forHTTPHeaderField: "X-Device-Model")
         request.setValue("Goji app", forHTTPHeaderField: "X-App-Name")
         request.setValue(AppConstants.appVersion, forHTTPHeaderField: "X-App-Version")
