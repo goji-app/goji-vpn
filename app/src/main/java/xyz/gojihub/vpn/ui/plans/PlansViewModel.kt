@@ -50,6 +50,8 @@ data class PlansUiState(
     val planName: String = "—",
     val expiryLabel: String = "—",
     val daysLeft: Int = 0,
+    /** Длина оплаченного периода (см. util/SubscriptionPeriod) — кольцо = daysLeft / daysTotal. */
+    val daysTotal: Int = 30,
     val refreshing: Boolean = false,
     val customerId: String? = null,
     val news: List<NewsUi> = emptyList(),
@@ -109,7 +111,8 @@ class PlansViewModel @Inject constructor(
     private val api: RemnawaveApi,
     private val subscriptionRepository: SubscriptionRepository,
     private val authRepository: xyz.gojihub.vpn.auth.AuthRepository,
-    private val accountCache: xyz.gojihub.vpn.subscription.AccountCache
+    private val accountCache: xyz.gojihub.vpn.subscription.AccountCache,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
 
     /** Код переноса входа на другое устройство (см. AuthRepository.transferUri). */
@@ -166,6 +169,7 @@ class PlansViewModel @Inject constructor(
             planName = sub.planName,
             expiryLabel = formatDate(sub.expireAt),
             daysLeft = sub.daysLeft,
+            daysTotal = xyz.gojihub.vpn.util.SubscriptionPeriod.totalDays(appContext, sub.id, sub.daysLeft),
             // UUID клиента в Remnawave (settings.vnext[].users[].id у VLESS-профиля) — тот же,
             // что зашит в конфиг узлов, реальный Remnawave-идентификатор, в отличие от
             // customer_id (UUID шоп-бэкенда) и subscription.id (внутренний ID шоп-бэкенда) —

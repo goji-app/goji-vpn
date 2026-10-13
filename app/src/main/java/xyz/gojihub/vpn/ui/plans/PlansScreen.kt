@@ -251,7 +251,7 @@ private fun SubscriptionCard(state: PlansUiState) {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            DaysRing(state.daysLeft)
+            DaysRing(state.daysLeft, state.daysTotal)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     buildAnnotatedString {
@@ -581,10 +581,11 @@ private fun DevicesSection(
     }
 }
 
-/** Кольцо дней: conic-заливка accent по track (без скруглённых концов), ядро RingCore 54dp. */
+/** Кольцо дней: остаток от оплаченного периода — после продления полное и каждый день
+ *  убывает (см. util/SubscriptionPeriod). Ядро RingCore 54dp. */
 @Composable
-private fun DaysRing(days: Int) {
-    val pct = (days / 30f).coerceIn(0f, 1f)
+private fun DaysRing(days: Int, totalDays: Int) {
+    val pct = (days.toFloat() / totalDays.coerceAtLeast(1)).coerceIn(0f, 1f)
     Box(Modifier.size(68.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val w = 7.dp.toPx()

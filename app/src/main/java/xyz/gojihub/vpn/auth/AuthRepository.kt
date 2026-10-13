@@ -202,6 +202,7 @@ class AuthRepository @Inject constructor(
         ).forEach { runCatching { java.io.File(appContext.filesDir, it).delete() } }
         appContext.getSharedPreferences("subscription_refresh", Context.MODE_PRIVATE).edit().clear().apply()
         subscriptionRepository.get().clearAccount()
+        xyz.gojihub.vpn.util.SubscriptionPeriod.clear(appContext)
     }
     fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
 
