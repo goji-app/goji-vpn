@@ -1,0 +1,159 @@
+name: iOS
+
+# Сборка и проверка iOS-клиента на macOS-раннере GitHub (на Windows собрать iOS нельзя).
+#  - build: XcodeGen → сборка для симулятора и для устройства (без подписи) → юнит-тесты →
+#           снимки экрана App Store в демо-режиме.
+#  - release (ручной запуск с testflight=true): подписанный архив и загрузка в App Store
+#           Connect / TestFlight. Нужны секреты, см. docs/RELEASE.md.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
+  pull_request:
+    paths-ignore: ['docs/**', '**/*.md']
+  workflow_dispatch:
+    inputs:
+      testflight:
+        description: "Собрать подписанный архив и загрузить в TestFlight"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      - name: Кэш ядра LibXray
+        uses: actions/cache@v4
+        with:
+          path: .downloads
+          key: libxray-${{ hashFiles('Scripts/fetch-libxray.sh') }}
+
+      - name: Инструменты
+        run: brew install xcodegen xcbeautify && mkdir -p build
+
+      - name: Ядро, геоданные, проект
+        run: |
+          chmod +x Scripts/*.sh
+          ./Scripts/bootstrap.sh
+
+      - name: Проверка локализации
+        run: python3 Scripts/check-strings.py
+
+      - name: Сборка для симулятора
+        run: |
+          set -o pipefail
+          xcodebuild -project GojiVPN.xcodeproj -scheme GojiVPN -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/sim \
+            CODE_SIGNING_ALLOWED=NO build | tee build/sim-build.log | xcbeautify || \
+          (tail -200 build/sim-build.log; exit 1)
+
+      - name: Юнит-тесты
+        run: |
+          set -o pipefail
+          SIM=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          print(next(x['udid'] for r in sorted(d, reverse=True) for x in d[r] if x['name'].startswith('iPhone 16')))")
+          xcodebuild -project GojiVPN.xcodeproj -scheme GojiVPN -configuration Debug \
+            -destination "id=$SIM" -derivedDataPath build/sim \
+            CODE_SIGNING_ALLOWED=NO test | tee build/test.log | xcbeautify || \
+          (tail -200 build/test.log; exit 1)
+
+      - name: Сборка для устройства (arm64, без подписи)
+        run: |
+          set -o pipefail
+          xcodebuild -project GojiVPN.xcodeproj -scheme GojiVPN -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO build | tee build/device-build.log | xcbeautify || \
+          (tail -200 build/device-build.log; exit 1)
+          APP=build/device/Build/Products/Release-iphoneos/GojiVPN.app
+          du -sh "$APP" "$APP/PlugIns/PacketTunnel.appex"
+          plutil -p "$APP/Info.plist" | grep -E 'CFBundleShortVersionString|CFBundleVersion'
+
+      - name: Снимки экрана (демо-режим)
+        run: |
+          ./Scripts/screenshots.sh build/sim/Build/Products/Debug-iphonesimulator/GojiVPN.app build/screenshots
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build
+          path: |
+            build/*.log
+            build/screenshots
+          retention-days: 14
+
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.testflight
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: app-store
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+
+      - uses: actions/cache@v4
+        with:
+          path: .downloads
+          key: libxray-${{ hashFiles('Scripts/fetch-libxray.sh') }}
+
+      - name: Подготовка
+        run: |
+          brew install xcodegen xcbeautify && mkdir -p build
+          chmod +x Scripts/*.sh
+          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" > Config/Signing.local.xcconfig
+          echo "CODE_SIGN_STYLE = Automatic" >> Config/Signing.local.xcconfig
+          ./Scripts/bootstrap.sh
+
+      - name: Ключ App Store Connect API
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+
+      - name: Архив (подпись облачными сертификатами Apple)
+        run: |
+          set -o pipefail
+          xcodebuild -project GojiVPN.xcodeproj -scheme GojiVPN -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/GojiVPN.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }} \
+            archive | xcbeautify
+
+      - name: Загрузка в App Store Connect
+        run: |
+          sed "s/__TEAM_ID__/${{ secrets.APPLE_TEAM_ID }}/" Config/ExportOptions.plist > build/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath build/GojiVPN.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist -exportPath build/export \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }}
+
+      - name: dSYM
+        run: cd build/GojiVPN.xcarchive && zip -qr ../dSYMs.zip dSYMs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: build/dSYMs.zip
+          retention-days: 90

@@ -1,0 +1,413 @@
+/* Goji VPN iOS — русский (основной язык) */
+
+/* Вкладки */
+"tab.home" = "Главная";
+"tab.servers" = "Серверы";
+"tab.subscription" = "Аккаунт";
+"tab.settings" = "Настройки";
+
+/* Общее */
+"common.add" = "Добавить";
+"common.cancel" = "Отмена";
+"common.close" = "Закрыть";
+"common.copied" = "Скопировано";
+"common.delete" = "Удалить";
+"common.done" = "Готово";
+"common.retry" = "Повторить";
+"common.save" = "Сохранить";
+"common.tap_to_copy" = "Нажмите, чтобы скопировать";
+
+/* Ошибки */
+"error.http" = "Ошибка сервера (%ld)";
+"error.network" = "Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.";
+"error.bad_response" = "Сервер ответил непонятно. Попробуйте позже.";
+"error.session_expired" = "Сессия истекла — войдите снова";
+
+/* Конфиденциальность (до первого использования) */
+"privacy.title" = "Прежде чем начать";
+"privacy.lead" = "Goji VPN шифрует трафик и направляет его через наши серверы. Вот честно, что мы храним, а что — нет.";
+"privacy.collected" = "Что мы храним";
+"privacy.not_collected" = "Чего мы не делаем";
+"privacy.item.email" = "Email — для входа в аккаунт и восстановления доступа.";
+"privacy.item.device" = "Идентификатор устройства, модель и версия iOS — чтобы соблюдать лимит устройств вашей подписки и показывать их список в аккаунте.";
+"privacy.item.support" = "Ваши обращения в поддержку и приложенные к ним файлы — только если вы сами их отправите.";
+"privacy.item.no_logs" = "Не ведём журналы посещённых сайтов, DNS-запросов и содержимого трафика.";
+"privacy.item.no_tracking" = "Нет рекламы, трекеров и аналитики третьих сторон.";
+"privacy.item.no_sale" = "Не продаём и не передаём ваши данные третьим лицам.";
+"privacy.vpn_permission" = "При первом подключении iOS спросит разрешение добавить конфигурацию VPN — это нужно, чтобы приложение могло создать защищённый туннель.";
+"privacy.read_policy" = "Политика конфиденциальности";
+"privacy.accept" = "Понятно, продолжить";
+
+/* Вход */
+"login.greeting" = "Привет. Куда подключаемся сегодня?";
+"login.email.label" = "Email";
+"login.get_code" = "Получить код";
+"login.no_account" = "Аккаунта нет? Создадим сами — ничего заполнять не нужно.";
+"login.scan_qr" = "Войти по QR с другого устройства";
+"login.error.invalid_email" = "Введите корректный email";
+"login.consent" = "Продолжая, вы принимаете %@ и %@.";
+"login.consent.terms" = "пользовательское соглашение";
+"login.consent.privacy" = "политику конфиденциальности";
+
+"verify.title" = "Подтвердите почту";
+"verify.sent_to" = "Код отправлен на %@";
+"verify.code_label" = "Код из письма";
+"verify.checking" = "Проверяем…";
+"verify.auto_hint" = "Проверка запустится сама, как только введёте все цифры";
+"verify.error.wrong_code" = "Неверный или устаревший код";
+"verify.resend" = "Отправить код ещё раз";
+"verify.resend_in" = "Отправить снова через %ld с";
+
+"scanner.hint" = "Наведите камеру на QR-код в приложении Goji VPN на другом устройстве: Аккаунт → Перенести вход";
+"scanner.denied" = "Нет доступа к камере. Разрешите его в Настройках, чтобы сканировать QR-код.";
+"scanner.open_settings" = "Открыть Настройки";
+
+/* Перенос входа */
+"transfer.title" = "Перенести вход";
+"transfer.subtitle" = "QR-код для входа на другом своём устройстве";
+"transfer.sheet.text" = "Отсканируйте этот код в Goji VPN на другом устройстве (экран входа → «Войти по QR»). Код действует 10 минут.";
+"transfer.warning" = "Не показывайте этот код другим людям — он даёт доступ к вашему аккаунту.";
+"transfer.expires_in" = "Действует ещё %ld:%02ld";
+"transfer.expired" = "Срок действия кода истёк";
+"transfer.regenerate" = "Обновить код";
+"transfer.qr.a11y" = "QR-код для входа на другом устройстве";
+"transfer.confirm.title" = "Войти по QR-коду?";
+"transfer.confirm.text" = "Приложение войдёт в аккаунт, с которого показан этот код.";
+"transfer.confirm.replace" = "Вы уже вошли. Текущий вход будет заменён аккаунтом с другого устройства.";
+"transfer.confirm.yes" = "Войти";
+"transfer.error.invalid" = "Это не код входа Goji VPN";
+"transfer.error.expired" = "Код устарел — покажите новый на другом устройстве";
+"transfer.error.rejected" = "Сервер не принял код — войдите на другом устройстве заново и попробуйте снова";
+
+/* Главная */
+"connect.headline.on" = "Вы в %@";
+"connect.headline.connecting" = "Ищем дорогу…";
+"connect.headline.off" = "Пока без защиты";
+"connect.fallback_place" = "надёжном месте";
+"connect.subline.on" = "%@ · в туннеле";
+"connect.subline.connecting" = "Договариваемся с %@";
+"connect.subline.off" = "Провайдер видит всё, что вы открываете";
+"connect.cta.on" = "Включить";
+"connect.cta.off" = "Отключить";
+"connect.a11y.connect" = "Подключить VPN к выбранному серверу";
+"connect.a11y.disconnect" = "Отключить VPN";
+"connect.no_server" = "Нет доступного сервера — выберите его на вкладке «Серверы»";
+"connect.node.caption" = "Сервер";
+"connect.node.none" = "Выбрать за меня";
+"connect.node.a11y" = "Открыть список серверов";
+"connect.stat.down" = "Скачивание";
+"connect.stat.up" = "Отдача";
+"connect.traffic" = "Трафик";
+"connect.traffic.unlimited" = "%@ ГБ / ∞";
+"connect.traffic.limited" = "%@ / %@ ГБ";
+"connect.expiry" = "Подписка до %@ · осталось %@";
+"speed.mb" = "%@ МБ/с";
+"speed.kb" = "%@ КБ/с";
+
+"net.wifi" = "Wi-Fi";
+"net.cellular" = "Мобильная сеть";
+"net.jammed" = "Сеть пропала";
+
+"banner.jammed_switched" = "Мобильную связь глушат — переключились на «%@», чтобы не потерять интернет.";
+"banner.jammed_no_ru" = "Мобильную связь глушат, а российского узла нет в вашей подписке.";
+"banner.wifi_restored" = "Wi-Fi на месте — вернулись на обычный сервер.";
+"banner.cellular_eu" = "Мобильная сеть — переключились на «%@».";
+"banner.cellular_lte" = "Мобильная сеть, а европейские серверы недоступны — переключились на «%@».";
+"banner.actual_country" = "На самом деле вы подключены через %@ — сервер называется «%@», но по IP это другая страна.";
+"banner.lte_only_jam" = "Сервер «Автовыбор LTE» работает через Россию только при ограничениях мобильной сети, в остальное время он выбирает свободный европейский узел.";
+
+"nosub.title" = "Нет активной подписки";
+"nosub.text" = "Чтобы подключиться, нужна активная подписка. Новым пользователям доступен бесплатный пробный период.";
+"trial.activate" = "Активировать пробный период";
+"trial.activated" = "Пробный период активирован";
+"trial.error" = "Пробный период недоступен для этого аккаунта";
+
+/* Серверы */
+"servers.title" = "Где выйти в сеть";
+"servers.count.one" = "%ld сервер в подписке";
+"servers.count.few" = "%ld сервера в подписке";
+"servers.count.many" = "%ld серверов в подписке";
+"servers.empty" = "Список серверов пока пуст. Потяните вниз, чтобы обновить.";
+"servers.refresh" = "Обновить подписку и пинг";
+"servers.refresh_ok" = "Подписка обновлена";
+"servers.refresh_fail" = "Не удалось обновить подписку — проверьте соединение";
+"servers.check" = "проверить";
+"servers.ping" = "Проверить задержку";
+"servers.ping_ms" = "%ld мс";
+"servers.unavailable" = "недоступен";
+"servers.favorite" = "Добавить в избранное";
+"servers.unfavorite" = "Убрать из избранного";
+"servers.fallback_name" = "Сервер %ld";
+"servers.sort.favorites" = "Избранные";
+"servers.sort.ping" = "По пингу";
+"servers.sort.name" = "По имени";
+
+/* Аккаунт / подписка */
+"sub.title" = "Аккаунт";
+"sub.subtitle" = "Подписка, устройства и приглашения";
+"sub.plan" = "Ваш тариф";
+"sub.active" = "АКТИВНА";
+"sub.inactive" = "НЕ АКТИВНА";
+"sub.until" = "Действует до %@";
+"sub.devices_limit" = "До %ld устройств одновременно";
+"sub.manage_note" = "Подписка не продлевается автоматически — списаний врасплох не будет.";
+"sub.more" = "Ещё";
+"sub.support_text" = "Что-то не работает? Напишите нам";
+"days.one" = "%ld день";
+"days.few" = "%ld дня";
+"days.many" = "%ld дней";
+"days.word.one" = "день";
+"days.word.few" = "дня";
+"days.word.many" = "дней";
+
+"devices.title" = "Устройства";
+"devices.count" = "%ld из %ld";
+"devices.empty" = "Нет подключённых устройств";
+"devices.this" = "Это";
+"devices.actions" = "Действия с устройством";
+"devices.rename" = "Переименовать";
+"devices.rename.title" = "Переименовать устройство";
+"devices.rename.label" = "Название";
+"devices.delete" = "Удалить";
+"devices.delete.title" = "Удаление устройства";
+"devices.delete.confirm" = "Устройство освободит место в лимите подписки. На нём придётся заново войти в аккаунт.";
+"devices.delete.support_only" = "На пробном и бесплатном тарифах удалить устройство можно только через поддержку — напишите нам, мы поможем.";
+"devices.contact_support" = "Написать в поддержку";
+
+"referral.title" = "Пригласите друзей";
+"referral.invited" = "Приглашено";
+"referral.active" = "Активных";
+"referral.bonus_days" = "Бонусных дней";
+"referral.copy" = "Копировать";
+"referral.share" = "Поделиться";
+"referral.bonus_suffix" = "+%ld дн.";
+"referral.badge.active" = "Активен";
+"referral.badge.inactive" = "Неактивен";
+
+"news.title" = "Новости";
+"news.read_more" = "Читать полностью";
+"news.collapse" = "Свернуть";
+
+/* Настройки */
+"settings.title" = "Настройки";
+"settings.connection" = "Подключение";
+"settings.killswitch" = "Kill switch";
+"settings.killswitch.desc" = "Весь трафик только через VPN: если туннель оборвётся, интернет будет заблокирован, а не пойдёт в обход.";
+"settings.autoconnect" = "Автоподключение";
+"settings.autoswitch" = "Держать в сети";
+"settings.autoswitch.desc" = "Глушат мобильную — уходим на российский узел, появился Wi-Fi — возвращаемся. Пока приложение открыто.";
+"settings.servers_check" = "Проверки";
+"settings.appearance" = "Внешний вид";
+"settings.theme" = "Тема оформления";
+"settings.language" = "Язык";
+"settings.language.desc" = "Меняется в Настройках iOS для Goji VPN";
+"settings.haptics" = "Вибрация при подключении";
+"settings.about" = "О приложении";
+"settings.account" = "Аккаунт";
+"settings.logout" = "Выйти из аккаунта";
+"settings.logout.confirm" = "Выйти из аккаунта? VPN будет отключён, профиль VPN удалён из системы.";
+
+"theme.system" = "Системная";
+"theme.light" = "Светлая";
+"theme.dark" = "Тёмная";
+
+"autoconnect.off" = "Только вручную";
+"autoconnect.off.desc" = "VPN включается и выключается только вами.";
+"autoconnect.untrustedWifi" = "В чужих сетях Wi-Fi";
+"autoconnect.untrustedWifi.desc" = "VPN включается сам при подключении к любой сети Wi-Fi, кроме доверенных.";
+"autoconnect.always" = "Всегда";
+"autoconnect.always.desc" = "iOS держит VPN включённым постоянно (кроме доверенных Wi-Fi) и сама поднимает его после перезагрузки.";
+"autoconnect.lead" = "Работает через системную функцию «VPN по требованию» — даже когда приложение закрыто.";
+"autoconnect.manual_note" = "Если отключить VPN вручную, автоподключение приостановится до следующего ручного включения.";
+"wifi.trusted.title" = "Доверенные сети Wi-Fi";
+"wifi.trusted.desc" = "Например, домашняя сеть. Название (SSID) вводится точно, с учётом регистра.";
+"wifi.trusted.disconnect" = "Отключать VPN в доверенных сетях";
+"wifi.trusted.placeholder" = "Название сети";
+
+"bypass.title" = "Сайты мимо VPN";
+"bypass.subtitle" = "Открываются напрямую, без туннеля";
+"bypass.lead" = "Трафик к этим доменам и их поддоменам пойдёт напрямую. Удобно для банков и сервисов, которые не работают через VPN.";
+"bypass.empty" = "Список пуст";
+"bypass.error.invalid" = "Это не похоже на адрес сайта";
+
+"ping.title" = "Настройки пинга";
+"ping.url" = "Адрес для проверки через прокси";
+"ping.url.reset" = "Вернуть по умолчанию";
+"ping.method.proxyGet" = "Через прокси · GET";
+"ping.method.proxyGet.desc" = "Реальный запрос через сервер — честная задержка протокола";
+"ping.method.proxyHead" = "Через прокси · HEAD";
+"ping.method.proxyHead.desc" = "То же, но без загрузки тела ответа";
+"ping.method.tcp" = "TCP";
+"ping.method.tcp.desc" = "Быстро: только время установки соединения с сервером";
+
+"leak.title" = "Проверка IP и DNS";
+"leak.subtitle" = "Что видит внешний мир прямо сейчас";
+"leak.caption" = "Сравниваем адрес через VPN с настоящим и проверяем, чей DNS-сервер разрешает ваши запросы.";
+"leak.check" = "Проверить";
+"leak.vpn_ip" = "IP через VPN";
+"leak.real_ip" = "Ваш настоящий IP";
+"leak.dns" = "DNS-резолвер";
+"leak.ip_leak" = "Адрес через VPN совпадает с настоящим — переподключитесь.";
+"leak.dns_leak" = "DNS-запросы, похоже, идут через провайдера.";
+"leak.verdict.safe" = "Утечек не найдено";
+"leak.verdict.leak" = "Обнаружена утечка";
+"leak.verdict.off" = "VPN выключен — показан ваш настоящий адрес";
+"leak.verdict.error" = "Не удалось получить данные, попробуйте ещё раз";
+
+"logs.title" = "Журналы";
+"logs.lead" = "Технический журнал приложения и туннеля для поддержки. Не содержит адресов сайтов, паролей и токенов.";
+"logs.share" = "Поделиться";
+"logs.clear" = "Очистить";
+"logs.empty" = "Журнал пока пуст.";
+"log.level" = "Подробность";
+"log.level.none" = "Не вести";
+"log.level.error" = "Ошибки";
+"log.level.warning" = "Предупреждения";
+"log.level.info" = "Информация";
+"log.level.debug" = "Отладка";
+"log.cat.main" = "Основной";
+"log.cat.core" = "Ядро";
+"log.cat.subscription" = "Подписка";
+"log.cat.service" = "Туннель";
+
+"about.title" = "О приложении";
+"about.version" = "Версия";
+"about.xray" = "Ядро";
+"about.device" = "Устройство";
+"about.copy_hint" = "Нажмите на строку, чтобы скопировать — пригодится поддержке.";
+"about.licenses" = "Открытые компоненты";
+"about.licenses.text" = "Xray-core и libXray (MPL-2.0 / MIT, Project X), шрифты Manrope и Instrument Serif (SIL Open Font License 1.1), геоданные runetfreedom/russia-v2ray-rules-dat и hxehex/russia-mobile-internet-whitelist.";
+
+"legal.privacy" = "Политика конфиденциальности";
+"legal.terms" = "Пользовательское соглашение";
+
+"account.delete.title" = "Удалить аккаунт";
+"account.delete.lead" = "Аккаунт и связанные с ним данные (email, устройства, история обращений) будут удалены. Активная подписка при этом сгорит — отменить удаление нельзя.";
+"account.delete.what" = "Запрос уходит нашей команде, аккаунт удаляется в течение 7 дней, мы подтвердим на ваш email. После отправки запроса вы выйдете из аккаунта на этом устройстве.";
+"account.delete.reason" = "Причина (необязательно)";
+"account.delete.button" = "Удалить аккаунт";
+"account.delete.confirm" = "Точно удалить аккаунт? Это действие необратимо.";
+"account.delete.done" = "Запрос на удаление отправлен. Мы удалим аккаунт в течение 7 дней и сообщим на email.";
+"account.delete.ticket_subject" = "Удаление аккаунта (запрос из приложения iOS)";
+"account.delete.ticket_message" = "Прошу удалить мой аккаунт и все связанные с ним данные. Причина: %@";
+
+/* Поддержка */
+"support.title" = "Поддержка";
+"support.write" = "Написать в поддержку";
+"support.write.desc" = "Обращения и переписка прямо в приложении";
+"support.new" = "Новое обращение";
+"support.tab.open" = "Открытые";
+"support.tab.closed" = "История";
+"support.empty.open" = "Нет открытых обращений";
+"support.empty.closed" = "Нет закрытых обращений";
+"support.ticket_number" = "Обращение №%lld";
+"support.unread" = "Непрочитанных: %ld";
+"support.status.open" = "Открыто";
+"support.status.waiting_customer" = "Ждём вашего ответа";
+"support.status.awaiting_reply" = "Ждём ответа поддержки";
+"support.status.on_hold" = "В работе";
+"support.status.closed" = "Закрыто";
+"support.queue" = "Куда обратиться";
+"support.queue.choose" = "Выберите тему";
+"support.subject" = "Тема (необязательно)";
+"support.message.placeholder" = "Что случилось? Чем подробнее — тем быстрее поможем";
+"support.attach_logs" = "Приложить журналы приложения";
+"support.send" = "Отправить";
+"support.error.message_required" = "Напишите сообщение";
+"support.error.queue_required" = "Выберите, куда задать вопрос";
+"support.limit.title" = "Уже есть открытое обращение";
+"support.limit.text" = "Продолжите переписку в нём — так мы ответим быстрее.";
+"support.limit.goto" = "Перейти к обращению";
+"support.chat.placeholder" = "Сообщение…";
+"support.chat.closed" = "Обращение закрыто";
+"support.chat.send_error" = "Не удалось отправить сообщение";
+"support.attach" = "Приложить файл";
+"support.attach.media" = "Фото или видео";
+"support.attach.file" = "PDF-файл";
+"support.attach.logs" = "Журналы приложения";
+"support.attachment" = "Вложение";
+"support.logs_message" = "Журналы приложения iOS";
+
+"faq.title" = "Частые вопросы";
+"faq.entry" = "Частые вопросы";
+"faq.empty" = "Пока нет вопросов";
+
+/* Уведомления */
+"notif.expiry.title" = "Подписка скоро закончится";
+"notif.plan_ending" = "Подписка «%@» заканчивается %@ — не забудьте продлить.";
+"notif.trial_ending" = "Пробный период заканчивается меньше чем через 12 часов.";
+"notif.payment.title" = "Подписка продлена";
+"notif.payment.body" = "Подписка «%@» действует до %@.";
+"notif.news.title" = "Новое сообщение от Goji VPN";
+
+/* VPN */
+"vpn.error.permission" = "Не удалось сохранить конфигурацию VPN. Разрешите добавление VPN, когда iOS спросит, и попробуйте снова.";
+"vpn.error.switch" = "Не удалось переключить сервер";
+
+/* Siri и Быстрые команды */
+"intent.connect.title" = "Включить Goji VPN";
+"intent.connect.desc" = "Подключает VPN к выбранному серверу";
+"intent.connect.short" = "Включить VPN";
+"intent.connect.done" = "Goji VPN подключается: %@";
+"intent.disconnect.title" = "Выключить Goji VPN";
+"intent.disconnect.desc" = "Отключает VPN";
+"intent.disconnect.short" = "Выключить VPN";
+"intent.disconnect.done" = "Goji VPN отключён";
+
+/* Демо-данные для снимков экрана */
+"demo.news" = "**Новые серверы в Европе.** Добавили узлы в Финляндии и Эстонии — выбирайте на вкладке «Серверы».";
+
+/* «Главная» M3 и журнал сети (порт Android 1.0.117 / 84b0fb9) */
+"connect.speed_now" = "Скорость сейчас";
+"quality.title" = "Качество канала";
+"quality.excellent" = "отлично";
+"quality.good" = "хорошо";
+"quality.fair" = "средне";
+"quality.poor" = "плохо";
+"quality.ping" = "Пинг %ld мс · потерь нет";
+"quality.ping_loss" = "Пинг %ld мс · потери %ld%%";
+"quality.measuring" = "Измеряем…";
+"quality.off" = "Подключитесь — и покажем";
+"quality.noreply" = "Сервер не отвечает";
+"subtile.title" = "Подписка";
+"subtile.until" = "до %@";
+"journal.title" = "Журнал сети";
+"journal.link_desc" = "Когда VPN работал, переключения и сбои";
+"journal.today" = "Сегодня";
+"journal.yesterday" = "Вчера";
+"journal.protected" = "Под защитой";
+"journal.of" = "%@ из %@";
+"journal.connects" = "подключения";
+"journal.switches" = "переключения";
+"journal.issues" = "сбои";
+"journal.events" = "СОБЫТИЯ";
+"journal.empty" = "Пока тихо. События появятся, когда VPN начнёт работать.";
+"journal.footer" = "Журнал хранится 7 дней и только на этом телефоне.";
+"journal.home.none" = "Сегодня без переключений";
+"journal.home.count" = "Сегодня переключений: %ld";
+"journal.home.last" = " · последнее событие %@";
+"journal.duration.hm" = "%ld ч %ld мин";
+"journal.duration.m" = "%ld мин";
+"journal.ev.connected" = "Подключено";
+"journal.ev.connected.node" = "Узел «%@»";
+"journal.ev.connected.tunnel" = "Защищённый туннель поднят";
+"journal.ev.disconnected" = "Отключено";
+"journal.ev.disconnected.text" = "VPN выключен";
+"journal.ev.wifi" = "Wi-Fi";
+"journal.ev.wifi.text" = "Телефон перешёл на Wi-Fi";
+"journal.ev.cellular" = "Мобильная сеть";
+"journal.ev.cellular.text" = "Телефон перешёл на мобильный интернет";
+"journal.ev.jammed" = "Связь пропала";
+"journal.ev.jammed.text" = "Нет доступной сети — похоже на глушение";
+"journal.ev.switch_jammed" = "Обход глушения";
+"journal.ev.switch_eu" = "Мобильная сеть: Европа доступна";
+"journal.ev.switch_lte" = "Мобильная сеть: Европа недоступна";
+"journal.ev.wifi_restored" = "Wi-Fi вернулся";
+"journal.ev.switched_to" = "Переключились на «%@»";
+"journal.ev.selected" = "Выбран «%@»";
+"journal.ev.restored" = "Вернули узел «%@»";
+"journal.ev.error" = "Ошибка подключения";
+"journal.ev.leak_ok" = "Проверка утечек пройдена";
+"journal.ev.leak_ok.text" = "IP и DNS идут через туннель";
+"journal.ev.leak_fail" = "Найдена утечка";
+"journal.ev.leak_fail.text" = "Часть запросов идёт мимо туннеля";

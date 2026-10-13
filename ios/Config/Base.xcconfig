@@ -1,0 +1,23 @@
+#include "Version.xcconfig"
+
+// Команда разработчика и подпись. В репозитории — пусто: локально команду кладут в
+// Config/Signing.local.xcconfig (в .gitignore), в CI её подставляет workflow из секретов.
+// Пример содержимого Signing.local.xcconfig:
+//   DEVELOPMENT_TEAM = ABCDE12345
+//   CODE_SIGN_STYLE = Automatic
+#include? "Signing.local.xcconfig"
+
+IPHONEOS_DEPLOYMENT_TARGET = 16.0
+TARGETED_DEVICE_FAMILY = 1
+SWIFT_VERSION = 5.0
+ENABLE_BITCODE = NO
+DEAD_CODE_STRIPPING = YES
+
+// Идентификаторы — общие для приложения, расширения и App Group.
+GOJI_APP_BUNDLE_ID = xyz.gojihub.vpn
+GOJI_TUNNEL_BUNDLE_ID = xyz.gojihub.vpn.tunnel
+GOJI_APP_GROUP = group.xyz.gojihub.vpn
+
+// LibXray — статическая библиотека Go (cgo, c-archive). Go-рантайм на Darwin тянет
+// libresolv (DNS) и системные фреймворки для проверки сертификатов.
+OTHER_LDFLAGS = $(inherited) -lresolv -framework Security -framework CoreFoundation -framework SystemConfiguration
