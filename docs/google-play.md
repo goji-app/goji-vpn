@@ -1,16 +1,16 @@
 # Публикация в Google Play
 
-Что уже сделано в коде (флейвор `play`) и что заполнить в Play Console.
+Что уже сделано в коде и что заполнить в Play Console. С 2026-10-13 сборка одна — для Google Play (сборки для сайта/GitHub с самообновлением больше нет).
 
-Сборка: `./gradlew bundlePlayRelease` → `app/build/outputs/bundle/playRelease/app-play-release.aab`.
+Сборка: `./gradlew bundleRelease` → `app/build/outputs/bundle/release/app-release.aab` (APK для проверки — `assembleRelease`).
 Подпись — через Play App Signing (загружаем ключом загрузки).
 
 ## Что сделано в приложении
 
 | Требование Google | Где |
 |---|---|
-| Нет самообновления в обход Play, нет `REQUEST_INSTALL_PACKAGES` | `ENABLE_SELF_UPDATE=false`, `src/play/AndroidManifest.xml` |
-| Нет оплаты и ссылок на оплату вне Google Play | `ENABLE_EXTERNAL_CHECKOUT=false`: скрыты «Продлить», тарифы с ценами, скидка, кабинет партнёра, баннер бота |
+| Нет самообновления в обход Play, нет `REQUEST_INSTALL_PACKAGES` | код самообновления удалён целиком |
+| Нет оплаты и ссылок на оплату вне Google Play | удалены «Продлить», тарифы с ценами, скидка, кабинет партнёра, баннер бота |
 | Нет входа через встроенный браузер на весь сайт | `ENABLE_WEB_LOGIN=false`: только email-код и QR-перенос |
 | Удаление аккаунта внутри приложения | Настройки → «Удалить аккаунт» (заявка тикетом в поддержку + выход) |
 | Описание foreground service `specialUse` | `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` у `GodjiVpnService` |
@@ -52,4 +52,4 @@
 ### Прочее
 - Возрастной рейтинг (анкета), целевая аудитория 18+, реклама — нет.
 - Новости (`/api/broadcasts`) показываются в приложении как есть: в них не должно быть
-  ссылок на оплату на сайте — иначе это нарушение правил о платежах в Play-сборке.
+  ссылок на оплату на сайте — иначе это нарушение правил о платежах в приложении.
