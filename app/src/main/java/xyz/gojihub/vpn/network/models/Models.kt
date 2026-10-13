@@ -238,7 +238,11 @@ data class DeviceDto(
     @Json(name = "readable_name") val readableName: String?,
     val platform: String?,
     @Json(name = "user_agent") val userAgent: String?,
-    @Json(name = "created_at") val createdAt: String?
+    @Json(name = "created_at") val createdAt: String?,
+    // Модель и версия ОС — из заголовков X-Device-Model / X-Ver-OS запроса подписки; их же
+    // показывает сайт (ClientDashboard: название = readable_name || device_model || platform).
+    @Json(name = "device_model") val deviceModel: String? = null,
+    @Json(name = "os_version") val osVersion: String? = null
 )
 
 @JsonClass(generateAdapter = true)

@@ -18,17 +18,6 @@ import xyz.gojihub.vpn.util.formatDateTime
 import xyz.gojihub.vpn.util.formatDate
 import javax.inject.Inject
 
-data class PeriodUi(val months: Int, val label: String)
-data class PlanUi(
-    val id: Long,
-    val name: String,
-    val description: String,
-    val priceLabel: String,
-    val isCurrent: Boolean,
-    // Реальная единица периода у ЭТОЙ конкретной цены (обычно "month", но не гарантия — берём
-    // как есть, а не хардкодим), нужна для defaultPeriodUnit в /checkout (см. PlansScreen).
-    val periodUnit: String
-)
 data class NewsButtonUi(val url: String, val text: String)
 data class NewsUi(val id: String, val rawContent: String, val dateLabel: String, val buttons: List<NewsButtonUi>)
 
@@ -42,25 +31,13 @@ data class ReferralUi(
     val entries: List<ReferralEntryUi>
 )
 
-/** applicationStatus: null (нет заявки — можно подать), "pending", "rejected". Остальные
- *  денежные действия (подать заявку, запросить вывод) — только через веб, см. PlansScreen. */
-data class PartnerUi(
-    val isPartner: Boolean,
-    val isActive: Boolean,
-    val applicationStatus: String?,
-    val commissionRate: Double,
-    val clientCount: Int,
-    val totalEarned: Double,
-    val availableBalance: Double,
-    val pendingBalance: Double
-)
 
 data class DeviceUi(
     val hwid: String,
     val name: String,
-    val platform: String?,
+    /** Строка под названием, как на сайте: «Android · 16 · v2rayNG». */
+    val details: String,
     val createdAtLabel: String?,
-    val connectedVia: String?,
     val busy: Boolean = false
 )
 
@@ -73,25 +50,19 @@ data class PlansUiState(
     val planName: String = "—",
     val expiryLabel: String = "—",
     val daysLeft: Int = 0,
-    val periods: List<PeriodUi> = emptyList(),
-    val selectedMonths: Int = 1,
-    val plans: List<PlanUi> = emptyList(),
     val refreshing: Boolean = false,
     val customerId: String? = null,
     val news: List<NewsUi> = emptyList(),
     val newsExpanded: Boolean = false,
     val newsPage: Int = 0,
     val referral: ReferralUi? = null,
-    val partner: PartnerUi? = null,
     val subscriptionId: Long? = null,
     // На пробном/бесплатном тарифе — как на сайте, самостоятельное удаление устройства скрыто
     // за "обратитесь в поддержку" (см. комментарий у DeviceDto в Models.kt).
     val devicesDeleteSupportOnly: Boolean = false,
     val devices: List<DeviceUi> = emptyList(),
-    val deviceLimit: Int = 0,
-    // customer_discount_percent с /api/dashboard/plans — 0, если у клиента нет персональной
-    // скидки (см. PlansResponse.customerDiscountPercent); тогда бейдж просто не показываем.
-    val personalDiscountPercent: Int = 0
+    val deviceLimit: Int = 0
+
 )
 
 /** Веб-версия маскирует половину имени/юзернейма/локальной части email точками —
@@ -109,17 +80,16 @@ private fun maskEmail(email: String): String {
     return maskHalf(email.substring(0, at)) + email.substring(at)
 }
 
+// Так же, как на сайте (ClientDashboard): название — своё имя устройства, иначе модель,
+// иначе платформа; под ним — платформа, версия ОС и клиент (User-Agent до первого «/»).
 private fun DeviceDto.toUi(): DeviceUi = DeviceUi(
     hwid = hwid,
-    name = readableName?.takeIf { it.isNotBlank() } ?: platform?.takeIf { it.isNotBlank() } ?: hwid.take(8),
-    platform = platform,
-    createdAtLabel = createdAt?.let(::formatDate),
-    // Через что реально зарегистрировалось устройство на бэкенде (см. RemnawaveApi.getDevices)
-    // — тот же User-Agent, что уходил в запросе подписки (см. SubscriptionRepository.fetchNodes,
-    // там он намеренно подменяется на "v2rayNG/1.8.29" — этот же клиент бэкенд и запишет для
-    // ЛЮБОГО устройства на Goji, а не только для настоящего v2rayNG; отдаём как есть, без
-    // попытки угадать реальное имя клиента там, где бэкенд сам этого не различает).
-    connectedVia = userAgent?.takeIf { it.isNotBlank() }
+    name = listOf(readableName, deviceModel, platform).firstNotNullOfOrNull { it?.trim()?.takeIf(String::isNotEmpty) }
+        ?: hwid.take(8),
+    details = listOf(platform, osVersion, userAgent?.trim()?.substringBefore('/'))
+        .mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
+        .joinToString(" · "),
+    createdAtLabel = createdAt?.let(::formatDate)
 )
 
 private fun displayNameFor(e: ReferralEntry): String {
@@ -165,9 +135,7 @@ class PlansViewModel @Inject constructor(
     }
 
     private fun showCached() {
-        accountCache.load<xyz.gojihub.vpn.network.models.PlansResponse>(CacheKey.PLANS)?.let { savedAt[CacheKey.PLANS] = it.savedAt; applyPlans(it.value) }
         accountCache.load<xyz.gojihub.vpn.network.models.ReferralsResponse>(CacheKey.REFERRALS)?.let { savedAt[CacheKey.REFERRALS] = it.savedAt; applyReferrals(it.value) }
-        accountCache.load<xyz.gojihub.vpn.network.models.PartnerStatusResponse>(CacheKey.PARTNER)?.let { savedAt[CacheKey.PARTNER] = it.savedAt; applyPartner(it.value) }
         accountCache.load<List<DeviceDto>>(CacheKey.DEVICES)?.let { savedAt[CacheKey.DEVICES] = it.savedAt; applyDevices(it.value) }
     }
 
@@ -178,17 +146,11 @@ class PlansViewModel @Inject constructor(
     private suspend fun fetch(force: Boolean) {
         if (force) subscriptionRepository.refresh() else subscriptionRepository.refreshIfStale()
         val sub = subscriptionRepository.subscription.value
-        if (force || stale(CacheKey.PLANS)) {
-            runCatching { api.getPlans(subscriptionId = sub?.id) }.onSuccess { saveAndApply(CacheKey.PLANS, it) { r -> applyPlans(r) } }
-        }
         if (force || stale(CacheKey.REFERRALS)) {
             runCatching { api.getReferrals() }.onSuccess { saveAndApply(CacheKey.REFERRALS, it) { r -> applyReferrals(r) } }
         }
         if (sub?.id != null && (force || stale(CacheKey.DEVICES))) {
             runCatching { api.getDevices(sub.id) }.onSuccess { saveAndApply(CacheKey.DEVICES, it) { r -> applyDevices(r) } }
-        }
-        if (force || stale(CacheKey.PARTNER)) {
-            runCatching { api.getPartnerStatus() }.onSuccess { saveAndApply(CacheKey.PARTNER, it) { r -> applyPartner(r) } }
         }
     }
 
@@ -213,7 +175,6 @@ class PlansViewModel @Inject constructor(
             devicesDeleteSupportOnly = sub.kind == "trial" || sub.kind == "free",
             deviceLimit = sub.deviceLimit
         )
-        rebuildPlanCards()
     }
 
     private fun applyNews(list: List<xyz.gojihub.vpn.network.models.BroadcastDto>) {
@@ -229,22 +190,6 @@ class PlansViewModel @Inject constructor(
                     )
                 }
         )
-    }
-
-    private fun applyPlans(response: xyz.gojihub.vpn.network.models.PlansResponse) {
-        rawPlans = response.plans
-        val periods = rawPlans.flatMap { it.prices }
-            .filter { it.priceType == "base" }
-            .map { it.periodValue }
-            .distinct().sorted()
-            .map { m -> PeriodUi(m, Loc.s.plansMonthsLabel(m)) }
-        val keep = _state.value.selectedMonths.takeIf { m -> periods.any { it.months == m } }
-        _state.value = _state.value.copy(
-            personalDiscountPercent = response.customerDiscountPercent?.toInt() ?: 0,
-            periods = periods,
-            selectedMonths = keep ?: periods.firstOrNull()?.months ?: 1
-        )
-        rebuildPlanCards()
     }
 
     // referral_enabled/partner_program_enabled — оба флага сейчас включены на бэкенде, но не
@@ -268,21 +213,6 @@ class PlansViewModel @Inject constructor(
         _state.value = _state.value.copy(devices = list.map { it.toUi() })
     }
 
-    private fun applyPartner(p: xyz.gojihub.vpn.network.models.PartnerStatusResponse) {
-        _state.value = _state.value.copy(
-            partner = PartnerUi(
-                isPartner = p.isPartner,
-                isActive = p.partner?.isActive ?: false,
-                applicationStatus = p.application?.status,
-                commissionRate = p.partner?.commissionRate ?: 0.0,
-                clientCount = p.stats?.clientCount ?: 0,
-                totalEarned = p.partner?.totalEarned ?: 0.0,
-                availableBalance = p.partner?.availableBalance ?: 0.0,
-                pendingBalance = p.partner?.pendingBalance ?: 0.0
-            )
-        )
-    }
-
     /** Свёрнутый вид (NEWS_PREVIEW_COUNT новостей) <-> постраничный (NEWS_PAGE_SIZE на
      *  страницу, начиная с первой). */
     fun toggleNewsExpanded() {
@@ -291,23 +221,6 @@ class PlansViewModel @Inject constructor(
 
     fun setNewsPage(page: Int) {
         _state.value = _state.value.copy(newsPage = page)
-    }
-
-    fun selectPeriod(months: Int) {
-        _state.value = _state.value.copy(selectedMonths = months)
-        rebuildPlanCards()
-    }
-
-    private fun rebuildPlanCards() {
-        val months = _state.value.selectedMonths
-        val current = _state.value.planName
-        val cards = rawPlans.map { plan ->
-            val price = plan.prices.firstOrNull { it.priceType == "base" && it.periodValue == months }
-                ?: plan.prices.firstOrNull { it.priceType == "base" }
-            val priceLabel = price?.let { "${it.price} ${it.currency}" } ?: "—"
-            PlanUi(plan.id, plan.name, plan.description, priceLabel, isCurrent = plan.name == current, periodUnit = price?.periodUnit ?: "month")
-        }
-        _state.value = _state.value.copy(plans = cards)
     }
 
     fun renameDevice(hwid: String, newName: String) {

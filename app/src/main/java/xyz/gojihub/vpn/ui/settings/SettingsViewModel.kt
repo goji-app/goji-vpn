@@ -29,9 +29,6 @@ import xyz.gojihub.vpn.ui.theme.FontSizePreset
 import xyz.gojihub.vpn.ui.theme.GodjiColors
 import xyz.gojihub.vpn.ui.theme.ThemeMode
 import xyz.gojihub.vpn.ui.theme.isSystemInDarkMode
-import xyz.gojihub.vpn.update.AppUpdateChecker
-import xyz.gojihub.vpn.update.AppUpdateDownloader
-import xyz.gojihub.vpn.update.UpdateInfo
 import xyz.gojihub.vpn.util.AppLogger
 import xyz.gojihub.vpn.util.LogCategory
 import xyz.gojihub.vpn.util.LogLevel
@@ -53,11 +50,6 @@ data class SettingsUiState(
     val xrayVersion: String = SettingsViewModel.BUNDLED_XRAY_VERSION,
     val hwid: String = "",
     val deviceInfo: String = "${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE}",
-    val updateChecking: Boolean = false,
-    val updateChecked: Boolean = false,
-    val updateAvailable: UpdateInfo? = null,
-    val updateDownloading: Boolean = false,
-    val updateDownloadProgress: Int = 0,
     val leakChecking: Boolean = false,
     val leakReport: NetworkDiagnostics.Report? = null,
     val deletingAccount: Boolean = false,
@@ -171,33 +163,6 @@ class SettingsViewModel @Inject constructor(
     fun setPingTestUrl(url: String) {
         _state.value = _state.value.copy(pingTestUrl = url)
         viewModelScope.launch { settingsRepository.setPingTestUrl(url) }
-    }
-
-    fun checkForUpdate() {
-        _state.value = _state.value.copy(updateChecking = true)
-        viewModelScope.launch {
-            val update = AppUpdateChecker.checkForUpdate()
-            _state.value = _state.value.copy(updateChecking = false, updateChecked = true, updateAvailable = update)
-        }
-    }
-
-    /** Запускает загрузку через системный DownloadManager (см. AppUpdateDownloader) и следит
-     *  за прогрессом, пока экран открыт — саму установку по завершении запускает отдельный
-     *  BroadcastReceiver (переживает закрытие экрана/приложения), эта корутина только
-     *  обновляет индикатор прогресса. */
-    fun downloadUpdate() {
-        val update = _state.value.updateAvailable ?: return
-        val id = AppUpdateDownloader.startDownload(appContext, update.apkUrl, update.version)
-        _state.value = _state.value.copy(updateDownloading = true, updateDownloadProgress = 0)
-        viewModelScope.launch {
-            while (true) {
-                delay(700)
-                val status = AppUpdateDownloader.queryStatus(appContext, id) ?: break
-                _state.value = _state.value.copy(updateDownloadProgress = status.percent)
-                if (status.status == DownloadManager.STATUS_SUCCESSFUL || status.status == DownloadManager.STATUS_FAILED) break
-            }
-            _state.value = _state.value.copy(updateDownloading = false)
-        }
     }
 
     /** См. NetworkDiagnostics — IP и DNS через туннель против настоящих, с итоговым вердиктом. */

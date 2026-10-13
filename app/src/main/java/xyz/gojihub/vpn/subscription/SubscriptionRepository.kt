@@ -370,6 +370,8 @@ class SubscriptionRepository @Inject constructor(
                 .header("X-HWID", hwid)
                 .header("X-Device-OS", "Android")
                 .header("X-Device-OS-Version", Build.VERSION.RELEASE ?: Build.VERSION.SDK_INT.toString())
+                // Имя заголовка версии ОС, которое читает Remnawave (os_version в списке устройств).
+                .header("X-Ver-OS", Build.VERSION.RELEASE ?: Build.VERSION.SDK_INT.toString())
                 .header("X-Device-Model", "${Build.MANUFACTURER} ${Build.MODEL}".trim())
                 .header("X-App-Name", "Goji app")
                 .header("X-App-Version", BuildConfig.VERSION_NAME)

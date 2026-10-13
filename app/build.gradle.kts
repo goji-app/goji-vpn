@@ -34,39 +34,6 @@ android {
         }
     }
 
-    // Два способа распространения одного и того же приложения — различаются ровно в одном:
-    // самообновление по GitHub Releases (см. AppUpdateChecker/AppUpdateDownloader). Google Play
-    // прямо запрещает приложению обновлять свой APK каким-либо способом, кроме собственного
-    // механизма Play ("An app downloaded from Google Play may not change, replace, or update
-    // itself using any method other than Google Play's update mechanism") — сборка для Play
-    // обязана не только не показывать эту функцию в интерфейсе, но и не иметь ни фонового
-    // воркера, ни разрешения REQUEST_INSTALL_PACKAGES (снимается в app/src/play/AndroidManifest.xml).
-    // "direct" — это ровно то, что все команды в этом проекте раньше называли просто "release":
-    // GitHub Releases, тот же APK, что архивируется в builds/android/. Собирать: assembleDirectRelease
-    // (или bundlePlayRelease для Play — .aab, не .apk, см. builds/android/README, если он есть).
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("direct") {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SELF_UPDATE", "true")
-            buildConfigField("boolean", "ENABLE_EXTERNAL_CHECKOUT", "true")
-            buildConfigField("boolean", "ENABLE_WEB_LOGIN", "true")
-        }
-        create("play") {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SELF_UPDATE", "false")
-            // Google Play запрещает продажу цифровой подписки в приложении в обход Google Play
-            // Billing — кнопка "Продлить" на внешнюю страницу оплаты (gojihub.xyz/checkout,
-            // ЮKassa/Т-Банк/Robokassa/крипта) должна быть скрыта именно в Play-сборке. Продление
-            // для таких пользователей — через сайт/бота вне приложения.
-            buildConfigField("boolean", "ENABLE_EXTERNAL_CHECKOUT", "false")
-            // Вход через сайт (WebLoginActivity) открывает во встроенном WebView весь
-            // gojihub.xyz — вместе с тарифами и оплатой, а Google к тому же не пускает свой
-            // OAuth во встроенные WebView. В Play-сборке — только email-код и QR-перенос.
-            buildConfigField("boolean", "ENABLE_WEB_LOGIN", "false")
-        }
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true

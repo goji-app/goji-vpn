@@ -69,7 +69,6 @@ import xyz.gojihub.vpn.ui.theme.godjiGlassPill
 import xyz.gojihub.vpn.ui.util.RichContent
 import xyz.gojihub.vpn.ui.util.rememberPressScale
 
-private val PARTNER_DASHBOARD = "https://gojihub.xyz/#/partner-dashboard"
 
 /** Разметка — по handoff-1.0.77/reference/GojiGlassFull.dc.html (isPlans). */
 @Composable
@@ -128,59 +127,6 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
         }
 
         SubscriptionCard(state)
-
-        // Тарифы с ценами покупаются только вне Google Play — в Play-сборке их не показываем
-        // (правила Play о платежах, см. ENABLE_EXTERNAL_CHECKOUT).
-        if (BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
-            if (state.periods.size > 1) {
-                PeriodSegments(state.periods, state.selectedMonths, onSelect = viewModel::selectPeriod)
-            }
-
-            Column(Modifier.fillMaxWidth().godjiCard().clip(RoundedCornerShape(26.dp))) {
-                state.plans.forEachIndexed { index, plan ->
-                    if (index > 0) HorizontalDivider(thickness = 1.dp, color = GodjiColors.Hair)
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(if (plan.isCurrent) GodjiColors.SelBg else Color.Transparent)
-                            .padding(horizontal = 14.dp, vertical = 11.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                Text(plan.name, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                if (plan.isCurrent) HoloBadge(Loc.s.plansCurrentLabel, "★")
-                            }
-                            // Длинные описания сжимаем до 2 строк; "читать полностью" — только если
-                            // текст реально не поместился.
-                            var expanded by remember(plan.id) { mutableStateOf(false) }
-                            var overflowing by remember(plan.id) { mutableStateOf(false) }
-                            Text(
-                                plan.description,
-                                color = GodjiColors.TextSecondary,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 11.5.sp,
-                                lineHeight = 16.7.sp,
-                                maxLines = if (expanded) Int.MAX_VALUE else 2,
-                                overflow = TextOverflow.Ellipsis,
-                                onTextLayout = { if (!expanded) overflowing = it.hasVisualOverflow }
-                            )
-                            if (overflowing || expanded) {
-                                Text(
-                                    if (expanded) Loc.s.plansDescriptionCollapse else Loc.s.plansDescriptionExpand,
-                                    color = GodjiColors.TealDeep,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.5.sp,
-                                    modifier = Modifier.clickable { expanded = !expanded }
-                                )
-                            }
-                        }
-                        Text(plan.priceLabel, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp, letterSpacing = (-0.34).sp)
-                    }
-                }
-            }
-        }
 
         if (state.subscriptionId != null) {
             DevicesSection(
@@ -269,10 +215,6 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
             }
         }
 
-        if (state.partner != null && BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
-            PartnerLinkCard(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PARTNER_DASHBOARD))) })
-        }
-
         // Поддержка — эталон: padding 13/14, радиус 24, подложка warmGlass, круг 34dp warm.
         val (supportInteraction, supportScale) = rememberPressScale()
         Row(
@@ -316,76 +258,8 @@ private fun SubscriptionCard(state: PlansUiState) {
                     color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 13.sp
                 )
                 Text(Loc.s.plansUntil(state.expiryLabel), color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.5.sp)
-                if (state.personalDiscountPercent > 0 && BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Icon(Icons.Filled.LocalOffer, contentDescription = null, tint = GodjiColors.TealDeep, modifier = Modifier.size(12.dp))
-                        Text(Loc.s.plansPersonalDiscount(state.personalDiscountPercent), color = GodjiColors.TealDeep, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                    }
-                }
             }
             if (state.subscriptionId != null && state.daysLeft > 0) ActiveBadge(label = Loc.s.plansActive)
-        }
-        // Во флейворе play кнопки оплаты нет вовсе (правила Google Play, см. ENABLE_EXTERNAL_CHECKOUT).
-        if (BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
-            val (extendInteraction, extendScale) = rememberPressScale()
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .scale(extendScale.value)
-                    .clip(RoundedCornerShape(50))
-                    .background(Brush.verticalGradient(0f to GodjiColors.AccentGradTop, 0.55f to GodjiColors.AccentGradMid, 1f to GodjiColors.AccentGradBottom))
-                    .clickable(interactionSource = extendInteraction, indication = null) {
-                        // Сразу /checkout с текущим тарифом и выбранным периодом (Custom Tabs);
-                        // если тариф ещё не известен — общий /#/plans.
-                        val currentPlan = state.plans.firstOrNull { it.isCurrent }
-                        val checkoutUrl = if (currentPlan != null) {
-                            "https://gojihub.xyz/#/checkout?plan=${currentPlan.id}&defaultPeriod=${state.selectedMonths}&defaultPeriodUnit=${currentPlan.periodUnit}"
-                        } else {
-                            "https://gojihub.xyz/#/plans"
-                        }
-                        CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(checkoutUrl))
-                    },
-                horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(Loc.s.plansExtend, color = GodjiColors.Surface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Icon(Icons.Filled.NorthEast, contentDescription = null, tint = GodjiColors.Surface, modifier = Modifier.size(13.dp))
-            }
-        }
-    }
-}
-
-/** Сегмент-контрол периода: капсула со скользящим бегунком Thumb (с обводкой stroke). */
-@Composable
-private fun PeriodSegments(periods: List<PeriodUi>, selectedMonths: Int, onSelect: (Int) -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxWidth().godjiGlassPill().padding(4.dp)) {
-        val slot = maxWidth / periods.size
-        val index = periods.indexOfFirst { it.months == selectedMonths }.coerceAtLeast(0)
-        val thumbX by animateDpAsState(slot * index, spring(dampingRatio = 0.62f, stiffness = 380f), label = "periodThumb")
-        Box(
-            Modifier
-                .offset(x = thumbX)
-                .width(slot)
-                .height(34.dp)
-                .clip(RoundedCornerShape(50))
-                .background(GodjiColors.Thumb)
-                .border(1.dp, GodjiColors.CardBorder, RoundedCornerShape(50))
-        )
-        Row(Modifier.fillMaxWidth()) {
-            periods.forEach { p ->
-                val selected = p.months == selectedMonths
-                val color by animateColorAsState(if (selected) GodjiColors.TextPrimary else GodjiColors.TextSecondary, label = "periodColor")
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(34.dp)
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(p.months) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(p.label, color = color, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
         }
     }
 }
@@ -600,32 +474,6 @@ private fun ReferralRow(e: ReferralEntryUi) {
     }
 }
 
-/** Партнёрская программа — ссылка на кабинет на сайте (заявка и вывод — там), как в эталоне. */
-@Composable
-private fun PartnerLinkCard(onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .scale(if (pressed) 0.98f else 1f)
-            .godjiCard(RoundedCornerShape(24.dp))
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(Modifier.size(36.dp).clip(CircleShape).background(GodjiColors.TealTint), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Groups, contentDescription = null, tint = GodjiColors.TealDeep, modifier = Modifier.size(17.dp))
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(Loc.s.plansPartnerLinkTitle, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
-            Text(Loc.s.plansPartnerLinkDesc, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 15.4.sp)
-        }
-        Icon(Icons.Filled.NorthEast, contentDescription = null, tint = GodjiColors.TextSecondary, modifier = Modifier.size(14.dp))
-    }
-}
-
 /** Устройства подписки — в эталоне этого блока нет (там нет данных), но это рабочая функция
  *  приложения; оформлено тем же языком: подпись секции + карточка со строками через hair. */
 @Composable
@@ -650,7 +498,7 @@ private fun DevicesSection(
             Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(device.name, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    val subtitle = listOfNotNull(device.platform, device.connectedVia?.let(Loc.s.plansDevicesConnectedVia), device.createdAtLabel).joinToString(" · ")
+                    val subtitle = listOfNotNull(device.details.takeIf { it.isNotEmpty() }, device.createdAtLabel).joinToString(" · ")
                     if (subtitle.isNotEmpty()) {
                         Text(subtitle, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }

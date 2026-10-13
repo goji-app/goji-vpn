@@ -3,7 +3,6 @@ package xyz.gojihub.vpn.ui.login
 import android.content.Intent
 import android.net.Uri
 import xyz.gojihub.vpn.BuildConfig
-import xyz.gojihub.vpn.auth.WebLoginActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -58,14 +57,6 @@ fun LoginScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-
-    // Нативный обмен кода на токен (/api/auth/native/exchange) сломан на бэкенде 7.1.0 —
-    // отвечает 400 на любой запрос, независимо от провайдера. Вместо Custom Tabs + этого
-    // эндпоинта — WebLoginActivity: полноценный веб-вход сайта во встроенном WebView, откуда
-    // читаем сессионную куку напрямую (см. комментарий в WebLoginActivity).
-    fun openWebLogin() {
-        context.startActivity(Intent(context, WebLoginActivity::class.java))
-    }
 
     val qrScanner = rememberLauncherForActivityResult(ScanContract()) { result ->
         val text = result.contents ?: return@rememberLauncherForActivityResult
@@ -130,64 +121,23 @@ fun LoginScreen(
                 lineHeight = 32.sp
             )
 
-            // Баннер бота для новичков (сборка direct): бот — второй путь к аккаунту и триалу.
-            // Пробный период теперь включается и в самом приложении — карточкой на «Главной»
-            // (SubscriptionRepository.trialDays).
-            // Бот продаёт подписки — в Play-сборке ссылки на внешнюю оплату быть не должно.
-            if (BuildConfig.ENABLE_EXTERNAL_CHECKOUT) {
-                val (botBannerInteraction, botBannerScale) = rememberPressScale()
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .scale(botBannerScale.value)
-                        .godjiGlassFlat(RoundedCornerShape(20.dp))
-                        .clickable(interactionSource = botBannerInteraction, indication = LocalIndication.current) {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Shadow_Duck_bot")))
-                        }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(9.dp)
-                ) {
-                    Text("✈️", fontSize = 16.sp)
-                    Column(Modifier.weight(1f)) {
-                        Text(Loc.s.loginFirstTimeTitle, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
-                        Text(
-                            Loc.s.loginFirstTimeDesc,
-                            color = GodjiColors.TextSecondary, fontSize = 10.sp, lineHeight = 13.sp
-                        )
-                    }
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = GodjiColors.TextSecondary, modifier = Modifier.size(20.dp))
-                }
-            }
-
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (!state.emailMode) {
-                    // Раньше здесь были отдельные кнопки Google/Telegram/Yandex — после перехода
-                    // на WebLoginActivity (см. openWebLogin выше и комментарий в
-                    // WebLoginActivity.kt) все они ведут в одно и то же место — полноценный веб-
-                    // вход сайта, где пользователь сам выбирает провайдера. Три кнопки с
-                    // одинаковым действием только путали бы, поэтому оставили одну.
-                    // Play-сборка: вход через сайт выключен (BuildConfig.ENABLE_WEB_LOGIN), главная
-                    // кнопка сразу открывает вход по email-коду.
-                    val (webLoginInteraction, webLoginScale) = rememberPressScale()
+                    // Вход только по email-коду (и QR-переносом ниже): приложение распространяется
+                    // через Google Play, вход через сайт и сторонние сервисы убраны.
+                    val (emailInteraction, emailScale) = rememberPressScale()
                     Button(
-                        onClick = { if (BuildConfig.ENABLE_WEB_LOGIN) openWebLogin() else viewModel.toggleEmailMode(true) },
+                        onClick = { viewModel.toggleEmailMode(true) },
                         enabled = !state.loading,
-                        interactionSource = webLoginInteraction,
+                        interactionSource = emailInteraction,
                         colors = ButtonDefaults.buttonColors(containerColor = GodjiColors.Ink),
                         shape = RoundedCornerShape(50),
-                        modifier = Modifier.fillMaxWidth().height(54.dp).scale(webLoginScale.value)
+                        modifier = Modifier.fillMaxWidth().height(54.dp).scale(emailScale.value)
                     ) {
                         Text(
-                            if (BuildConfig.ENABLE_WEB_LOGIN) Loc.s.loginViaWebsite else Loc.s.loginEmailMode,
+                            Loc.s.loginEmailMode,
                             color = GodjiColors.Surface, fontWeight = FontWeight.Bold, fontSize = 15.sp
                         )
-                    }
-
-                    if (BuildConfig.ENABLE_WEB_LOGIN) {
-                        TextButton(onClick = { viewModel.toggleEmailMode(true) }, modifier = Modifier.fillMaxWidth()) {
-                            Text(Loc.s.loginEmailMode, color = GodjiColors.TealDeep, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        }
                     }
 
                     // Перенос входа со старого устройства: там Подписка → "Перенести на другое

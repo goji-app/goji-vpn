@@ -34,9 +34,6 @@ import xyz.gojihub.vpn.subscription.SubscriptionRepository
 import xyz.gojihub.vpn.ui.theme.GodjiColors
 import xyz.gojihub.vpn.ui.theme.ThemeMode
 import xyz.gojihub.vpn.ui.theme.isSystemInDarkMode
-import xyz.gojihub.vpn.update.AppUpdateChecker
-import xyz.gojihub.vpn.update.AppUpdateNotifier
-import xyz.gojihub.vpn.update.UpdateCheckWorker
 import xyz.gojihub.vpn.util.AppLogger
 import xyz.gojihub.vpn.util.AppVisibility
 import xyz.gojihub.vpn.vpn.GeoAssets
@@ -140,18 +137,10 @@ class GodjiApplication : Application(), Configuration.Provider, ImageLoaderFacto
         schedulePeriodicRefresh()
         scheduleGeoDataRefresh()
         scheduleMobileWhitelistRefresh()
-        // Флейвор "play" (см. app/build.gradle.kts): Google Play не разрешает приложению
-        // обновлять себя в обход собственного механизма Play — ни фонового воркера, ни
-        // разовой проверки на старте быть не должно в сборке для Play.
-        if (BuildConfig.ENABLE_SELF_UPDATE) {
-            scheduleUpdateCheck()
-            // Разовая проверка сразу после запуска — периодический воркер и так проверит в
-            // течение суток, но пользователь может обновиться и раньше, если сам откроет
-            // приложение и увидит уведомление сразу, а не через сутки ожидания фонового воркера.
-            CoroutineScope(Dispatchers.IO).launch {
-                AppUpdateChecker.checkForUpdate()?.let { AppUpdateNotifier.notifyIfNew(this@GodjiApplication, it) }
-            }
-        }
+        // Самообновления нет: приложение распространяется через Google Play, а Play запрещает
+        // обновлять себя в обход своего механизма. Воркер проверки обновлений из прошлых версий
+        // снимаем, иначе WorkManager раз в сутки пытался бы запустить удалённый класс.
+        WorkManager.getInstance(this).cancelUniqueWork("app_update_daily_check")
         // Разовая попытка сразу после установки/первого запуска — периодический воркер и так
         // рано или поздно скачает свежие geoip.dat/geosite.dat, но при первом же реальном
         // подключении (см. GodjiVpnService.resolveGeoDataRules) лучше уже иметь российский
@@ -215,20 +204,6 @@ class GodjiApplication : Application(), Configuration.Provider, ImageLoaderFacto
             .build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             MobileWhitelistRefreshWorker.UNIQUE_WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
-            request
-        )
-    }
-
-    /** Раз в сутки — новые версии выходят не так часто, чтобы проверять чаще; ручная
-     *  проверка в Настройках и разовый запуск в onCreate() (см. выше) покрывают случай
-     *  "хочу узнать прямо сейчас". */
-    private fun scheduleUpdateCheck() {
-        val request = PeriodicWorkRequestBuilder<UpdateCheckWorker>(24, TimeUnit.HOURS)
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            UpdateCheckWorker.UNIQUE_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             request
         )
