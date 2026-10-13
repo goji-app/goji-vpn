@@ -1,16 +1,16 @@
 # Публикация в Google Play
 
-Что уже сделано в коде и что заполнить в Play Console. С 2026-10-13 сборка одна — для Google Play (сборки для сайта/GitHub с самообновлением больше нет).
+Что уже сделано в коде и что заполнить в Play Console. Сборок две: `play` (для Google Play) и `site` (APK для сайта загрузки и GitHub — с самообновлением и кнопкой оплаты в кабинете, в Play не загружать).
 
-Сборка: `./gradlew bundleRelease` → `app/build/outputs/bundle/release/app-release.aab` (APK для проверки — `assembleRelease`).
+Сборка: `./gradlew bundlePlayRelease` → `app/build/outputs/bundle/playRelease/app-play-release.aab`.
 Подпись — через Play App Signing (загружаем ключом загрузки).
 
 ## Что сделано в приложении
 
 | Требование Google | Где |
 |---|---|
-| Нет самообновления в обход Play, нет `REQUEST_INSTALL_PACKAGES` | код самообновления удалён целиком |
-| Нет оплаты и ссылок на оплату вне Google Play | удалены «Продлить», тарифы с ценами, скидка, кабинет партнёра, баннер бота |
+| Нет самообновления в обход Play, нет `REQUEST_INSTALL_PACKAGES` | только в сборке `site` (`ENABLE_SELF_UPDATE`, манифест в `src/site`) |
+| Нет оплаты и ссылок на оплату вне Google Play | тарифы с ценами, скидка, партнёрка, бот удалены; «Оплатить в личном кабинете» — только в `site` (`ENABLE_CABINET_LINK`) |
 | Нет входа через встроенный браузер на весь сайт | вход через сайт удалён: только email-код и QR-перенос |
 | Удаление аккаунта внутри приложения | Настройки → «Удалить аккаунт» (заявка тикетом в поддержку + выход) |
 | Описание foreground service `specialUse` | `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` у `GodjiVpnService` |
