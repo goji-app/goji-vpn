@@ -15,12 +15,12 @@ data class UpdateInfo(val version: String, val changelog: String, val apkUrl: St
  * Проверяет, вышла ли новая версия. Основной источник — манифест latest.json на зеркалах нашего
  * сайта загрузки ([DownloadMirrors]): они открываются в РФ без VPN, а GitHub там часто тормозит
  * или не отвечает. Если ни одно зеркало не ответило, проверяем последний релиз
- * в публичном репозитории goji-app/goji-vpn-android, как раньше. GitHub REST API отдаёт данные
+ * в общем публичном репозитории goji-app/goji-vpn, как раньше. GitHub REST API отдаёт данные
  * без авторизации, но требует непустой User-Agent — без него отвечает 403.
  */
 object AppUpdateChecker {
     private const val TAG = "GodjiUpdate"
-    private const val RELEASES_URL = "https://api.github.com/repos/goji-app/goji-vpn-android/releases/latest"
+    private const val RELEASES_URL = "https://api.github.com/repos/goji-app/goji-vpn/releases/latest"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)

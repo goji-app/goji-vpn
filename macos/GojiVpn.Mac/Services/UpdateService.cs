@@ -29,7 +29,7 @@ public sealed class UpdateService
     /// <summary>Зеркала сайта загрузки (исходники — «10. Сайт загрузки»): на каждом одни и те же
     /// latest.json и сборки. Пробуем по порядку, GitHub — запасной путь. Новое зеркало = новая строка.</summary>
     private static readonly string[] MirrorSites = { "https://get.gojihub.xyz" };
-    private const string ReleasesApiUrl = "https://api.github.com/repos/goji-app/goji-vpn-desktop/releases/latest";
+    private const string ReleasesApiUrl = "https://api.github.com/repos/goji-app/goji-vpn/releases/latest";
 
     private readonly HttpClient _http;
 

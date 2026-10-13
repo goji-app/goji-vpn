@@ -9,9 +9,9 @@ name: iOS
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**/*.md']
+    paths: ['ios/**', '!ios/docs/**', '!**/*.md', '.github/workflows/ios.yml']
   pull_request:
-    paths-ignore: ['docs/**', '**/*.md']
+    paths: ['ios/**', '!ios/docs/**', '!**/*.md', '.github/workflows/ios.yml']
   workflow_dispatch:
     inputs:
       testflight:
@@ -22,6 +22,12 @@ on:
 concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
+
+# Монорепозиторий: iOS-клиент лежит в ios/ — команды run выполняются оттуда, а пути в with:
+# у actions считаются от корня репозитория, поэтому там префикс ios/.
+defaults:
+  run:
+    working-directory: ios
 
 jobs:
   build:
@@ -38,8 +44,8 @@ jobs:
       - name: Кэш ядра LibXray
         uses: actions/cache@v4
         with:
-          path: .downloads
-          key: libxray-${{ hashFiles('Scripts/fetch-libxray.sh') }}
+          path: ios/.downloads
+          key: libxray-${{ hashFiles('ios/Scripts/fetch-libxray.sh') }}
 
       - name: Инструменты
         run: brew install xcodegen xcbeautify && mkdir -p build
@@ -92,8 +98,8 @@ jobs:
         with:
           name: ios-build
           path: |
-            build/*.log
-            build/screenshots
+            ios/build/*.log
+            ios/build/screenshots
           retention-days: 14
 
   release:
@@ -110,8 +116,8 @@ jobs:
 
       - uses: actions/cache@v4
         with:
-          path: .downloads
-          key: libxray-${{ hashFiles('Scripts/fetch-libxray.sh') }}
+          path: ios/.downloads
+          key: libxray-${{ hashFiles('ios/Scripts/fetch-libxray.sh') }}
 
       - name: Подготовка
         run: |
@@ -155,5 +161,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ios-release
-          path: build/dSYMs.zip
+          path: ios/build/dSYMs.zip
           retention-days: 90

@@ -4,7 +4,7 @@
 
 #define MyAppName "Godji VPN"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.74"
+  #define MyAppVersion "1.0.120"
 #endif
 #define MyAppPublisher "Godji"
 #define MyAppExeName "GodjiVpn.exe"
