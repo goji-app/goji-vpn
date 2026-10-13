@@ -2,6 +2,9 @@ package xyz.gojihub.vpn
 
 import android.app.Application
 import android.os.Build
+import xyz.gojihub.vpn.update.AppUpdateChecker
+import xyz.gojihub.vpn.update.AppUpdateNotifier
+import xyz.gojihub.vpn.update.UpdateCheckWorker
 import xyz.gojihub.vpn.subscription.PingProcessService
 import java.io.File
 import androidx.hilt.work.HiltWorkerFactory
@@ -137,10 +140,17 @@ class GodjiApplication : Application(), Configuration.Provider, ImageLoaderFacto
         schedulePeriodicRefresh()
         scheduleGeoDataRefresh()
         scheduleMobileWhitelistRefresh()
-        // Самообновления нет: приложение распространяется через Google Play, а Play запрещает
-        // обновлять себя в обход своего механизма. Воркер проверки обновлений из прошлых версий
-        // снимаем, иначе WorkManager раз в сутки пытался бы запустить удалённый класс.
-        WorkManager.getInstance(this).cancelUniqueWork("app_update_daily_check")
+        // Самообновление — только в сборке site (сайт загрузки / GitHub); Google Play запрещает
+        // обновлять приложение в обход своего механизма, поэтому в play его нет вовсе.
+        if (BuildConfig.ENABLE_SELF_UPDATE) {
+            scheduleUpdateCheck()
+            // Разовая проверка сразу после запуска — периодический воркер проверит в течение суток.
+            CoroutineScope(Dispatchers.IO).launch {
+                AppUpdateChecker.checkForUpdate()?.let { AppUpdateNotifier.notifyIfNew(this@GodjiApplication, it) }
+            }
+        } else {
+            WorkManager.getInstance(this).cancelUniqueWork(UpdateCheckWorker.UNIQUE_WORK_NAME)
+        }
         // Разовая попытка сразу после установки/первого запуска — периодический воркер и так
         // рано или поздно скачает свежие geoip.dat/geosite.dat, но при первом же реальном
         // подключении (см. GodjiVpnService.resolveGeoDataRules) лучше уже иметь российский
@@ -204,6 +214,20 @@ class GodjiApplication : Application(), Configuration.Provider, ImageLoaderFacto
             .build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             MobileWhitelistRefreshWorker.UNIQUE_WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+    }
+
+    /** Раз в сутки — новые версии выходят не так часто, чтобы проверять чаще; ручная
+     *  проверка в Настройках и разовый запуск в onCreate() (см. выше) покрывают случай
+     *  "хочу узнать прямо сейчас". */
+    private fun scheduleUpdateCheck() {
+        val request = PeriodicWorkRequestBuilder<UpdateCheckWorker>(24, TimeUnit.HOURS)
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            UpdateCheckWorker.UNIQUE_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             request
         )

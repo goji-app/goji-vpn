@@ -104,6 +104,11 @@ fun SettingsScreen(
                 LinkRow(Loc.f.securitySection, Loc.f.setSecurityDesc) { page = SettingsPage.SECURITY }
                 Hair()
                 LinkRow(Loc.s.settingsNotifications, Loc.f.setNotificationsDesc) { page = SettingsPage.NOTIFICATIONS }
+                // Самообновление есть только в сборке site (см. app/build.gradle.kts).
+                if (BuildConfig.ENABLE_SELF_UPDATE) {
+                    Hair()
+                    LinkRow(Loc.s.settingsUpdatesTitle, Loc.f.setUpdatesDesc) { page = SettingsPage.UPDATES }
+                }
                 Hair()
                 LinkRow(Loc.s.settingsAbout, Loc.f.setAboutDesc) { page = SettingsPage.ABOUT }
             }
@@ -186,6 +191,7 @@ fun SettingsScreen(
                     SettingsPage.CONNECTION -> Loc.s.settingsConnection
                     SettingsPage.SECURITY -> Loc.f.securitySection
                     SettingsPage.NOTIFICATIONS -> Loc.s.settingsNotifications
+                    SettingsPage.UPDATES -> Loc.s.settingsUpdatesTitle
                     SettingsPage.ABOUT -> Loc.s.settingsAbout
                     SettingsPage.MAIN -> ""
                 },
@@ -262,6 +268,16 @@ fun SettingsScreen(
                 ToggleRow(Loc.f.hapticsTitle, Loc.f.hapticsDesc, state.haptics, viewModel::setHaptics)
             }
 
+            SettingsPage.UPDATES -> Column(
+                Modifier
+                    .fillMaxWidth()
+                    .godjiCard(RoundedCornerShape(24.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                UpdateSectionContent(state, viewModel)
+            }
+
             SettingsPage.ABOUT -> {
                 SectionLabel(Loc.s.settingsAboutCopyHint)
                 RefCard {
@@ -295,7 +311,7 @@ fun SettingsScreen(
 }
 
 /** Окна настроек (как разделы Windows-клиента). */
-private enum class SettingsPage { MAIN, APPEARANCE, CONNECTION, SECURITY, NOTIFICATIONS, ABOUT }
+private enum class SettingsPage { MAIN, APPEARANCE, CONNECTION, SECURITY, NOTIFICATIONS, UPDATES, ABOUT }
 
 /** Проверка утечек: заголовок + кнопка, после проверки — вердикт (круг 28dp с иконкой, как у
  *  баннеров Главной) и строки деталей в стиле "О программе". */
@@ -622,5 +638,75 @@ fun PingMethodRow(label: String, method: PingMethod, selected: PingMethod, onSel
             colors = RadioButtonDefaults.colors(selectedColor = GodjiColors.TealDeep, unselectedColor = GodjiColors.ButtonBorder)
         )
         Text(label, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+    }
+}
+
+/** Блок обновлений по эталону: idle (текст + "Проверить обновления"), проверка (спиннер),
+ *  найдено (заголовок + НОВАЯ, changelog на chip, кнопка-градиент 44), загрузка (текст/% + полоса 8). */
+@Composable
+private fun UpdateSectionContent(state: SettingsUiState, viewModel: SettingsViewModel) {
+    when {
+        state.updateDownloading -> {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(Loc.s.updateDownloading, color = GodjiColors.TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp)
+                Text("${state.updateDownloadProgress}%", color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp)
+            }
+            Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(50)).background(GodjiColors.TrackBg)) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth((state.updateDownloadProgress / 100f).coerceIn(0f, 1f))
+                        .clip(RoundedCornerShape(50))
+                        .background(Brush.verticalGradient(0f to GodjiColors.AccentGradTop, 0.55f to GodjiColors.AccentGradMid, 1f to GodjiColors.AccentGradBottom))
+                )
+            }
+        }
+        state.updateAvailable != null -> {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(Loc.s.updateAvailableText(state.updateAvailable.version), color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                NewBadge()
+            }
+            if (state.updateAvailable.changelog.isNotBlank()) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(GodjiColors.Chip)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    RichContent(raw = state.updateAvailable.changelog, collapsedBlocks = 5, readMoreLabel = Loc.s.plansNewsReadMore)
+                }
+            }
+            val (interaction, scale) = rememberPressScale()
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .scale(scale.value)
+                    .shadow(10.dp, RoundedCornerShape(50), ambientColor = GodjiColors.AccentGlow, spotColor = GodjiColors.AccentGlow)
+                    .clip(RoundedCornerShape(50))
+                    .background(Brush.verticalGradient(0f to GodjiColors.AccentGradTop, 0.55f to GodjiColors.AccentGradMid, 1f to GodjiColors.AccentGradBottom))
+                    .clickable(interactionSource = interaction, indication = null, onClick = viewModel::downloadUpdate),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(Loc.s.updateDownloadInstall, color = GodjiColors.Surface, fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
+            }
+        }
+        state.updateChecking -> {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = GodjiColors.Teal, trackColor = GodjiColors.TrackBg)
+                Text(Loc.s.updateChecking, color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp)
+            }
+        }
+        else -> {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    if (state.updateChecked) Loc.s.updateUpToDate else Loc.s.settingsVersionShort(state.appVersion),
+                    color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 12.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                CheckUpdatesPill(onClick = viewModel::checkForUpdate)
+            }
+        }
     }
 }

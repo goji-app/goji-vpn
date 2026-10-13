@@ -71,6 +71,9 @@ import xyz.gojihub.vpn.ui.util.rememberPressScale
 
 
 /** Разметка — по handoff-1.0.77/reference/GojiGlassFull.dc.html (isPlans). */
+/** Личный кабинет на сайте — оплата и продление подписки (только сборка site). */
+private const val CABINET_URL = "https://gojihub.xyz/#/my-dashboard"
+
 @Composable
 fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
@@ -260,6 +263,27 @@ private fun SubscriptionCard(state: PlansUiState) {
                 Text(Loc.s.plansUntil(state.expiryLabel), color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.5.sp)
             }
             if (state.subscriptionId != null && state.daysLeft > 0) ActiveBadge(label = Loc.s.plansActive)
+        }
+        // Только в сборке site (сайт загрузки / GitHub): в Google Play вести к оплате мимо
+        // Google Play Billing нельзя (см. app/build.gradle.kts).
+        if (BuildConfig.ENABLE_CABINET_LINK) {
+            val (payInteraction, payScale) = rememberPressScale()
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .scale(payScale.value)
+                    .clip(RoundedCornerShape(50))
+                    .background(GodjiColors.Teal)
+                    .clickable(interactionSource = payInteraction, indication = null) {
+                        runCatching { CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(CABINET_URL)) }
+                    },
+                horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(Loc.f.payInCabinet, color = GodjiColors.Surface, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
+                Icon(Icons.Filled.NorthEast, contentDescription = null, tint = GodjiColors.Surface, modifier = Modifier.size(13.dp))
+            }
         }
     }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Открывает доступ через FileProvider только к скачанному APK обновления (см.
+     AppUpdateDownloader) — самой Downloads-папке приложения на внешнем хранилище,
+     ничему больше. -->
+<paths>
+    <external-files-path name="updates" path="Download/" />
+</paths>

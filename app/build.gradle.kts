@@ -34,6 +34,28 @@ android {
         }
     }
 
+    // Две сборки до выхода в Google Play:
+    //  • site — APK для сайта загрузки и GitHub: самообновление и кнопка «Оплатить в личном
+    //    кабинете» (вне Google Play правила Play не действуют);
+    //  • play — AAB для Google Play: ни того, ни другого. Play запрещает обновлять приложение в
+    //    обход Play и вести пользователя к оплате цифровой подписки мимо Google Play Billing
+    //    (исключения — только программы для США/ЕЭЗ с регистрацией, Россия в них не входит).
+    // Манифест site (разрешение на установку APK, приёмник загрузки, FileProvider) —
+    // в app/src/site, в play-сборку не попадает. Собирать: assembleSiteRelease, bundlePlayRelease.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("site") {
+            dimension = "distribution"
+            buildConfigField("boolean", "ENABLE_SELF_UPDATE", "true")
+            buildConfigField("boolean", "ENABLE_CABINET_LINK", "true")
+        }
+        create("play") {
+            dimension = "distribution"
+            buildConfigField("boolean", "ENABLE_SELF_UPDATE", "false")
+            buildConfigField("boolean", "ENABLE_CABINET_LINK", "false")
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

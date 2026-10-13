@@ -162,6 +162,7 @@ data class FeatureStrings(
     val trialActivated: String,
     val trialError: String,
     val deleteAccountServerError: String,
+    val payInCabinet: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -334,6 +335,7 @@ data class FeatureStrings(
             trialActivated = "Пробный период активирован",
             trialError = "Не удалось активировать пробный период",
             deleteAccountServerError = "Не удалось отправить заявку. Напишите в поддержку: «Удалить аккаунт».",
+            payInCabinet = "Оплатить в личном кабинете",
         )
 
         private val EN = FeatureStrings(
@@ -500,6 +502,7 @@ data class FeatureStrings(
             trialActivated = "Free trial activated",
             trialError = "Could not activate the free trial",
             deleteAccountServerError = "Could not send the request. Please write to support: \"Delete account\".",
+            payInCabinet = "Pay in your account",
         )
 
         private val ZH = FeatureStrings(
@@ -666,6 +669,7 @@ data class FeatureStrings(
             trialActivated = "免费试用已激活",
             trialError = "无法激活免费试用",
             deleteAccountServerError = "请求发送失败。请联系客服：“删除账户”。",
+            payInCabinet = "在个人中心付款",
         )
     }
 }
