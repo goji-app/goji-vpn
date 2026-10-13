@@ -3,7 +3,7 @@ package xyz.gojihub.vpn.network.models
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
-// ── Auth (email + OTP, см. gojihub.xyz/api/auth/email/*) ────
+// ── Auth (email + OTP, см. <кабинет>/api/auth/email/*) ────
 
 @JsonClass(generateAdapter = true)
 data class SendOtpRequest(val email: String)
@@ -75,7 +75,7 @@ data class ConsentRequest(
     @Json(name = "personal_data") val personalData: Boolean = true
 )
 
-// ── Подписка (gojihub.xyz/api/subscriptions) ─────────────────
+// ── Подписка (<кабинет>/api/subscriptions) ─────────────────
 
 @JsonClass(generateAdapter = true)
 data class SubscriptionsResponse(
@@ -113,14 +113,14 @@ data class TrafficInfo(
     @Json(name = "is_unlimited") val isUnlimited: Boolean
 )
 
-// ── Тарифы (gojihub.xyz/api/dashboard/plans) ─────────────────
+// ── Тарифы (<кабинет>/api/dashboard/plans) ─────────────────
 
 @JsonClass(generateAdapter = true)
 data class PlansResponse(
     val plans: List<PlanInfo>,
     // Персональная скидка клиента в процентах (0-100) — то же поле, что веб-версия читает
     // как customer_discount_percent на каталоге тарифов (см. PlansViewModel.getDiscountPercent
-    // в JS-бандле gojihub.xyz). null/отсутствует — скидки нет, тогда просто не показываем.
+    // в JS-бандле кабинета). null/отсутствует — скидки нет, тогда просто не показываем.
     @Json(name = "customer_discount_percent") val customerDiscountPercent: Double? = null
 )
 
@@ -141,7 +141,7 @@ data class PriceInfo(
     @Json(name = "period_unit") val periodUnit: String
 )
 
-// ── Новости/рассылки (gojihub.xyz/api/broadcasts/completed) ──────────────
+// ── Новости/рассылки (<кабинет>/api/broadcasts/completed) ──────────────
 // Формат сверен с реальным ответом (перехвачен в сетевых запросах веб-версии, страница
 // "Мои рассылки"/"Новости", #/my-broadcasts) — сама веб-версия защищается от
 // непоследовательного регистра ключей (`e.Buttons||e.buttons||[]`), поэтому оба варианта
@@ -161,7 +161,7 @@ data class BroadcastDto(
 @JsonClass(generateAdapter = true)
 data class BroadcastButtonDto(val url: String, val text: String)
 
-// ── Рефералы (gojihub.xyz/api/dashboard/referrals) ────────────────────────
+// ── Рефералы (<кабинет>/api/dashboard/referrals) ────────────────────────
 // Формат сверен так же, как и broadcasts — анализом JS-бандла веб-версии
 // (ReferralsPage), без входа в чей-либо аккаунт.
 
@@ -195,7 +195,7 @@ data class ReferralEntry(
     @Json(name = "bonus_days") val bonusDays: Int
 )
 
-// ── Партнёрская программа (gojihub.xyz/api/partner/status) ────────────────
+// ── Партнёрская программа (<кабинет>/api/partner/status) ────────────────
 // Только то подмножество полей, которое реально показываем (сводка/статус) — форму заявки
 // и вывода средств на клиенте не переопределяем, открываем веб-версию (см. PlansScreen),
 // как и "Продлить" для тарифов — те же соображения: не переизобретать денежные формы нативно.
@@ -225,7 +225,7 @@ data class PartnerInfo(
 @JsonClass(generateAdapter = true)
 data class PartnerStats(@Json(name = "client_count") val clientCount: Int = 0)
 
-// ── Устройства подписки (gojihub.xyz/api/subscriptions/{id}/devices) ──────
+// ── Устройства подписки (<кабинет>/api/subscriptions/{id}/devices) ──────
 // Формат сверен так же, как и остальные веб-only разделы — анализом JS-бандла веб-версии
 // (ClientDashboard). Удаление на пробном/бесплатном тарифе (kind == "trial"/"free") веб-версия
 // сознательно не даёт делать самостоятельно ("удалить устройство можно только через поддержку") —
@@ -248,7 +248,7 @@ data class DeviceDto(
 @JsonClass(generateAdapter = true)
 data class RenameDeviceRequest(@Json(name = "readable_name") val readableName: String)
 
-// ── Пробный период (gojihub.xyz/api/dashboard, /api/dashboard/trial) ──
+// ── Пробный период (<кабинет>/api/dashboard, /api/dashboard/trial) ──
 // Поля сверены с JS-бандлом веб-кабинета (ClientDashboard: trial_available/trial_days/
 // trial_paid, POST /api/dashboard/trial с пустым телом → {success, message}).
 

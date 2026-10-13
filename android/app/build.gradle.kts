@@ -15,6 +15,18 @@ val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
 
+// Адреса кабинета и сайта загрузки в публичный репозиторий не попадают: берутся из переменных
+// окружения или из goji-hosts.properties (в корне монорепозитория или рядом с android-проектом,
+// в git не хранится). Образец — goji-hosts.example.properties.
+val gojiHosts = Properties().apply {
+    listOf(rootProject.file("goji-hosts.properties"), rootProject.file("../goji-hosts.properties"))
+        .firstOrNull { it.exists() }
+        ?.inputStream()?.use { load(it) }
+}
+fun gojiHost(name: String): String =
+    (System.getenv(name) ?: gojiHosts.getProperty(name))?.trim()?.trimEnd('/')?.takeIf { it.startsWith("https://") }
+        ?: throw GradleException("Не задан $name: положите goji-hosts.properties в корень репозитория (образец — goji-hosts.example.properties) или задайте переменную окружения")
+
 android {
     namespace = "xyz.gojihub.vpn"
     compileSdk = 37
@@ -25,6 +37,9 @@ android {
         targetSdk = 37
         versionCode = 103
         versionName = "1.0.121"
+
+        buildConfigField("String", "SITE_URL", "\"${gojiHost("GOJI_SITE_URL")}\"")
+        buildConfigField("String", "DOWNLOAD_URL", "\"${gojiHost("GOJI_DOWNLOAD_URL")}\"")
 
         // libXray.aar тянет нативные .so сразу под 4 ABI — реальные телефоны это почти
         // всегда arm64-v8a (и изредка armeabi-v7a на старых). x86/x86_64 нужны только

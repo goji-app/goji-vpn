@@ -10,14 +10,14 @@ using GodjiVpn.Models;
 namespace GodjiVpn.Services;
 
 /// <summary>
-/// Клиент реального бэкенда gojihub.xyz — эндпоинты и заголовки сверены напрямую с рабочим
+/// Клиент реального бэкенда кабинета — эндпоинты и заголовки сверены напрямую с рабочим
 /// Android-кодом (RemnawaveApi.kt/NetworkModule.kt в каноническом источнике), не догадка.
-/// host.gojihub.xyz (админка Remnawave) сюда НИКОГДА не подставлять — см. память
+/// админ-панель Remnawave сюда НИКОГДА не подставлять — см. память
 /// project-remnawave-backend-architecture.
 /// </summary>
 public sealed class ApiClient
 {
-    private const string BaseUrl = "https://gojihub.xyz/";
+    private const string BaseUrl = GojiHosts.SiteUrl + "/";
     private static readonly JsonSerializerOptions JsonOptions = Utils.LenientJson.Options();
 
     private readonly HttpClient _http;
@@ -52,7 +52,7 @@ public sealed class ApiClient
         // Дефолтный User-Agent у HttpClient пустой (System.Net.Http без явного значения ничего
         // не шлёт) — заменяем на честный "имя приложения/версия (ОС)", как у обычного
         // десктоп-клиента, а не как у SubscriptionService (там User-Agent намеренно подделан
-        // под v2rayNG — это отдельный, узкий случай именно для эндпоинта subs.gojihub.xyz,
+        // под v2rayNG — это отдельный, узкий случай именно для эндпоинта сервера подписки,
         // не трогаем его здесь).
         var version = Assembly.GetExecutingAssembly().GetName().Version;
         var versionText = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.0.0";
@@ -226,7 +226,7 @@ public sealed class ApiClient
     /// OkHttp-interceptor, а не только на POST. Раньше X-Requested-With стоял только в
     /// PostAsync — из-за этого GET api/auth/{provider}/start уходил без него, бэкенд не
     /// сохранял app_redirect для сессии, и после логина в Google/Яндекс браузер просто
-    /// показывал обычный сайт (gojihub.xyz/#/stats/overview) вместо редиректа в приложение.</summary>
+    /// показывал обычный сайт (<кабинет>/#/stats/overview) вместо редиректа в приложение.</summary>
     private void PrepareRequest(HttpRequestMessage request)
     {
         var token = _tokenStore.AccessToken;

@@ -7,6 +7,10 @@
 //   CODE_SIGN_STYLE = Automatic
 #include? "Signing.local.xcconfig"
 
+// Адреса кабинета и сайта загрузки (GOJI_SITE_HOST, GOJI_DOWNLOAD_HOST) в репозитории не хранятся:
+// Config/Hosts.local.xcconfig пишет Scripts/write-hosts-xcconfig.sh (в CI — из секретов).
+#include? "Hosts.local.xcconfig"
+
 IPHONEOS_DEPLOYMENT_TARGET = 16.0
 TARGETED_DEVICE_FAMILY = 1
 SWIFT_VERSION = 5.0

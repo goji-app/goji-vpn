@@ -380,7 +380,7 @@ struct NewsCard: View {
 enum LinkPolicy {
     static func isPurchaseLink(_ raw: String) -> Bool {
         let lower = raw.lowercased()
-        let markers = ["pay", "checkout", "plans", "tariff", "тариф", "оплат", "renew", "продл", "t.me/", "telegram.me", "gojihub.xyz/#", "subscribe", "billing", "promo"]
+        let markers = ["pay", "checkout", "plans", "tariff", "тариф", "оплат", "renew", "продл", "t.me/", "telegram.me", "\(AppConstants.siteHost)/#", "subscribe", "billing", "promo"]
         return markers.contains { lower.contains($0) }
     }
 }

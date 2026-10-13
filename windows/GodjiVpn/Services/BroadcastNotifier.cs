@@ -6,7 +6,7 @@ using GodjiVpn.Models;
 namespace GodjiVpn.Services;
 
 /// <summary>
-/// Короткое локальное уведомление о новой новости/рассылке (gojihub.xyz/api/broadcasts) —
+/// Короткое локальное уведомление о новой новости/рассылке (<кабинет>/api/broadcasts) —
 /// аналог BroadcastNotifier.kt (Android) и того же приёма, что и SubscriptionNotifier здесь:
 /// считается на устройстве по данным, которые и так приходят при обычном обновлении подписки
 /// (см. вызов из App.xaml.cs на каждый SubscriptionRepository.Broadcasts). Уведомляет только

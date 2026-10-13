@@ -11,8 +11,8 @@ namespace GodjiVpn.Views;
 /// </summary>
 public partial class WebLoginWindow : Window
 {
-    private const string SiteUrl = "https://gojihub.xyz/";
-    private const string RefreshUrl = "https://gojihub.xyz/api/auth/refresh";
+    private const string SiteUrl = GojiHosts.SiteUrl + "/";
+    private const string RefreshUrl = GojiHosts.SiteUrl + "/api/auth/refresh";
     private const string SessionCookieName = "rw_session_token";
     private const string RefreshCookieName = "rw_refresh_token";
 

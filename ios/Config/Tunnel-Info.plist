@@ -22,6 +22,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>GojiAppGroup</key>
 	<string>$(GOJI_APP_GROUP)</string>
+	<key>GojiSiteHost</key>
+	<string>$(GOJI_SITE_HOST)</string>
+	<key>GojiDownloadHost</key>
+	<string>$(GOJI_DOWNLOAD_HOST)</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

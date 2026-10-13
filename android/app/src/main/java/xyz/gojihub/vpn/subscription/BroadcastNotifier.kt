@@ -16,7 +16,7 @@ import xyz.gojihub.vpn.network.models.BroadcastDto
 import xyz.gojihub.vpn.util.AppLogger
 import xyz.gojihub.vpn.util.LogCategory
 
-/** Короткое локальное уведомление о новой новости/рассылке (gojihub.xyz/api/broadcasts) —
+/** Короткое локальное уведомление о новой новости/рассылке (<кабинет>/api/broadcasts) —
  *  тот же приём, что и SubscriptionNotifier: считается на устройстве по данным, которые
  *  и так приходят при обычном обновлении подписки (см. SubscriptionRepository.refresh(),
  *  вызывается воркером раз в час), отдельного push-сервера нет. Уведомляет только про самую

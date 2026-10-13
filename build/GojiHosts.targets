@@ -1,0 +1,35 @@
+<Project>
+  <!--
+    Адреса кабинета и сайта загрузки в публичный репозиторий не попадают. При сборке они
+    берутся из переменных окружения GOJI_SITE_URL / GOJI_DOWNLOAD_URL (в CI — из секретов)
+    или из goji-hosts.properties в корне монорепозитория (в .gitignore; образец —
+    goji-hosts.example.properties) и превращаются в сгенерированный класс GodjiVpn.GojiHosts.
+  -->
+  <PropertyGroup>
+    <GojiHostsFile>$(MSBuildThisFileDirectory)..\goji-hosts.properties</GojiHostsFile>
+    <GojiHostsText Condition="Exists('$(GojiHostsFile)')">$([System.IO.File]::ReadAllText('$(GojiHostsFile)'))</GojiHostsText>
+    <GojiSiteUrl>$(GOJI_SITE_URL)</GojiSiteUrl>
+    <GojiDownloadUrl>$(GOJI_DOWNLOAD_URL)</GojiDownloadUrl>
+    <GojiSiteUrl Condition="'$(GojiSiteUrl)' == '' And '$(GojiHostsText)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(GojiHostsText)', '(?m)^GOJI_SITE_URL=(\S+)').Groups[1].Value)</GojiSiteUrl>
+    <GojiDownloadUrl Condition="'$(GojiDownloadUrl)' == '' And '$(GojiHostsText)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(GojiHostsText)', '(?m)^GOJI_DOWNLOAD_URL=(\S+)').Groups[1].Value)</GojiDownloadUrl>
+    <GojiSiteUrl>$(GojiSiteUrl.TrimEnd('/'))</GojiSiteUrl>
+    <GojiDownloadUrl>$(GojiDownloadUrl.TrimEnd('/'))</GojiDownloadUrl>
+  </PropertyGroup>
+
+  <Target Name="GojiGenerateHosts" BeforeTargets="BeforeCompile;CoreCompile">
+    <!-- Путь считаем здесь, а не при импорте: на этапе оценки IntermediateOutputPath ещё бывает пустым,
+         и файл попадал в папку проекта, где его подхватывал обычный поиск .cs -->
+    <PropertyGroup>
+      <GojiHostsGenerated>$(ProjectDir)$(IntermediateOutputPath)GojiHosts.g.cs</GojiHostsGenerated>
+    </PropertyGroup>
+    <Error Condition="!$(GojiSiteUrl.StartsWith('https://')) Or !$(GojiDownloadUrl.StartsWith('https://'))"
+           Text="Не заданы GOJI_SITE_URL / GOJI_DOWNLOAD_URL: положите goji-hosts.properties в корень репозитория (образец — goji-hosts.example.properties) или задайте переменные окружения." />
+    <WriteLinesToFile File="$(GojiHostsGenerated)" Overwrite="true" WriteOnlyWhenDifferent="true"
+                      Lines="// &lt;auto-generated/&gt; build/GojiHosts.targets;namespace GodjiVpn {;internal static class GojiHosts {;public const string SiteUrl = &quot;$(GojiSiteUrl)&quot;%3B;public const string DownloadUrl = &quot;$(GojiDownloadUrl)&quot;%3B;};}" />
+    <ItemGroup>
+      <Compile Remove="$(GojiHostsGenerated)" />
+      <Compile Include="$(GojiHostsGenerated)" />
+      <FileWrites Include="$(GojiHostsGenerated)" />
+    </ItemGroup>
+  </Target>
+</Project>

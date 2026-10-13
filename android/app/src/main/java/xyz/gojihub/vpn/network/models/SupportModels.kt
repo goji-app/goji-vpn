@@ -3,7 +3,7 @@ package xyz.gojihub.vpn.network.models
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
-// ── Поддержка (gojihub.xyz/api/support/*) ─────────────────────────────────
+// ── Поддержка (<кабинет>/api/support/*) ─────────────────────────────────
 // Формат и пути сверены так же, как и остальные веб-only разделы — разбором JS-бандла
 // веб-версии (страница "Поддержка", customer-режим её тикет-виджета: /api/support/tickets,
 // не /api/admin/support/* — тот отдельный, для операторов). Часть полей у тикета/сообщения
@@ -88,7 +88,7 @@ data class SupportAttachmentDto(
     @Json(name = "file_size") val fileSize: Long? = null
 )
 
-// ── FAQ (gojihub.xyz/api/faq) ──────────────────────────────────────────────
+// ── FAQ (<кабинет>/api/faq) ──────────────────────────────────────────────
 
 @JsonClass(generateAdapter = true)
 data class FaqResponse(

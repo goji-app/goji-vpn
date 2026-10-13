@@ -6,7 +6,7 @@ using GodjiVpn.Models;
 namespace GodjiVpn.Services;
 
 /// <summary>
-/// Тянет subscription_link (subs.gojihub.xyz/&lt;token&gt;) и парсит реальный формат ответа —
+/// Тянет subscription_link (сервер подписки (&lt;токен&gt;)) и парсит реальный формат ответа —
 /// JSON-массив готовых Xray-профилей — сверено с рабочим Android-кодом
 /// (SubscriptionRepository.kt в каноническом источнике). Без правильных заголовков
 /// (в первую очередь User-Agent) бэкенд отдаёт легаси base64-формат вместо JSON; мы, как и
@@ -55,7 +55,7 @@ public sealed class SubscriptionService
         var raw = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
-            return (new List<VlessNode>(), $"subs.gojihub.xyz ответил HTTP {(int)response.StatusCode}: {Truncate(raw)}");
+            return (new List<VlessNode>(), $"Сервер подписки ответил HTTP {(int)response.StatusCode}: {Truncate(raw)}");
 
         if (response.Headers.TryGetValues("x-hwid-not-supported", out _))
             return (new List<VlessNode>(), "Сервер не распознал это устройство (x-hwid-not-supported) — HWID: " + _hwid.Get());
@@ -70,7 +70,7 @@ public sealed class SubscriptionService
         // remark первого элемента и есть текст этой ошибки.
         if (remark != null) return (nodes, "Ответ сервера: " + remark);
 
-        return (nodes, "Не удалось разобрать ответ subs.gojihub.xyz (неожиданный формат): " + Truncate(raw));
+        return (nodes, "Не удалось разобрать ответ сервера подписки (неожиданный формат): " + Truncate(raw));
     }
 
     /// <summary>Протоколы, которые встроенный xray.exe умеет обрабатывать как proxy-outbound

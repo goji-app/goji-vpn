@@ -25,7 +25,7 @@ extension Notification.Name {
     static let sessionExpired = Notification.Name("goji.sessionExpired")
 }
 
-/// HTTP-клиент gojihub.xyz. Ключевые особенности бэкенда (сверены на Android):
+/// HTTP-клиент кабинета. Ключевые особенности бэкенда (сверены на Android):
 ///  - на POST /api/auth/* обязателен заголовок X-Requested-With (лёгкая CSRF-защита);
 ///  - токен сессии приходит в Set-Cookie rw_session_token и дальше работает как Bearer;
 ///  - JWT живёт 24 ч, продлевается POST /api/auth/refresh с кукой rw_refresh_token.

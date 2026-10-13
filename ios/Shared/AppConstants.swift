@@ -9,9 +9,22 @@ enum AppConstants {
     static let tunnelBundleId: String = Bundle.main.object(forInfoDictionaryKey: "GojiTunnelBundleId") as? String
         ?? "xyz.gojihub.vpn.tunnel"
 
-    /// Клиентский бэкенд (шоп). host.gojihub.xyz — админка Remnawave, из приложения туда
+    /// Хосты кабинета и сайта загрузки — из Info.plist (Config/Hosts.local.xcconfig, в репозитории
+    /// их нет). Пустое значение — ошибка сборки, о ней лучше узнать сразу при запуске.
+    static let siteHost = infoHost("GojiSiteHost")
+    static let downloadHost = infoHost("GojiDownloadHost")
+
+    private static func infoHost(_ key: String) -> String {
+        guard let host = Bundle.main.object(forInfoDictionaryKey: key) as? String,
+              !host.isEmpty, !host.contains("$(") else {
+            fatalError("Не задан \(key): запустите Scripts/write-hosts-xcconfig.sh перед сборкой")
+        }
+        return host
+    }
+
+    /// Клиентский бэкенд (шоп). Админ-панель Remnawave из приложения туда
     /// ходить нельзя никогда (там админские права на всех пользователей).
-    static let apiBaseURL = URL(string: "https://gojihub.xyz/")!
+    static let apiBaseURL = URL(string: "https://\(siteHost)/")!
 
     static let privacyPolicyURL = URL(string: "https://telegra.ph/Politika-konfidencialnosti-Goji-VPN-09-20")!
     static let termsURL = URL(string: "https://telegra.ph/Polzovatelskoe-soglashenie-Goji-VPN-09-20")!
@@ -26,7 +39,7 @@ enum AppConstants {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
     }
 
-    /// User-Agent собственных запросов приложения к gojihub.xyz.
+    /// User-Agent собственных запросов приложения к кабинету.
     static var apiUserAgent: String { "Goji/\(appVersion)/iOS" }
 
     /// Схема deeplink'а QR-переноса входа (совместима с Android: godjivpn://transfer?s=…&r=…&t=…).

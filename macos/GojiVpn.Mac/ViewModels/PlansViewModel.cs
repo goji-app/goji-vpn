@@ -157,7 +157,7 @@ public sealed class PlansSectionItem
 
 public sealed partial class PlansViewModel : ObservableObject
 {
-    private const string RenewUrl = "https://gojihub.xyz/#/plans";
+    private const string RenewUrl = GojiHosts.SiteUrl + "/#/plans";
 
     // Свёрнутый вид (по умолчанию) — только 2 последние новости, без пагинации. Развёрнутый
     // (по клику "Показать все") — постранично, максимум 3 на странице.
@@ -556,7 +556,7 @@ public sealed partial class PlansViewModel : ObservableObject
         RebuildPlanCards();
         _allNews = new List<NewsItem>
         {
-            new() { Id = "1", RawContent = "**Новый узел в Стамбуле**\n\nДобавили сервер в Турции — удобно, если нужен близкий к России выход с низким пингом.", DateLabel = "25 сентября", Buttons = new List<BroadcastButtonDto> { new() { Text = "Подробнее", Url = "https://gojihub.xyz" } } },
+            new() { Id = "1", RawContent = "**Новый узел в Стамбуле**\n\nДобавили сервер в Турции — удобно, если нужен близкий к России выход с низким пингом.", DateLabel = "25 сентября", Buttons = new List<BroadcastButtonDto> { new() { Text = "Подробнее", Url = "кабинет" } } },
             new() { Id = "2", RawContent = "Обновили приложение для Windows: новый дизайн «Стекло».", DateLabel = "20 сентября", Buttons = new List<BroadcastButtonDto>() },
             new() { Id = "3", RawContent = "Третья новость.", DateLabel = "10 сентября", Buttons = new List<BroadcastButtonDto>() },
         };
@@ -718,7 +718,7 @@ public sealed partial class PlansViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenPartnerDashboard() => OpenUrl("https://gojihub.xyz/#/partner-dashboard");
+    private void OpenPartnerDashboard() => OpenUrl(GojiHosts.SiteUrl + "/#/partner-dashboard");
 
     [RelayCommand]
     private void SelectPeriod(int months)
@@ -772,7 +772,7 @@ public sealed partial class PlansViewModel : ObservableObject
     {
         var currentPlan = Plans.FirstOrDefault(p => p.IsCurrent);
         var url = currentPlan != null
-            ? $"https://gojihub.xyz/#/checkout?plan={currentPlan.Id}&defaultPeriod={SelectedMonths}&defaultPeriodUnit={currentPlan.PeriodUnit}"
+            ? $"{GojiHosts.SiteUrl}/#/checkout?plan={currentPlan.Id}&defaultPeriod={SelectedMonths}&defaultPeriodUnit={currentPlan.PeriodUnit}"
             : RenewUrl;
         OpenUrl(url);
     }

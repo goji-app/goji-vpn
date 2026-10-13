@@ -47,7 +47,7 @@ enum Keychain {
     }
 }
 
-/// Сессия gojihub.xyz: JWT (rw_session_token, живёт 24 ч) и refresh-токен (rw_refresh_token).
+/// Сессия кабинета: JWT (rw_session_token, живёт 24 ч) и refresh-токен (rw_refresh_token).
 /// Единственный источник правды о протухшей сессии — 401 от бэкенда (как и на Android).
 final class TokenStore {
     static let shared = TokenStore()

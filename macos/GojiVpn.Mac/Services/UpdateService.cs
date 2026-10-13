@@ -16,7 +16,7 @@ namespace GodjiVpn.Services;
 public sealed record UpdateInfo(Version Version, string VersionLabel, string Changelog, string DownloadUrl, string FileName, long? SizeBytes);
 
 /// <summary>
-/// Проверка новых версий: сначала манифест сайта загрузки (get.gojihub.xyz/latest.json, открывается
+/// Проверка новых версий: сначала манифест latest.json на сайте загрузки (открывается
 /// в РФ без VPN), при его недоступности — GitHub Releases API (публичный, авторизация не нужна) и скачивание/запуск установщика прямо из приложения.
 /// Устанавливать "тихо" в фоне не пытаемся — просто передаём эстафету обычному Inno Setup
 /// установщику (тому же .exe, что и ручная установка/обновление), который сам закрывает нас
@@ -28,7 +28,7 @@ public sealed class UpdateService
 {
     /// <summary>Зеркала сайта загрузки (исходники — «10. Сайт загрузки»): на каждом одни и те же
     /// latest.json и сборки. Пробуем по порядку, GitHub — запасной путь. Новое зеркало = новая строка.</summary>
-    private static readonly string[] MirrorSites = { "https://get.gojihub.xyz" };
+    private static readonly string[] MirrorSites = { GojiHosts.DownloadUrl };
     private const string ReleasesApiUrl = "https://api.github.com/repos/goji-app/goji-vpn/releases/latest";
 
     private readonly HttpClient _http;

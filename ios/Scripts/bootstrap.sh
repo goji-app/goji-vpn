@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}"
 
+"${ROOT}/Scripts/write-hosts-xcconfig.sh"
 "${ROOT}/Scripts/fetch-libxray.sh"
 "${ROOT}/Scripts/fetch-geodata.sh"
 

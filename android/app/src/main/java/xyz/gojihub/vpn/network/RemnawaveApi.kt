@@ -14,7 +14,7 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import xyz.gojihub.vpn.network.models.*
 
-// Пути и форматы ниже сверены напрямую с реальным бэкендом gojihub.xyz
+// Пути и форматы ниже сверены напрямую с реальным бэкендом кабинета
 // (перехвачены сетевые запросы веб-версии приложения через email-вход).
 interface RemnawaveApi {
 
@@ -101,7 +101,7 @@ interface RemnawaveApi {
     @DELETE("api/subscriptions/{id}/devices/{hwid}")
     suspend fun deleteDevice(@Path("id") id: Long, @Path("hwid") hwid: String): Response<Void>
 
-    // ── Поддержка (gojihub.xyz/api/support/*, customer-режим) ────────────
+    // ── Поддержка (<кабинет>/api/support/*, customer-режим) ────────────
     // Пути сверены с JS-бандлом веб-версии: у customer-роли префикс "/api/support" (у
     // оператора — "/api/admin/support", у партнёра — "/api/partner-admin/support", это нам
     // не подходит); customer видит только свои тикеты — сервер сам их фильтрует по сессии,

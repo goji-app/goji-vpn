@@ -51,4 +51,5 @@
     <Resource Include="Assets\Images\**\*" />
   </ItemGroup>
 
+  <Import Project="..\..\build\GojiHosts.targets" />
 </Project>

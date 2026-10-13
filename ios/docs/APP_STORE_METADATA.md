@@ -17,8 +17,8 @@
 | Дополнительная категория | Productivity (Производительность) |
 | Цена | Бесплатно |
 | Copyright | `© 2026 <название организации-разработчика>` |
-| Support URL | https://gojihub.xyz/ (лучше — отдельная страница поддержки с контактами) |
-| Marketing URL | https://gojihub.xyz/ (необязательно) |
+| Support URL | <кабинет>/ (лучше — отдельная страница поддержки с контактами) |
+| Marketing URL | <кабинет>/ (необязательно) |
 | Privacy Policy URL | новая версия политики (см. [PRIVACY.md](PRIVACY.md)); пока — https://telegra.ph/Politika-konfidencialnosti-Goji-VPN-09-20 |
 | Устройства | iPhone (iOS 16.0+) |
 | Витрины | все, кроме России и Китая (решение владельца — см. compliance) |
@@ -177,7 +177,7 @@ Goji VPN is a client for our own VPN service (Xray-core based, VLESS/Reality pro
 with NetworkExtension (NEPacketTunnelProvider). The developer is enrolled as an organization.
 
 DEMO ACCOUNT
-Email: appreview@gojihub.xyz
+Email: appreview@<домен>
 Sign-in code: 000000  (static code for this review account only; no inbox access needed)
 The account has an active subscription and free device slots.
 

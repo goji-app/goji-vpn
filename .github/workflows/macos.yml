@@ -5,6 +5,11 @@ name: macOS build
 on:
   workflow_dispatch:
 
+# Адреса кабинета и сайта загрузки в репозитории не хранятся — приходят из секретов.
+env:
+  GOJI_SITE_URL: ${{ secrets.GOJI_SITE_URL }}
+  GOJI_DOWNLOAD_URL: ${{ secrets.GOJI_DOWNLOAD_URL }}
+
 jobs:
   build:
     runs-on: macos-15

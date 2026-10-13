@@ -3,7 +3,7 @@
 [![Последний релиз](https://img.shields.io/github/v/release/goji-app/goji-vpn?label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7)](https://github.com/goji-app/goji-vpn/releases/latest)
 [![iOS](https://github.com/goji-app/goji-vpn/actions/workflows/ios.yml/badge.svg)](https://github.com/goji-app/goji-vpn/actions/workflows/ios.yml)
 
-Goji VPN — VPN-сервис с собственными приложениями для **Android, Windows, macOS и iPhone**. Все клиенты живут в этом репозитории, работают с одним кабинетом [gojihub.xyz](https://gojihub.xyz) и одним ядром [Xray-core](https://github.com/XTLS/Xray-core), выглядят одинаково (дизайн «Goji Expressive» на основе Material 3) и обновляются вместе.
+Goji VPN — VPN-сервис с собственными приложениями для **Android, Windows, macOS и iPhone**. Все клиенты живут в этом репозитории, работают с одним кабинетом и одним ядром [Xray-core](https://github.com/XTLS/Xray-core), выглядят одинаково (дизайн «Goji Expressive» на основе Material 3) и обновляются вместе.
 
 - [Скачать](#скачать)
 - [Возможности](#возможности)
@@ -87,15 +87,15 @@ xattr -dr com.apple.quarantine "/Applications/Goji VPN.app"
 ## Как это устроено
 
 ```
- Приложение ──── вход, подписка, поддержка ───▶ gojihub.xyz (кабинет)
+ Приложение ──── вход, подписка, поддержка ───▶ кабинет (шоп-бэкенд)
      │
-     ├──── список серверов (X-HWID) ──────────▶ subs.gojihub.xyz (Remnawave)
+     ├──── список серверов (X-HWID) ──────────▶ сервер подписки (Remnawave)
      │
      └──── трафик ─▶ туннель ─▶ Xray-core ─▶ VLESS ─▶ сервер Goji ─▶ интернет
 ```
 
-- **Кабинет** `gojihub.xyz` — вход, подписка, устройства, приглашения, поддержка. Приложения работают только с ним и с адресом подписки; служебные интерфейсы панели из приложений не вызываются.
-- **Подписка** `subs.gojihub.xyz/<токен>` отдаёт готовые профили Xray. Устройство привязывается к подписке заголовком `X-HWID`, а модель, система и версия (`X-Device-Model`, `X-Device-OS`, `X-Ver-OS`) нужны, чтобы в списке устройств было видно, что именно подключено.
+- **Кабинет** — вход, подписка, устройства, приглашения, поддержка. Приложения работают только с ним и с адресом подписки; служебные интерфейсы панели из приложений не вызываются.
+- **Подписка** (сервер Remnawave, ссылка вида `<сервер подписки>/<токен>`) отдаёт готовые профили Xray. Устройство привязывается к подписке заголовком `X-HWID`, а модель, система и версия (`X-Device-Model`, `X-Device-OS`, `X-Ver-OS`) нужны, чтобы в списке устройств было видно, что именно подключено.
 - **Туннель** на каждой платформе свой:
 
 | Платформа | Как поднимается туннель |
@@ -124,6 +124,8 @@ docs/      общая документация
 Подробно о каждом приложении — в его README: [android](android/README.md), [windows](windows/README.md), [macos](macos/README.md), [ios](ios/README.md).
 
 ## Сборка из исходников
+
+**Адреса сервисов.** Адреса кабинета и сайта загрузки в репозитории не хранятся. Перед сборкой любого приложения скопируйте `goji-hosts.example.properties` в `goji-hosts.properties` (в корне, файл в `.gitignore`) и впишите свои адреса или задайте переменные окружения `GOJI_SITE_URL` и `GOJI_DOWNLOAD_URL`. В GitHub Actions они берутся из одноимённых секретов. Без них сборка останавливается с понятной ошибкой.
 
 **Android** — Android Studio (JDK 17), Android SDK 37.
 
@@ -164,7 +166,7 @@ open GojiVPN.xcodeproj
 
 - **Android, Windows и macOS идут одним номером версии.** Каждый релиз содержит файлы всех трёх систем: APK, установщик Windows, `.dmg` и оба macOS-zip.
 - **iPhone** выходит через App Store со своей версией (`ios/Config/Version.xcconfig`).
-- **Автообновление:** приложения сначала смотрят манифест сайта загрузки `get.gojihub.xyz/latest.json` (открывается без VPN), а если он недоступен — [последний релиз](https://github.com/goji-app/goji-vpn/releases/latest) здесь. Android берёт из релиза `.apk`, Windows — `.exe`, macOS — zip своей архитектуры. Поэтому в каждом релизе должны быть файлы всех систем.
+- **Автообновление:** приложения сначала смотрят манифест `latest.json` на сайте загрузки (открывается без VPN), а если он недоступен — [последний релиз](https://github.com/goji-app/goji-vpn/releases/latest) здесь. Android берёт из релиза `.apk`, Windows — `.exe`, macOS — zip своей архитектуры. Поэтому в каждом релизе должны быть файлы всех систем.
 - **Android для Google Play** собирается отдельно (`bundlePlayRelease`) — без самообновления и без ссылок на оплату.
 
 ## Конфиденциальность

@@ -27,4 +27,5 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
+  <Import Project="..\..\build\GojiHosts.targets" />
 </Project>

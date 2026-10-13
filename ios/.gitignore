@@ -23,5 +23,6 @@ xcuserdata/
 *.p8
 AuthKey_*.p8
 Config/Signing.local.xcconfig
+Config/Hosts.local.xcconfig
 
 .DS_Store

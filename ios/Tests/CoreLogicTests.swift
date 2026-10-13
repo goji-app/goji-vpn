@@ -178,13 +178,13 @@ final class UtilityTests: XCTestCase {
     }
 
     func testPurchaseLinksAreFiltered() {
-        XCTAssertTrue(LinkPolicy.isPurchaseLink("https://gojihub.xyz/#/plans"))
+        XCTAssertTrue(LinkPolicy.isPurchaseLink("https://\(AppConstants.siteHost)/#/plans"))
         XCTAssertTrue(LinkPolicy.isPurchaseLink("https://t.me/Shadow_Duck_bot?start=pay"))
         XCTAssertFalse(LinkPolicy.isPurchaseLink("https://status.example.com/incident"))
     }
 
     func testTransferURIDetection() {
         XCTAssertTrue(AuthService.isTransferURI("godjivpn://transfer?s=abc&t=1"))
-        XCTAssertFalse(AuthService.isTransferURI("https://gojihub.xyz"))
+        XCTAssertFalse(AuthService.isTransferURI("https://\(AppConstants.siteHost)"))
     }
 }

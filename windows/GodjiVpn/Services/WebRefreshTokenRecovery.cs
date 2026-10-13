@@ -14,8 +14,8 @@ namespace GodjiVpn.Services;
 /// </summary>
 public static class WebRefreshTokenRecovery
 {
-    private const string SiteUrl = "https://gojihub.xyz/";
-    private const string RefreshUrl = "https://gojihub.xyz/api/auth/refresh";
+    private const string SiteUrl = GojiHosts.SiteUrl + "/";
+    private const string RefreshUrl = GojiHosts.SiteUrl + "/api/auth/refresh";
 
     public static async Task TryRecoverAsync(TokenStore tokens, Window owner)
     {

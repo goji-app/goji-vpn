@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace GodjiVpn.Models;
 
-// Манифест сайта загрузки (https://get.gojihub.xyz/latest.json), его собирает
+// Манифест сайта загрузки (latest.json), его собирает
 // «10. Сайт загрузки/tools/publish.py». Основной источник обновлений: сайт открывается в РФ
 // без VPN, а GitHub там часто недоступен. Только те поля, что реально используем.
 

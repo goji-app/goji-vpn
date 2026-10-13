@@ -1,5 +1,6 @@
 package xyz.gojihub.vpn.auth
 
+import xyz.gojihub.vpn.BuildConfig
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -63,8 +64,8 @@ class TokenManager @Inject constructor(
         if (refreshToken() != null) return
         runCatching {
             val cm = android.webkit.CookieManager.getInstance()
-            val session = cookie(cm.getCookie("https://gojihub.xyz/"), "rw_session_token")
-            val refresh = cookie(cm.getCookie("https://gojihub.xyz/api/auth/refresh"), "rw_refresh_token")
+            val session = cookie(cm.getCookie("${BuildConfig.SITE_URL}/"), "rw_session_token")
+            val refresh = cookie(cm.getCookie("${BuildConfig.SITE_URL}/api/auth/refresh"), "rw_refresh_token")
             if (session == token && !refresh.isNullOrBlank()) saveRefreshToken(refresh)
         }
     }

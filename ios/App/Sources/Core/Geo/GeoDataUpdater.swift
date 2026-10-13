@@ -19,7 +19,7 @@ enum GeoDataUpdater {
     }
 
     /// Зеркала сайта загрузки (исходники — «10. Сайт загрузки»). Новое зеркало = новая строка.
-    static let mirrorSites = ["https://get.gojihub.xyz"]
+    static let mirrorSites = ["https://\(AppConstants.downloadHost)"]
 
     private static let sources = [
         Source(url: "https://raw.githubusercontent.com/runetfreedom/russia-v2ray-rules-dat/release/geosite.dat", file: "geosite.dat", minSize: 50_000),

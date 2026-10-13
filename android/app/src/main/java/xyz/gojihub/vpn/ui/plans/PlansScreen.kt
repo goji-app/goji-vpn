@@ -72,7 +72,7 @@ import xyz.gojihub.vpn.ui.util.rememberPressScale
 
 /** Разметка — по handoff-1.0.77/reference/GojiGlassFull.dc.html (isPlans). */
 /** Личный кабинет на сайте — оплата и продление подписки (только сборка site). */
-private const val CABINET_URL = "https://gojihub.xyz/#/my-dashboard"
+private val CABINET_URL = BuildConfig.SITE_URL + "/#/my-dashboard"
 
 @Composable
 fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewModel()) {

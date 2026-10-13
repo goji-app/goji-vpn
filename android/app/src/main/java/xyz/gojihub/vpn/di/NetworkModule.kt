@@ -24,8 +24,8 @@ import javax.inject.Named
 import javax.inject.Singleton
 
 // Реальный клиентский бэкенд (Telegram Mini App) — сверено напрямую с сетевыми запросами
-// веб-версии приложения. host.gojihub.xyz — это панель Remnawave (админка), не сюда.
-private const val BASE_URL = "https://gojihub.xyz/"
+// веб-версии приложения. админ-панель Remnawave — не сюда.
+private val BASE_URL = BuildConfig.SITE_URL + "/"
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -44,7 +44,7 @@ object NetworkModule {
             addHeader("X-Requested-With", "XMLHttpRequest")
             // header(), а не addHeader() — заменяет дефолтный User-Agent клиента целиком,
             // а не добавляет второй. Касается только собственных запросов приложения к
-            // gojihub.xyz (эта конкретная интерцепция); User-Agent запроса подписки
+            // кабинету (эта конкретная интерцепция); User-Agent запроса подписки
             // (SubscriptionRepository.fetchNodes) сюда не попадает — он идёт через отдельный
             // OkHttpClient и намеренно спуфит другой клиент, см. комментарий там.
             header("User-Agent", "Goji/${BuildConfig.VERSION_NAME}/Android")
@@ -175,7 +175,7 @@ object NetworkModule {
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             .authenticator(tokenAuthenticator)
-            // Пускаем запросы к gojihub.xyz через локальный SOCKS самого Xray, пока туннель
+            // Пускаем запросы к кабинету через локальный SOCKS самого Xray, пока туннель
             // поднят — без этого собственные запросы приложения (и так исключённые из VPN,
             // см. GodjiVpnService.establishTunnel) шли по сырой сети телефона и падали в зоне
             // глушения мобильной сети, даже когда VPN на российский узел уже подключён.

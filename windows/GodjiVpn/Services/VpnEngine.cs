@@ -27,7 +27,7 @@ namespace GodjiVpn.Services;
 /// Единственный экземпляр создаётся один раз при старте приложения и хранится в Current —
 /// на него завязан tunnel-aware прокси-селектор в ApiClient (см. TunnelAwareProxy), той же
 /// идеи, что и tunnelAwareProxySelector() в Android: пока туннель поднят, собственные запросы
-/// приложения к gojihub.xyz тоже идут через локальный SOCKS, а не напрямую.
+/// приложения к кабинету тоже идут через локальный SOCKS, а не напрямую.
 /// </summary>
 public sealed class VpnEngine : INotifyPropertyChanged
 {
@@ -464,8 +464,8 @@ public sealed class VpnEngine : INotifyPropertyChanged
         ApplyUserBypassDomains(config, physicalIp);
 
         // Реально пойманная ошибка (повторяется каждые ~15с всю сессию, не разовый глюк):
-        // "dial tcp: lookup serv1.gojihub.xyz: no such host". Первая попытка исправить —
-        // прописать serv1.gojihub.xyz и т.п. статикой в dns.hosts — НЕ помогла: ошибка
+        // "dial tcp: lookup serv1.<домен>: no such host". Первая попытка исправить —
+        // прописать serv1.<домен> и т.п. статикой в dns.hosts — НЕ помогла: ошибка
         // повторялась даже с готовой hosts-записью. Значит транспорт XHTTP резолвит адрес
         // outbound'а не через DNS-подсистему самого xray (где hosts реально применяется), а
         // через обычный Go-резолвер стандартной библиотеки на более низком уровне — тот тоже

@@ -171,7 +171,7 @@ class AuthRepository @Inject constructor(
     private suspend fun isSessionAccepted(token: String): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         runCatching {
             val request = okhttp3.Request.Builder()
-                .url("https://gojihub.xyz/api/auth/me")
+                .url("${xyz.gojihub.vpn.BuildConfig.SITE_URL}/api/auth/me")
                 .header("Authorization", "Bearer $token")
                 .header("X-Requested-With", "XMLHttpRequest")
                 .header("User-Agent", "Goji/${xyz.gojihub.vpn.BuildConfig.VERSION_NAME}/Android")

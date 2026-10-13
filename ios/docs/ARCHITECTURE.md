@@ -22,9 +22,9 @@
 │         │                  геоданные, журналы)                  │
 └─────────┼──────────────────────────────────────────┼────────────┘
           ▼                                          ▼
-  gojihub.xyz (шоп-API:                     servN.gojihub.xyz / cdnya…
+  кабинет (шоп-API:                     servN.<домен> / cdnya…
   вход, подписка, поддержка)                (VPN-узлы Remnawave)
-  subs.gojihub.xyz/<токен>
+  сервер подписки (<токен>)
   (список серверов, X-HWID)
 ```
 
@@ -74,7 +74,7 @@
 
 ## Сборка конфигурации ядра (`Shared/XrayConfigBuilder.swift`)
 
-Профиль узла приходит с `subs.gojihub.xyz` готовым Xray-конфигом (`dns`, `routing`,
+Профиль узла приходит с сервера подписки готовым Xray-конфигом (`dns`, `routing`,
 `outbounds`). Перед запуском расширение достраивает его — логика перенесена из
 `GodjiVpnService.establishTunnel` Android-клиента:
 
@@ -145,9 +145,9 @@ App/Sources
 
 | Хост | Что | Клиент |
 |---|---|---|
-| `gojihub.xyz` | вход (`/api/auth/*`), подписки, рефералы, устройства, новости, поддержка, FAQ, пробный период | `APIClient` |
-| `subs.gojihub.xyz/<токен>` | список серверов (JSON-массив Xray-профилей). Заголовки: `User-Agent: v2rayNG/1.8.29` (иначе старый base64-формат), `X-HWID`, `X-Device-OS/OS-Version/Model`, `X-App-Name/Version` | `SubscriptionStore.fetchNodes` |
-| `host.gojihub.xyz` | админка Remnawave | **никогда** не вызывается из приложения |
+| `кабинет` | вход (`/api/auth/*`), подписки, рефералы, устройства, новости, поддержка, FAQ, пробный период | `APIClient` |
+| `сервер подписки (<токен>)` | список серверов (JSON-массив Xray-профилей). Заголовки: `User-Agent: v2rayNG/1.8.29` (иначе старый base64-формат), `X-HWID`, `X-Device-OS/OS-Version/Model`, `X-App-Name/Version` | `SubscriptionStore.fetchNodes` |
+| `админ-панель Remnawave` | админка Remnawave | **никогда** не вызывается из приложения |
 
 Сессия: JWT из куки `rw_session_token` (24 ч) используется как Bearer; при 401 —
 `POST /api/auth/refresh` с `rw_refresh_token` (один на все параллельные запросы, `actor`

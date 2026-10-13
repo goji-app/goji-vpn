@@ -20,7 +20,7 @@ struct VPNNode: Codable, Identifiable, Equatable, Hashable {
 }
 
 /// Подписка, список серверов и выбранный узел. Последний успешно полученный список хранится
-/// на диске (App Group, защита данных iOS): если gojihub.xyz или subs.gojihub.xyz недоступны
+/// на диске (App Group, защита данных iOS): если кабинет или сервер подписки недоступны
 /// на старте, пользователь всё равно видит серверы и может подключиться.
 @MainActor
 final class SubscriptionStore: ObservableObject {
@@ -92,7 +92,7 @@ final class SubscriptionStore: ObservableObject {
             broadcasts = list
         }
 
-        // gojihub.xyz и subs.gojihub.xyz — независимые хосты: если шоп недоступен, всё равно
+        // кабинет и сервер подписки — независимые хосты: если шоп недоступен, всё равно
         // пробуем обновить серверы по последней известной ссылке.
         let freshLink = active?.subscriptionLink
         guard let link = freshLink ?? cachedLink else {
@@ -159,7 +159,7 @@ final class SubscriptionStore: ObservableObject {
         try? SharedStorage.write(data, to: cacheURL)
     }
 
-    // MARK: - Список серверов (subs.gojihub.xyz)
+    // MARK: - Список серверов (сервер подписки)
 
     /// Без X-HWID сервер подписки отдаёт заглушку («Приложение не поддерживается»), с ним —
     /// JSON-массив готовых Xray-профилей. User-Agent v2rayNG — по нему бэкенд выбирает JSON-

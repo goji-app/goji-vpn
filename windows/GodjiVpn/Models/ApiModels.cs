@@ -22,7 +22,7 @@ public sealed class FlexibleStringConverter : JsonConverter<string>
 
 // Контракт подтверждён чтением реального кода Android-приложения
 // (xyz.gojihub.vpn.network.models.Models.kt в каноническом источнике) — сверено
-// напрямую с бэкендом gojihub.xyz разработчиком Android-версии, не догадка.
+// напрямую с бэкендом кабинета разработчиком Android-версии, не догадка.
 
 public sealed class SendOtpRequest
 {
@@ -174,7 +174,7 @@ public sealed class PriceInfo
     public string PeriodUnit { get; set; } = "";
 }
 
-// ── Новости/рассылки (gojihub.xyz/api/broadcasts/completed) — та же страница, что "Мои
+// ── Новости/рассылки (<кабинет>/api/broadcasts/completed) — та же страница, что "Мои
 //    рассылки" веб-версии. PropertyNameCaseInsensitive (Web defaults в ApiClient) сам сводит
 //    "ID"/"Content"/"CreatedAt"/"Buttons" и их нижний регистр к этим же свойствам — в отличие
 //    от Android (Moshi, строгий регистр), там ради этого нужны два отдельных поля-дубля. ────
@@ -196,7 +196,7 @@ public sealed class BroadcastButtonDto
     public string Text { get; set; } = "";
 }
 
-// ── Рефералы (gojihub.xyz/api/dashboard/referrals) — формат сверен так же, как и broadcasts,
+// ── Рефералы (<кабинет>/api/dashboard/referrals) — формат сверен так же, как и broadcasts,
 //    анализом JS-бандла веб-версии (ReferralsPage), без входа в чей-либо аккаунт. ─────────────
 
 public sealed class ReferralsResponse
@@ -229,7 +229,7 @@ public sealed class ReferralEntry
     [JsonPropertyName("bonus_days")] public int BonusDays { get; set; }
 }
 
-// ── Партнёрская программа (gojihub.xyz/api/partner/status) — только то подмножество полей,
+// ── Партнёрская программа (<кабинет>/api/partner/status) — только то подмножество полей,
 //    которое реально показываем (сводка/статус); форму заявки и вывода средств на клиенте не
 //    переопределяем, открываем веб-версию (см. PlansViewModel/PlansView), как и "Продлить" для
 //    тарифов — не переизобретаем денежные формы нативно. ─────────────────────────────────────
@@ -263,7 +263,7 @@ public sealed class PartnerStats
     [JsonPropertyName("client_count")] public int ClientCount { get; set; }
 }
 
-// ── Устройства подписки (gojihub.xyz/api/subscriptions/{id}/devices) — формат сверен так же,
+// ── Устройства подписки (<кабинет>/api/subscriptions/{id}/devices) — формат сверен так же,
 //    как и остальные веб-only разделы, анализом JS-бандла веб-версии (ClientDashboard).
 //    Удаление на пробном/бесплатном тарифе веб-версия сознательно не даёт делать самостоятельно
 //    ("удалить устройство можно только через поддержку") — чисто клиентская проверка на сайте
@@ -300,7 +300,7 @@ public sealed class RenameDeviceRequest
     public string ReadableName { get; set; } = "";
 }
 
-// ── Поддержка (gojihub.xyz/api/support/*, api/faq) — нативный чат поддержки, порт из
+// ── Поддержка (<кабинет>/api/support/*, api/faq) — нативный чат поддержки, порт из
 //    Android (720f5ff). Списочные поля везде nullable: бэкенд на Go отдаёт пустой список как
 //    null (nil-slice), а не [] — подтверждено комментарием в исходном Android-коде, тот же
 //    принцип уже применён выше у BroadcastDto.Buttons/ReferralsResponse. Для эндпоинтов,
@@ -421,7 +421,7 @@ public sealed class FaqItemDto
 
 /// <summary>
 /// Один сервер из подписки пользователя. ConnectPayloadJson — это уже готовый Xray-конфиг
-/// (dns/routing/outbounds, без inbounds), полученный с subs.gojihub.xyz при переданном X-HWID.
+/// (dns/routing/outbounds, без inbounds), полученный с сервера подписки при переданном X-HWID.
 /// </summary>
 public sealed class VlessNode
 {

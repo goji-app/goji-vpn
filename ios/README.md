@@ -2,7 +2,7 @@
 
 iOS-клиент Goji VPN: SwiftUI-приложение + расширение Packet Tunnel с ядром
 [Xray-core](https://github.com/XTLS/Xray-core) (через [libXray](https://github.com/XTLS/libXray)).
-Тот же бэкенд, что у Android/Windows/macOS-клиентов (gojihub.xyz + Remnawave).
+Тот же бэкенд, что у Android/Windows/macOS-клиентов (кабинет + Remnawave).
 
 - iPhone, iOS 16+; языки — русский (основной) и английский;
 - версия **1.0.0 (1)** — `Config/Version.xcconfig`.

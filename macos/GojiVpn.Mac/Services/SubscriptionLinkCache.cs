@@ -1,6 +1,6 @@
 namespace GodjiVpn.Services;
 
-/// <summary>Запасная копия ссылки подписки (см. SecretFile) — на случай недоступности gojihub.xyz.</summary>
+/// <summary>Запасная копия ссылки подписки (см. SecretFile) — на случай недоступности кабинета.</summary>
 public static class SubscriptionLinkCache
 {
     private static readonly string StorePath = SecretFile.PathFor("subscription-link.txt");
