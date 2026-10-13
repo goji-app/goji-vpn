@@ -1,36 +1,197 @@
 # Goji VPN
 
-Все клиенты VPN-сервиса Goji VPN в одном репозитории: Android, Windows, macOS и iOS. Один бэкенд (gojihub.xyz на Remnawave), одно ядро (Xray-core), один дизайн «Goji Expressive» (Material 3).
+[![Последний релиз](https://img.shields.io/github/v/release/goji-app/goji-vpn?label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7)](https://github.com/goji-app/goji-vpn/releases/latest)
+[![iOS](https://github.com/goji-app/goji-vpn/actions/workflows/ios.yml/badge.svg)](https://github.com/goji-app/goji-vpn/actions/workflows/ios.yml)
 
-| Папка | Платформа | Стек |
-|---|---|---|
-| [`android/`](android) | Android 7.0+ | Kotlin, Jetpack Compose, Hilt, Xray-core (libXray) + hev-socks5-tunnel |
-| [`windows/`](windows) | Windows 10/11 | WPF / .NET 8, Xray-core + sing-box (Wintun) |
-| [`macos/`](macos) | macOS 10.15+ (Intel), 11+ (Apple Silicon) | Avalonia 11 / .NET 8, Xray-core + sing-box (TUN) |
-| [`ios/`](ios) | iPhone, iOS 16+ | SwiftUI + Packet Tunnel, Xray-core (libXray) |
+Goji VPN — VPN-сервис с собственными приложениями для **Android, Windows, macOS и iPhone**. Все клиенты живут в этом репозитории, работают с одним кабинетом [gojihub.xyz](https://gojihub.xyz) и одним ядром [Xray-core](https://github.com/XTLS/Xray-core), выглядят одинаково (дизайн «Goji Expressive» на основе Material 3) и обновляются вместе.
+
+- [Скачать](#скачать)
+- [Возможности](#возможности)
+- [Установка](#установка)
+- [Как это устроено](#как-это-устроено)
+- [Структура репозитория](#структура-репозитория)
+- [Сборка из исходников](#сборка-из-исходников)
+- [Версии, релизы и обновления](#версии-релизы-и-обновления)
+- [Конфиденциальность](#конфиденциальность)
+- [Правила разработки](#правила-разработки)
+- [Сторонние компоненты](#сторонние-компоненты)
 
 ## Скачать
 
 Все файлы — в [последнем релизе](https://github.com/goji-app/goji-vpn/releases/latest):
 
-- **Android** — `Goji-<версия>.apk`;
-- **Windows** — `GodjiVpn-Setup-<версия>.exe`;
-- **Mac** (Intel и Apple Silicon) — `GojiVPN-<версия>-macOS.dmg`; файлы `-macOS-*.zip` нужны для автообновления внутри приложения;
-- **iPhone** — готовится к App Store.
+| Платформа | Файл | Требования |
+|---|---|---|
+| **Android** | `Goji-<версия>.apk` | Android 7.0 и новее, процессор arm64-v8a или armeabi-v7a |
+| **Windows** | `GodjiVpn-Setup-<версия>.exe` | Windows 10 / 11, x64 |
+| **macOS** | `GojiVPN-<версия>-macOS.dmg` — один файл для любого Mac | macOS 10.15+ на Intel, macOS 11+ на Apple Silicon |
+| **iPhone** | готовится к выходу в App Store | iOS 16+ |
 
-## Версии и релизы
+Файлы `GojiVPN-<версия>-macOS-arm64.zip` и `-x64.zip` в релизе нужны для автообновления внутри приложения на Mac — скачивать их вручную не нужно.
 
-- Android, Windows и macOS идут **одним номером версии**, и каждый релиз содержит файлы всех трёх систем: приложения ищут обновления в `/releases/latest` (Android — `.apk`, Windows — `.exe`, macOS — `-macOS-<arch>.zip`), и если в последнем релизе не окажется файла какой-то системы, она перестанет видеть обновления.
-- iOS выходит через App Store со своей версией (`ios/Config/Version.xcconfig`).
-- Сначала приложения проверяют сайт загрузки `get.gojihub.xyz/latest.json` (открывается без VPN), GitHub — запасной путь.
+## Возможности
 
-## Сборка
+**Во всех приложениях**
 
-- **Android** — см. [android/README.md](android/README.md). Две сборки: `site` (APK для сайта и GitHub, с самообновлением) и `play` (AAB для Google Play). Служба VPN в репозитории — заглушка, настоящая реализация туннеля не публикуется.
-- **Windows** — `windows/build-installer.ps1`, см. [windows/README.md](windows/README.md).
-- **macOS** — GitHub Actions `macOS build` (запуск вручную) или `python macos/build-macos.py`, см. [macos/README.md](macos/README.md).
-- **iOS** — только GitHub Actions `iOS` (собирается сам при изменениях в `ios/`), см. [ios/README.md](ios/README.md).
+- Подключение в одно нажатие: VLESS (Reality, XHTTP) через Xray-core, весь трафик устройства идёт через защищённый туннель.
+- 3D-глобус со страной подключения и приветствием на её языке.
+- Серверы подписки с честным пингом через туннель, избранное и сортировка.
+- Российские сайты и сервисы — напрямую, мимо VPN (геоданные [runetfreedom](https://github.com/runetfreedom/russia-v2ray-rules-dat) обновляются сами); свои сайты мимо VPN можно добавить вручную.
+- Вход по коду на email, перенос входа на другое устройство QR-кодом.
+- Подписка: остаток дней (кольцо убывает каждый день), устройства с понятными названиями — модель, система, версия, через что подключено — с переименованием и удалением, приглашения друзей, новости сервиса.
+- Поддержка прямо в приложении: обращения, переписка, вложения (фото, видео, PDF, журналы), ответы на частые вопросы.
+- Журнал сети: сколько времени устройство было под защитой, подключения, переключения и сбои — хранится только на устройстве.
+- Проверка утечек IP и DNS, напоминания об окончании подписки, светлая и тёмная тема, размер шрифта.
+
+**Android**
+
+- «Держит тебя в сети»: если мобильную связь глушат, приложение само переходит на российский узел, а на Wi-Fi возвращается обратно.
+- Kill switch и системный Always-on VPN, плитка в шторке, ярлык «Подключиться: <последний узел>».
+- Правила сетей: доверенные Wi-Fi, автоподключение в чужих сетях; отдельные приложения мимо VPN.
+- Виджеты на рабочий стол: основной (2×1–3×3, со списком серверов), «Статус», «Подписка».
+- Пробный период и удаление аккаунта прямо в приложении. Языки: русский, английский, китайский.
+
+**Windows**
+
+- Значок в трее: при закрытии окна туннель остаётся поднят, в меню — «Подключиться: <узел>».
+- Правила Wi-Fi: доверенные сети и автоподключение.
+- Окно подстраивается под любой экран без прокрутки.
+
+**macOS**
+
+- Один установщик для Intel и Apple Silicon, работает начиная с macOS 10.15.
+- Значок в строке меню.
+
+**iPhone**
+
+- Packet Tunnel на Xray-core, смена сервера без разрыва туннеля, «Держать в сети».
+- Kill switch, автоподключение и доверенные Wi-Fi через VPN On Demand.
+- Siri и Быстрые команды, Dynamic Type, VoiceOver. Пробный период и удаление аккаунта в приложении.
+
+## Установка
+
+**Android.** Скачайте `Goji-<версия>.apk` и откройте его. Если Android спросит, разрешите установку из этого источника. При первом подключении система попросит разрешение на VPN — нажмите «ОК». Дальше приложение обновляется само: «Настройки» → «Обновления».
+
+**Windows.** Запустите `GodjiVpn-Setup-<версия>.exe` и следуйте установщику. Приложению нужны права администратора — без них Windows не даёт создать сетевой адаптер для VPN. Обновления приходят сами.
+
+**macOS.** Откройте `.dmg` и перетащите **Goji VPN** в «Программы». Приложение не заверено Apple, поэтому при первом запуске macOS его остановит: откройте «Системные настройки» → «Конфиденциальность и безопасность» и нажмите «Всё равно открыть». То же самое в Терминале:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Goji VPN.app"
+```
+
+При подключении macOS попросит пароль администратора — он нужен, чтобы создать VPN-интерфейс.
+
+**iPhone.** Выйдет в App Store.
+
+## Как это устроено
+
+```
+ Приложение ──── вход, подписка, поддержка ───▶ gojihub.xyz (кабинет)
+     │
+     ├──── список серверов (X-HWID) ──────────▶ subs.gojihub.xyz (Remnawave)
+     │
+     └──── трафик ─▶ туннель ─▶ Xray-core ─▶ VLESS ─▶ сервер Goji ─▶ интернет
+```
+
+- **Кабинет** `gojihub.xyz` — вход, подписка, устройства, приглашения, поддержка. Приложения работают только с ним и с адресом подписки; служебные интерфейсы панели из приложений не вызываются.
+- **Подписка** `subs.gojihub.xyz/<токен>` отдаёт готовые профили Xray. Устройство привязывается к подписке заголовком `X-HWID`, а модель, система и версия (`X-Device-Model`, `X-Device-OS`, `X-Ver-OS`) нужны, чтобы в списке устройств было видно, что именно подключено.
+- **Туннель** на каждой платформе свой:
+
+| Платформа | Как поднимается туннель |
+|---|---|
+| Android | `VpnService` → hev-socks5-tunnel → локальный SOCKS Xray-core (libXray) |
+| Windows | sing-box поднимает TUN-адаптер Wintun → локальный SOCKS `xray.exe` |
+| macOS | sing-box (TUN, от администратора через `osascript`) → локальный SOCKS `xray` |
+| iOS | `NEPacketTunnelProvider`, дескриптор utun передаётся прямо в Xray-core (libXray) |
+
+- **Маршрутизация:** российские домены и IP (category-ru и белый список мобильного интернета) идут напрямую, остальное — через VPN. Свои исключения добавляются в настройках.
+
+## Структура репозитория
+
+```
+android/   Android-приложение (Kotlin, Jetpack Compose, Hilt)
+windows/   Windows-клиент (WPF, .NET 8) и установщик Inno Setup
+macos/     macOS-клиент (Avalonia 11, .NET 8), сборка .dmg и zip
+ios/       iOS-клиент (SwiftUI + Packet Tunnel, XcodeGen)
+docs/      общая документация
+.github/workflows/
+           ios.yml     — сборка, тесты и скриншоты iOS (сама, при изменениях в ios/)
+           macos.yml   — сборка и пробный запуск macOS (вручную)
+           tunnel.yml  — проверка туннеля на настоящем Mac (вручную)
+```
+
+Подробно о каждом приложении — в его README: [android](android/README.md), [windows](windows/README.md), [macos](macos/README.md), [ios](ios/README.md).
+
+## Сборка из исходников
+
+**Android** — Android Studio (JDK 17), Android SDK 37.
+
+```bash
+cd android
+./gradlew assembleSiteRelease   # APK для сайта и GitHub (с самообновлением)
+./gradlew bundlePlayRelease     # AAB для Google Play (без самообновления)
+```
+
+Перед сборкой положите `app/libs/libXray.aar` (собирается по инструкции [XTLS/libXray](https://github.com/XTLS/libXray)). Для подписанного релиза нужны свои `app/keystore.properties` и keystore — в репозитории их нет. Реализация подъёма туннеля в `GodjiVpnService` здесь не публикуется: в коде лежит только форма класса, нужная для сборки остального приложения. На Windows Android Gradle Plugin не собирает проект из папки с кириллицей в пути — соберите копию в ASCII-пути.
+
+**Windows** — .NET 8 SDK и [Inno Setup 6](https://jrsoftware.org/isinfo.php). Бинарники ядра положите в `windows/GodjiVpn/Runtime/` (см. README там).
+
+```powershell
+cd windows
+./build-installer.ps1           # dist\GodjiVpn-Setup-<версия>.exe
+```
+
+**macOS** — основной путь: GitHub Actions `macOS build` (кнопка Run workflow) — сборка на настоящем Mac, подпись, `.dmg`, zip для автообновления и пробный запуск. Запасной путь на Windows или Mac: .NET 8 SDK, Python 3 с Pillow, `tools/rcodesign`:
+
+```bash
+cd macos
+python build-macos.py           # обе архитектуры, результат в dist/
+```
+
+**iOS** — только на Mac или в GitHub Actions `iOS`. Локально:
+
+```bash
+cd ios
+brew install xcodegen
+./Scripts/bootstrap.sh          # ядро, геоданные и GojiVPN.xcodeproj
+open GojiVPN.xcodeproj
+```
+
+Интерфейс без сети и аккаунта — демо-режим: аргумент запуска `-GojiDemo YES`. VPN работает только на настоящем iPhone с платным аккаунтом Apple Developer.
+
+## Версии, релизы и обновления
+
+- **Android, Windows и macOS идут одним номером версии.** Каждый релиз содержит файлы всех трёх систем: APK, установщик Windows, `.dmg` и оба macOS-zip.
+- **iPhone** выходит через App Store со своей версией (`ios/Config/Version.xcconfig`).
+- **Автообновление:** приложения сначала смотрят манифест сайта загрузки `get.gojihub.xyz/latest.json` (открывается без VPN), а если он недоступен — [последний релиз](https://github.com/goji-app/goji-vpn/releases/latest) здесь. Android берёт из релиза `.apk`, Windows — `.exe`, macOS — zip своей архитектуры. Поэтому в каждом релизе должны быть файлы всех систем.
+- **Android для Google Play** собирается отдельно (`bundlePlayRelease`) — без самообновления и без ссылок на оплату.
+
+## Конфиденциальность
+
+- Приложения не собирают историю посещений, DNS-запросы и содержимое трафика.
+- Журналы и журнал сети хранятся только на устройстве и уходят в поддержку, только если вы сами приложите их к обращению.
+- Данные аккаунта на устройстве хранятся в зашифрованном виде.
+- Документы: [политика конфиденциальности](https://telegra.ph/Politika-konfidencialnosti-Goji-VPN-09-20), [пользовательское соглашение](https://telegra.ph/Polzovatelskoe-soglashenie-Goji-VPN-09-20), [удаление аккаунта](https://telegra.ph/Udalenie-akkaunta-Goji-VPN-10-11).
+
+## Правила разработки
+
+- **Одно изменение — во все приложения.** Новая функция или исправление делается сразу в Android, Windows, macOS и iOS (если на платформе это вообще возможно) и выходит одним релизом.
+- Версия повышается только для важных обновлений; мелкие правки идут без новой версии.
+- В репозиторий не попадают ключи подписи, пароли, токены и реализация туннеля Android.
 
 ## История
 
-Репозиторий собран 2026-10-13 из `goji-vpn-android` (переименован в `goji-vpn`), `goji-vpn-desktop` и `goji-vpn-ios` — история всех трёх сохранена.
+Репозиторий собран 2026-10-13 из трёх: `goji-vpn-android` (переименован в `goji-vpn`, старые ссылки GitHub перенаправляет сюда), `goji-vpn-desktop` и `goji-vpn-ios`. История всех трёх сохранена.
+
+## Сторонние компоненты
+
+| Компонент | Где | Лицензия |
+|---|---|---|
+| [Xray-core](https://github.com/XTLS/Xray-core) | все платформы | MPL-2.0 |
+| [libXray](https://github.com/XTLS/libXray) | Android, iOS | MIT |
+| [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel) | Android | MIT |
+| [sing-box](https://github.com/SagerNet/sing-box) | Windows, macOS | GPL-3.0 |
+| [Wintun](https://www.wintun.net) | Windows | Wintun License |
+| Геоданные [runetfreedom](https://github.com/runetfreedom/russia-v2ray-rules-dat), [hxehex](https://github.com/hxehex/russia-mobile-internet-whitelist) | все платформы | см. репозитории |
+| Шрифты Manrope, Instrument Serif, Space Grotesk | все платформы | SIL Open Font License 1.1 |

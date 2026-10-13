@@ -1,7 +1,7 @@
 # Goji VPN для macOS
 
 Клиент Goji VPN для Mac: Avalonia 11 / .NET 8, Xray-core + sing-box (TUN).
-Интерфейс и возможности такие же, как у Windows- и Android-версий: дизайн «Стекло», глобус,
+Интерфейс и возможности такие же, как у Windows- и Android-версий: дизайн «Goji Expressive», глобус,
 серверы с пингом и избранным, подписка, поддержка прямо в приложении, «Сайты мимо VPN»,
 проверка утечек, значок в строке меню.
 
@@ -10,7 +10,7 @@
 
 ## Установка
 
-1. Скачайте установщик из [последнего релиза](https://github.com/goji-app/goji-vpn-desktop/releases/latest):
+1. Скачайте установщик из [последнего релиза](https://github.com/goji-app/goji-vpn/releases/latest):
    `GojiVPN-<версия>-macOS.dmg` — один для любого Mac (Intel и Apple Silicon).
 2. Откройте `.dmg` и перетащите **Goji VPN** в «Программы».
 3. Приложение не заверено Apple, поэтому при первом запуске macOS его остановит. Откройте
