@@ -30,6 +30,12 @@ val SpaceGroteskFamily = ManropeFamily
 val JetBrainsMonoFamily = ManropeFamily
 
 private val base = Typography()
+/** Стиль текста по умолчанию (LocalTextStyle) для всех Text без явного lineHeight. У M3 bodyLarge
+ *  интервал фиксированный 24sp — у текста 11–13sp он давал двойные промежутки между строками при
+ *  переносе. Относительный интервал растёт вместе со шрифтом. В типографику (её смешивают поля
+ *  ввода) его не кладём — только в LocalTextStyle, см. GodjiVpnTheme. */
+val DefaultTextStyle = TextStyle(fontFamily = ManropeFamily, fontSize = 16.sp, lineHeight = 1.3.em)
+
 val GodjiTypography = Typography(
     displayLarge = base.displayLarge.copy(fontFamily = ManropeFamily),
     displayMedium = base.displayMedium.copy(fontFamily = ManropeFamily),
@@ -40,10 +46,10 @@ val GodjiTypography = Typography(
     titleLarge = base.titleLarge.copy(fontFamily = ManropeFamily),
     titleMedium = TextStyle(fontFamily = ManropeFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp),
     titleSmall = base.titleSmall.copy(fontFamily = ManropeFamily),
-    // Стиль текста по умолчанию для всех Text без явного lineHeight. У M3 bodyLarge интервал
-    // фиксированный 24sp — у текста 11–13sp он давал двойные промежутки между строками при
-    // переносе (особенно на узких экранах). Относительный интервал растёт вместе со шрифтом.
-    bodyLarge = base.bodyLarge.copy(fontFamily = ManropeFamily, lineHeight = 1.3.em),
+    // Интервал здесь — sp, как у остальных стилей: поля ввода M3 плавно переводят подпись из
+    // bodyLarge в bodySmall (lerp), и смесь em с sp роняет приложение («Cannot perform operation
+    // for Em and Sp»). Относительный интервал для обычного текста — DefaultTextStyle в Theme.kt.
+    bodyLarge = base.bodyLarge.copy(fontFamily = ManropeFamily),
     bodyMedium = TextStyle(fontFamily = ManropeFamily, fontWeight = FontWeight.Normal, fontSize = 13.5.sp),
     bodySmall = base.bodySmall.copy(fontFamily = ManropeFamily),
     labelLarge = base.labelLarge.copy(fontFamily = ManropeFamily),

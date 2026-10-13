@@ -87,8 +87,10 @@ fun GodjiVpnTheme(
     CompositionLocalProvider(LocalDensity provides scaledDensity) {
         MaterialTheme(
             colorScheme = godjiColorScheme(),
-            typography = GodjiTypography,
-            content = content
-        )
+            typography = GodjiTypography
+        ) {
+            // Относительный межстрочный интервал для обычного текста (см. DefaultTextStyle).
+            androidx.compose.material3.ProvideTextStyle(DefaultTextStyle, content)
+        }
     }
 }
