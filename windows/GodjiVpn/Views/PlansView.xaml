@@ -7,7 +7,7 @@
     <!-- Подписка v5 «Стекло» — по эталону screens/*-plans.png и PlansScreen.kt (разметка
          handoff-1.0.77/reference/GojiGlassFull.dc.html, isPlans): колонка padding 16, gap 12. -->
     <!-- Без прокрутки: сверху шапка и карточка подписки, под ними переключатель разделов
-         (устройства · новости); раздел занимает оставшееся место, длинные
+         (устройства · друзья · новости); раздел занимает оставшееся место, длинные
          списки листаются страницами (PagedItems). -->
     <Grid Margin="16" Background="{DynamicResource BgBrush}">
         <Grid.RowDefinitions>
@@ -165,6 +165,125 @@
                         </Grid>
                     </controls:GlassPanel>
                 </Button>
+            </Grid>
+
+            <Grid Visibility="{Binding IsFriendsSection, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="ПРИГЛАСИ ДРУЗЕЙ" Style="{StaticResource SectionLabel}" Margin="8,14,8,0"
+                           Visibility="{Binding HasReferral, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="Программа приглашений пока недоступна." FontWeight="Medium" FontSize="{s:Fs 12.5}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" Margin="8,16,8,0"
+                           Visibility="{Binding HasReferral, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                <controls:GlassPanel Grid.Row="1" Visibility="{Binding HasReferral, Converter={StaticResource BoolToVisibilityConverter}}" Style="{StaticResource GlassCard}" Padding="14" Margin="0,8,0,0" VerticalAlignment="Top">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <controls:PillBorder Height="44" Padding="14,0,6,0" Background="{DynamicResource ChipBrush}"
+                                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Referral.Link}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <!-- QR ссылки: друг сканирует камерой прямо с экрана (порт 79b3e4b). -->
+                                <Button Grid.Column="1" Style="{StaticResource BareButton}" Command="{Binding ShowReferralQrCommand}" VerticalAlignment="Center"
+                                        Width="32" Height="32" Margin="0,0,6,0" ToolTip="QR-код ссылки" AutomationProperties.Name="QR-код ссылки">
+                                    <Border CornerRadius="16" Background="{DynamicResource ThumbBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                                        <Path Data="{StaticResource IconQr}" Style="{StaticResource Icon}" Width="15" Height="15" Fill="{DynamicResource TealDeepBrush}"/>
+                                    </Border>
+                                </Button>
+                                <Button Grid.Column="2" Style="{StaticResource BareButton}" Command="{Binding CopyReferralLinkCommand}" VerticalAlignment="Center">
+                                    <controls:PillBorder Height="32" Padding="12,0" Background="{DynamicResource AccentGradientBrush}">
+                                        <TextBlock Text="Копировать" FontWeight="Bold" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource SurfaceBrush}" VerticalAlignment="Center"/>
+                                    </controls:PillBorder>
+                                </Button>
+                            </Grid>
+                        </controls:PillBorder>
+                        <Grid Grid.Row="1" Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding Referral.TotalReferrals}" FontWeight="Bold" FontSize="{s:Fs 20}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Приглашено" FontWeight="SemiBold" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <Rectangle Grid.Column="1" Style="{StaticResource VHair}"/>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding Referral.ActiveReferrals}" FontWeight="Bold" FontSize="{s:Fs 20}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Активных" FontWeight="SemiBold" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <Rectangle Grid.Column="3" Style="{StaticResource VHair}"/>
+                            <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                                <TextBlock FontWeight="Bold" FontSize="{s:Fs 20}" Foreground="{DynamicResource TealDeepBrush}" HorizontalAlignment="Center">
+                                    <Run Text="+"/><Run Text="{Binding Referral.TotalBonusDays, Mode=OneWay}"/>
+                                </TextBlock>
+                                <TextBlock Text="Бонус дней" FontWeight="SemiBold" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                        <Rectangle Grid.Row="2" Style="{StaticResource Hair}" Margin="0,12,0,4"/>
+                        <TextBlock Grid.Row="3" Text="У вас пока нет приглашённых пользователей" FontWeight="Medium" FontSize="{s:Fs 12}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,7" TextWrapping="Wrap"
+                                   Visibility="{Binding Referral.HasEntries, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                        <controls:PagedItems Grid.Row="4" ItemsSource="{Binding Referral.Entries}">
+                            <controls:PagedItems.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,7">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="28" Height="28" CornerRadius="14" Background="{DynamicResource ChipBrush}"
+                                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                                            <TextBlock Text="{Binding Initial}" FontWeight="Bold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="10,0"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding BonusLabel}" FontWeight="Bold" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TealDeepBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0"
+                                                   Visibility="{Binding HasBonusLabel, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <!-- Статус: активен — TealTint + сплошная обводка Teal + точка; иначе — пунктир. -->
+                                        <Grid Grid.Column="3" Height="22" VerticalAlignment="Center">
+                                            <Rectangle x:Name="StatusFrame" RadiusX="11" RadiusY="11" StrokeThickness="1"
+                                                       Stroke="{DynamicResource TextSecondaryBrush}" StrokeDashArray="3 3" Fill="Transparent"/>
+                                            <StackPanel Orientation="Horizontal" Margin="7,0,9,0" VerticalAlignment="Center">
+                                                <Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="Transparent" VerticalAlignment="Center"/>
+                                                <TextBlock x:Name="StatusText" Text="{Binding StatusBadge}" FontWeight="ExtraBold" FontSize="{s:Fs 10}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                            <Setter TargetName="StatusFrame" Property="Stroke" Value="{DynamicResource TealBrush}"/>
+                                            <Setter TargetName="StatusFrame" Property="StrokeDashArray" Value="{x:Null}"/>
+                                            <Setter TargetName="StatusFrame" Property="Fill" Value="{DynamicResource TealTintBrush}"/>
+                                            <Setter TargetName="StatusDot" Property="Fill" Value="{DynamicResource TealBrush}"/>
+                                            <Setter TargetName="StatusText" Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </controls:PagedItems.ItemTemplate>
+                        </controls:PagedItems>
+                    </Grid>
+                </controls:GlassPanel>
             </Grid>
 
             <Grid Visibility="{Binding IsNewsSection, Converter={StaticResource BoolToVisibilityConverter}}">

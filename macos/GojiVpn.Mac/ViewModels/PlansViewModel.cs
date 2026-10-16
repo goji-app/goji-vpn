@@ -36,6 +36,30 @@ public sealed partial class NewsItem : ObservableObject
     }
 }
 
+/// <summary>Один приглашённый пользователь — имя/юзернейм/email уже замаскированы наполовину
+/// точками (см. PlansViewModel.MaskHalf/DisplayNameFor), как и на самом сайте: это персональные
+/// данные третьих лиц, не наши, полностью открытым текстом их показывать не стоит.</summary>
+public sealed class ReferralEntryItem
+{
+    public required string DisplayName { get; init; }
+    public required bool IsActive { get; init; }
+    public required int BonusDays { get; init; }
+    public string StatusBadge => IsActive ? "Активен" : "Неактивен";
+    public string Initial => DisplayName.Length > 0 ? DisplayName[..1].ToUpperInvariant() : "?";
+    public string BonusLabel => BonusDays > 0 ? $"+{BonusDays} дн." : "";
+    public bool HasBonusLabel => BonusDays > 0;
+}
+
+public sealed class ReferralUiModel
+{
+    public required string Link { get; init; }
+    public required int TotalReferrals { get; init; }
+    public required int ActiveReferrals { get; init; }
+    public required int TotalBonusDays { get; init; }
+    public required List<ReferralEntryItem> Entries { get; init; }
+    public bool HasEntries => Entries.Count > 0;
+}
+
 /// <summary>Одно устройство подписки (см. DeviceDto) — busy гасит кнопки переименования/
 /// удаления на время запроса, как busy в Android DeviceUi.</summary>
 public sealed partial class DeviceItem : ObservableObject
@@ -71,19 +95,21 @@ public sealed partial class PlansViewModel : ObservableObject
     private readonly TokenStore _tokenStore;
     private List<NewsItem> _allNews = new();
 
-    /// <summary>Под карточкой подписки — один из разделов: устройства или новости.</summary>
+    /// <summary>Под карточкой подписки — один из разделов: устройства, друзья или новости.</summary>
     public IReadOnlyList<PlansSectionItem> Sections { get; } = new[]
     {
         new PlansSectionItem { Label = "Устройства" },
+        new PlansSectionItem { Label = "Друзья" },
         new PlansSectionItem { Label = "Новости" },
     };
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsDevicesSection), nameof(IsNewsSection))]
+    [NotifyPropertyChangedFor(nameof(IsDevicesSection), nameof(IsFriendsSection), nameof(IsNewsSection))]
     private int sectionIndex;
 
     public bool IsDevicesSection => SectionIndex == 0;
-    public bool IsNewsSection => SectionIndex == 1;
+    public bool IsFriendsSection => SectionIndex == 1;
+    public bool IsNewsSection => SectionIndex == 2;
 
     /// <summary>Все новости — раздел «Новости» листает их сам (PagedItems).</summary>
     public IReadOnlyList<NewsItem> AllNews => _allNews;
@@ -105,6 +131,18 @@ public sealed partial class PlansViewModel : ObservableObject
     [ObservableProperty] private bool refreshing;
     [ObservableProperty] private bool isNewsExpanded;
     [ObservableProperty] private int newsPageIndex;
+    // NullToVisibilityConverter (Converters.cs) сделан специально под строковые свойства
+    // (value as string) — для произвольного объекта вроде ReferralUiModel unsafe-каст всегда
+    // даёт null, а значит Visibility.Collapsed БЕЗУСЛОВНО, даже когда данные реально пришли
+    // с бэкенда (это и оказалось причиной "секции не отображаются", подтверждено: диагностика
+    // сети/JSON ничего не показала, потому что сеть тут ни при чём). Поэтому — свои bool-флаги
+    // + обычный BoolToVisibilityConverter, а не переиспользование NullToVisibilityConverter.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasReferral))]
+    private ReferralUiModel? referral;
+
+    public bool HasReferral => Referral != null;
+
     private long? _subscriptionId;
 
     // На пробном/бесплатном тарифе — как на сайте, самостоятельное удаление устройства скрыто
@@ -165,6 +203,11 @@ public sealed partial class PlansViewModel : ObservableObject
 
     private void ShowCached()
     {
+        if (AccountCache.Load<ReferralsResponse>(AccountCache.Key.Referrals) is { } referrals)
+        {
+            _savedAt[AccountCache.Key.Referrals] = referrals.SavedAtUtc;
+            ApplyReferrals(referrals.Value);
+        }
         if (AccountCache.Load<List<DeviceDto>>(AccountCache.Key.Devices) is { } devices)
         {
             _savedAt[AccountCache.Key.Devices] = devices.SavedAtUtc;
@@ -187,6 +230,11 @@ public sealed partial class PlansViewModel : ObservableObject
         ApplyNews();
 
         var subId = _subscription.Subscription?.Id;
+        // referral_enabled не проверяется отдельным запросом настроек:
+        // если фичу когда-нибудь выключат на бэкенде, эндпоинт просто перестанет отвечать
+        // успешно, и секция тихо не покажется (тот же принцип, что уже у broadcasts/plans).
+        if (force || IsStale(AccountCache.Key.Referrals))
+            await FetchAsync(AccountCache.Key.Referrals, () => _api.GetReferralsAsync(), ApplyReferrals);
         if (subId is { } id && (force || IsStale(AccountCache.Key.Devices)))
             await FetchAsync(AccountCache.Key.Devices, () => _api.GetDevicesAsync(id), ApplyDevices);
         if (Environment.GetEnvironmentVariable("GODJI_UI_PREVIEW_DEMO") == "1") FillPreviewDemo();
@@ -218,6 +266,7 @@ public sealed partial class PlansViewModel : ObservableObject
     private void OnAccountCleared() => RunOnUi(() =>
     {
         _savedAt.Clear();
+        Referral = null;
         ApplyDevices(new List<DeviceDto>());
         ApplySubscription();
         ApplyNews();
@@ -263,6 +312,23 @@ public sealed partial class PlansViewModel : ObservableObject
         RefreshVisibleNews();
     }
 
+    private void ApplyReferrals(ReferralsResponse r)
+    {
+        Referral = new ReferralUiModel
+        {
+            Link = r.Link,
+            TotalReferrals = r.Summary.TotalReferrals,
+            ActiveReferrals = r.Summary.ActiveReferrals,
+            TotalBonusDays = r.Summary.TotalBonusDays,
+            Entries = r.Referrals.Select(e => new ReferralEntryItem
+            {
+                DisplayName = DisplayNameFor(e),
+                IsActive = e.IsActive,
+                BonusDays = e.BonusDays
+            }).ToList()
+        };
+    }
+
     private void ApplyDevices(List<DeviceDto> devices)
     {
         _rawDevices = devices;
@@ -294,6 +360,16 @@ public sealed partial class PlansViewModel : ObservableObject
         };
         foreach (var n in _allNews) n.BuildCollapsed();
         RefreshVisibleNews();
+        Referral = new ReferralUiModel
+        {
+            Link = "https://t.me/Shadow_Duck_bot?start=ref_48213",
+            TotalReferrals = 3, ActiveReferrals = 2, TotalBonusDays = 14,
+            Entries = new List<ReferralEntryItem>
+            {
+                new() { DisplayName = "@alex•••", IsActive = true, BonusDays = 7 },
+                new() { DisplayName = "Мари••", IsActive = false, BonusDays = 0 },
+            }
+        };
     }
 
     private static DeviceItem ToDeviceItem(DeviceDto d) => new()
@@ -379,6 +455,37 @@ public sealed partial class PlansViewModel : ObservableObject
         catch { device.IsBusy = false; }
     }
 
+    /// <summary>Веб-версия маскирует половину имени/юзернейма/локальной части email точками —
+    /// повторяем то же самое, а не показываем приглашённых пользователей полностью открытым
+    /// текстом (это не наши данные, а личные данные третьих лиц).</summary>
+    private static string MaskHalf(string s)
+    {
+        if (s.Length == 0) return s;
+        var visible = (s.Length + 1) / 2;
+        return s[..visible] + new string('•', s.Length - visible);
+    }
+
+    private static string MaskEmail(string email)
+    {
+        var at = email.IndexOf('@');
+        return at < 0 ? MaskHalf(email) : MaskHalf(email[..at]) + email[at..];
+    }
+
+    private static string DisplayNameFor(ReferralEntry e)
+    {
+        if (!string.IsNullOrWhiteSpace(e.TgUsername)) return "@" + MaskHalf(e.TgUsername);
+        var fullName = string.Join(" ", new[] { e.TgFirstName, e.TgLastName }.Where(s => !string.IsNullOrEmpty(s))).Trim();
+        if (fullName.Length > 0) return MaskHalf(fullName);
+        if (!string.IsNullOrWhiteSpace(e.Email)) return MaskEmail(e.Email);
+        return $"ID: {e.RefereeTelegramId ?? e.RefereeId ?? 0}";
+    }
+
+    [RelayCommand]
+    private void CopyReferralLink()
+    {
+        if (Referral is { } r) Ui.CopyText(r.Link);
+    }
+
     /// <summary>Перенос входа по QR (порт 7060e31): в код кладётся текущая сессия — тот же
     /// JWT и refresh-токен, что в TokenStore, — и момент создания. Бэкенд принимает JWT как
     /// обычный Bearer с любого устройства; новое устройство само займёт место в лимите.
@@ -396,6 +503,15 @@ public sealed partial class PlansViewModel : ObservableObject
             uri,
             warning: "Код даёт вход в твой аккаунт — не показывай и не отправляй его посторонним. Действует 10 минут.",
             autoClose: TimeSpan.FromMinutes(10)));
+    }
+
+    [RelayCommand]
+    private void ShowReferralQr()
+    {
+        if (Referral is not { } r || string.IsNullOrEmpty(r.Link)) return;
+        _ = Ui.ShowDialogAsync(new QrWindow("Пригласи друга",
+            "Друг наводит камеру телефона на код и сразу открывает твою пригласительную ссылку.",
+            r.Link, r.Link));
     }
 
     [RelayCommand]
