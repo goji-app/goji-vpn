@@ -87,8 +87,8 @@
                     </StackPanel>
                     <Button Grid.Column="1" Classes="accent" Height="38" Padding="16,0" VerticalAlignment="Center" Command="{Binding ActivateTrialCommand}">
                         <Panel>
-                            <TextBlock Text="Активировать" FontSize="{s:Fs 13}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}" IsVisible="{Binding !TrialActivating}"/>
-                            <TextBlock Text="Активируем…" FontSize="{s:Fs 13}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}" IsVisible="{Binding TrialActivating}"/>
+                            <TextBlock Text="Активировать" FontSize="{s:Fs 13}" FontWeight="Bold" IsVisible="{Binding !TrialActivating}"/>
+                            <TextBlock Text="Активируем…" FontSize="{s:Fs 13}" FontWeight="Bold" IsVisible="{Binding TrialActivating}"/>
                         </Panel>
                     </Button>
                 </Grid>

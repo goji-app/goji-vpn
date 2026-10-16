@@ -181,13 +181,22 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Template">
             <ControlTemplate>
-                <Border CornerRadius="999" Background="{DynamicResource AccentGradientBrush}" Padding="16,0">
+                <Border Name="Bg" CornerRadius="999" Background="{DynamicResource AccentGradientBrush}" Padding="16,0">
                     <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
                                       HorizontalAlignment="Center" VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}"/>
                 </Border>
             </ControlTemplate>
         </Setter>
+    </Style>
+    <!-- Выключенная кнопка — нейтральная подложка и читаемый текст (M3), а не полупрозрачная
+         бирюза, на которой подпись почти не видна. -->
+    <Style Selector="Button.accent:disabled">
+        <Setter Property="Opacity" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+    <Style Selector="Button.accent:disabled /template/ Border#Bg">
+        <Setter Property="Background" Value="{DynamicResource SurfaceContainerHighestBrush}"/>
     </Style>
 
     <!-- Сплошная "чернильная" капсула. -->

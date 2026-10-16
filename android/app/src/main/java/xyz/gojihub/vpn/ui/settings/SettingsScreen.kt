@@ -105,11 +105,6 @@ fun SettingsScreen(
                 LinkRow(Loc.f.securitySection, Loc.f.setSecurityDesc) { page = SettingsPage.SECURITY }
                 Hair()
                 LinkRow(Loc.s.settingsNotifications, Loc.f.setNotificationsDesc) { page = SettingsPage.NOTIFICATIONS }
-                // Самообновление есть только в сборке site (см. app/build.gradle.kts).
-                if (BuildConfig.ENABLE_SELF_UPDATE) {
-                    Hair()
-                    LinkRow(Loc.s.settingsUpdatesTitle, Loc.f.setUpdatesDesc) { page = SettingsPage.UPDATES }
-                }
                 Hair()
                 LinkRow(Loc.s.settingsAbout, Loc.f.setAboutDesc) { page = SettingsPage.ABOUT }
             }
@@ -208,7 +203,6 @@ fun SettingsScreen(
                     SettingsPage.CONNECTION -> Loc.s.settingsConnection
                     SettingsPage.SECURITY -> Loc.f.securitySection
                     SettingsPage.NOTIFICATIONS -> Loc.s.settingsNotifications
-                    SettingsPage.UPDATES -> Loc.s.settingsUpdatesTitle
                     SettingsPage.ABOUT -> Loc.s.settingsAbout
                     SettingsPage.MAIN -> ""
                 },
@@ -285,16 +279,6 @@ fun SettingsScreen(
                 ToggleRow(Loc.f.hapticsTitle, Loc.f.hapticsDesc, state.haptics, viewModel::setHaptics)
             }
 
-            SettingsPage.UPDATES -> Column(
-                Modifier
-                    .fillMaxWidth()
-                    .godjiCard(RoundedCornerShape(24.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                UpdateSectionContent(state, viewModel)
-            }
-
             SettingsPage.ABOUT -> {
                 SectionLabel(Loc.s.settingsAboutCopyHint)
                 RefCard {
@@ -309,6 +293,20 @@ fun SettingsScreen(
                     AboutRow(Loc.s.settingsHwid, state.hwid)
                     Hair()
                     AboutRow(Loc.s.settingsDeviceInfo, state.deviceInfo)
+                }
+                // Обновления — здесь же, рядом с версией (отдельный экран был из одной строки).
+                // Самообновление есть только в сборке site (см. app/build.gradle.kts).
+                if (BuildConfig.ENABLE_SELF_UPDATE) {
+                    SectionLabel(Loc.s.settingsUpdatesTitle)
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .godjiCard(RoundedCornerShape(24.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        UpdateSectionContent(state, viewModel)
+                    }
                 }
                 SectionLabel(Loc.s.settingsLogs)
                 RefCard {
@@ -332,7 +330,7 @@ fun SettingsScreen(
 }
 
 /** Окна настроек (как разделы Windows-клиента). */
-private enum class SettingsPage { MAIN, APPEARANCE, CONNECTION, SECURITY, NOTIFICATIONS, UPDATES, ABOUT }
+private enum class SettingsPage { MAIN, APPEARANCE, CONNECTION, SECURITY, NOTIFICATIONS, ABOUT }
 
 /** Проверка утечек: заголовок + кнопка, после проверки — вердикт (круг 28dp с иконкой, как у
  *  баннеров Главной) и строки деталей в стиле "О программе". */
