@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>GodjiVpn</RootNamespace>
     <AssemblyName>GojiVpn</AssemblyName>
-    <Version>1.0.121</Version>
+    <Version>1.0.123</Version>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationManifest></ApplicationManifest>
     <InvariantGlobalization>false</InvariantGlobalization>
