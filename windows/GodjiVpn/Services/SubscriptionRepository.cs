@@ -195,24 +195,26 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
             // Теперь при сбое здесь пробуем последнюю успешно закешированную ссылку и всё равно
             // пытаемся обновить хотя бы список серверов — план/трафик тогда просто останутся
             // прежними до восстановления кабинета.
+            // Пользователю — понятный текст, технические подробности (часто по-английски) — в журнал.
+            VpnEngine.Log("subscription: cabinet request failed — " + Shorten(ex.Message));
             var cachedLink = SubscriptionLinkCache.Load();
             if (cachedLink == null)
             {
-                LastError = "Не удалось получить подписку: " + ex.Message;
+                LastError = CabinetUnreachable;
                 return false;
             }
 
             var (cachedNodes, _) = await SafeFetchNodesAsync(cachedLink);
             if (cachedNodes.Count == 0)
             {
-                LastError = "Не удалось получить подписку: " + ex.Message;
+                LastError = CabinetUnreachable;
                 return false;
             }
 
             // Серверы обновились по запасной ссылке, но тариф, срок и трафик из личного кабинета —
             // нет. Раньше это проходило молча: вкладка «Подписка» просто оставалась пустой, и
             // понять, что не так, было невозможно. Теперь причина видна.
-            LastError = "Данные личного кабинета не загрузились: " + Shorten(ex.Message);
+            LastError = CabinetStale;
             _subscriptionNodes = cachedNodes;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Nodes)));
             if (SelectedId == null || Nodes.All(n => n.Id != SelectedId))
@@ -340,6 +342,9 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
         return null;
     }
 
+    private const string CabinetUnreachable = "Не удалось связаться с личным кабинетом. Проверьте интернет и нажмите «Обновить».";
+    private const string CabinetStale = "Не получилось обновить подписку — показываем сохранённые данные.";
+
     private static string Shorten(string message)
     {
         var oneLine = message.ReplaceLineEndings(" ");
@@ -349,6 +354,10 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
     private async Task<(List<VlessNode> Nodes, string? Error)> SafeFetchNodesAsync(string subscriptionLink)
     {
         try { return await _subscriptionService.FetchNodesAsync(subscriptionLink); }
-        catch (Exception ex) { return (new List<VlessNode>(), "Не удалось получить список серверов: " + ex.Message); }
+        catch (Exception ex)
+        {
+            VpnEngine.Log("subscription: server list fetch failed — " + Shorten(ex.Message));
+            return (new List<VlessNode>(), "Не удалось получить список серверов. Проверьте интернет и нажмите «Обновить».");
+        }
     }
 }

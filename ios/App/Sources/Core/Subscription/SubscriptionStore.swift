@@ -14,7 +14,7 @@ struct VPNNode: Codable, Identifiable, Equatable, Hashable {
     let uuid: String?
 
     var displayName: String { CountryGeoLookup.stripLeadingFlag(name) }
-    var flag: String { geo?.flag ?? "🌐" }
+    var flag: String { geo?.flag ?? (CountryGeoLookup.isEuRegion(name) ? "🇪🇺" : "🌐") }
     var isLTE: Bool { name.range(of: "LTE", options: .caseInsensitive) != nil }
     var isJSONProfile: Bool { payload.trimmingCharacters(in: .whitespaces).hasPrefix("{") }
 }

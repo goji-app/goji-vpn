@@ -51,7 +51,7 @@ public sealed partial class NodeItem : ObservableObject
     public CountryGeo? Geo => CountryGeoLookup.Find(Node.Name);
     public string DisplayName => RemarkText.StripLeadingFlag(Node.Name);
     public string Flag => Geo != null ? CountryGeoLookup.FlagEmoji(Geo.Code) : "🌐";
-    public string? FlagImagePath => FlagIcon.ImagePath(Geo?.Code);
+    public string? FlagImagePath => FlagIcon.ForNode(Node.Name, Geo);
 }
 
 /// <summary>Список узлов подписки + пинг через реальный прокси-туннель — аналог
@@ -122,10 +122,12 @@ public sealed partial class ServersViewModel : ObservableObject
     {
         IsRefreshing = true;
         var ok = await _subscription.RefreshAsync();
-        IsRefreshing = false;
         // RefreshAsync внутри меняет Subscription/Nodes, что уже придёт через PropertyChanged,
         // но подписка регистрируется до первого узла — на всякий случай синхронизируем и тут.
         SyncFromRepository();
+        // Одна кнопка «Обновить»: за свежим списком сразу проверяем пинг (как Android).
+        if (ok) await PingAllCommand.ExecuteAsync(null);
+        IsRefreshing = false;
 
         RefreshResultIsError = !ok || _subscription.LastError != null;
         ShowRefreshMessage(RefreshResultIsError

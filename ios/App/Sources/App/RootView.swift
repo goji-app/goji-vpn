@@ -72,16 +72,18 @@ struct MainTabView: View {
             }
         )) {
             NavigationStack { ConnectView() }
-                .tabItem { Label(L("tab.home"), systemImage: "checkmark.shield") }
+                // Иконки вкладок 2026-10-16 — как на Android/Windows/macOS: дом, метка, билет, шестерёнка
+                // (системный TabView сам ставит вариант .fill у выбранной).
+                .tabItem { Label(L("tab.home"), systemImage: "house") }
                 .tag(AppModel.Tab.home)
             NavigationStack { ServersView() }
-                .tabItem { Label(L("tab.servers"), systemImage: "globe") }
+                .tabItem { Label(L("tab.servers"), systemImage: "mappin") }
                 .tag(AppModel.Tab.servers)
             NavigationStack { SubscriptionView() }
-                .tabItem { Label(L("tab.subscription"), systemImage: "creditcard") }
+                .tabItem { Label(L("tab.subscription"), systemImage: "ticket") }
                 .tag(AppModel.Tab.subscription)
             NavigationStack { SettingsView() }
-                .tabItem { Label(L("tab.settings"), systemImage: "slider.horizontal.3") }
+                .tabItem { Label(L("tab.settings"), systemImage: "gearshape") }
                 .tag(AppModel.Tab.settings)
         }
         .tint(GojiColor.tealDeep)

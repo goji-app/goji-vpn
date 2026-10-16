@@ -67,6 +67,12 @@ enum CountryGeoLookup {
         return entries.first { aliases, _ in aliases.contains { lower.contains($0) } }?.1
     }
 
+    /// Узел-регион вроде «Автовыбор серверов EU»: страны нет, но есть флаг Евросоюза.
+    /// Отдельно от `find`, чтобы глобус и «Вы в …» не получили выдуманную страну.
+    static func isEuRegion(_ remark: String) -> Bool {
+        remark.range(of: #"(^|[^\p{L}])EU([^\p{L}]|$)|европ|europe"#, options: [.regularExpression, .caseInsensitive]) != nil
+    }
+
     /// Эмодзи-флаг из ISO alpha-2 (пара regional indicator symbols).
     static func flag(_ code: String) -> String {
         let upper = code.uppercased()

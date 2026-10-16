@@ -18,7 +18,7 @@ public sealed class FontScale : INotifyPropertyChanged
 {
     public static FontScale Instance { get; } = new();
 
-    private double _factor = 1.0;
+    private double _factor = 0.9; // «Обычный», до применения сохранённой настройки
 
     public double Factor
     {
@@ -37,9 +37,11 @@ public sealed class FontScale : INotifyPropertyChanged
 
     public static double Multiplier(FontSizePreset preset) => preset switch
     {
-        FontSizePreset.Small => 0.9,
-        FontSizePreset.Large => 1.15,
-        _ => 1.0
+        // Шкала сдвинута на ступень вниз 2026-10-16: «Обычный» = прежний «Маленький»,
+        // «Большой» = прежний «Обычный», «Маленький» — заметно мельче.
+        FontSizePreset.Small => 0.8,
+        FontSizePreset.Large => 1.0,
+        _ => 0.9
     };
 
     /// <summary>Размер с учётом настройки — для текста, который строится в коде.</summary>
@@ -51,7 +53,7 @@ public sealed class FontScale : INotifyPropertyChanged
 }
 
 /// <summary>
-/// Размер шрифта в XAML: FontSize="{s:Fs 13.5}" — 13.5 при «Нормальном», ×0.9 и ×1.15 при
+/// Размер шрифта в XAML: FontSize="{s:Fs 13.5}" — 13.5 × 0.9 при «Обычном», ×0.8 и ×1.0 при
 /// «Маленьком» и «Большом». Работает и в атрибутах, и в Setter стилей и шаблонов.
 /// </summary>
 [MarkupExtensionReturnType(typeof(object))]

@@ -73,8 +73,18 @@
                            Text="{Binding ConnectedTimeLabel, StringFormat='· {0}'}"/>
             </StackPanel>
 
-            <TextBlock Classes="error" Text="{Binding ErrorMessage}" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"
-                       Margin="0,8,0,0" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            <!-- Ошибка — плашкой; для сбоя кабинета/подписки рядом «Повторить» (макет 2026-10-16). -->
+            <c:GlassPanel Classes="card" CornerRadius="18" Tint="{DynamicResource TerracottaTintBrush}" Padding="14,10" Margin="0,8,0,0"
+                          IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="{s:Fs 12}"
+                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Grid.Column="1" Classes="accent" Height="34" Padding="14,0" VerticalAlignment="Center"
+                            Command="{Binding RetryRefreshCommand}" IsVisible="{Binding CanRetryRefresh}">
+                        <TextBlock Text="Повторить" FontSize="{s:Fs 12}" FontWeight="Bold"/>
+                    </Button>
+                </Grid>
+            </c:GlassPanel>
 
             <!-- Пробный период у аккаунта без подписки (порт Android TrialCard). -->
             <c:GlassPanel Classes="card" CornerRadius="24" Tint="{DynamicResource TealTintBrush}" Padding="14,12" Margin="0,8,0,0"
@@ -176,7 +186,7 @@
                     <Button Classes="row" Padding="14,10,14,11" Command="{Binding OpenJournalCommand}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Path Data="{StaticResource TabIconHome}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TealDeepBrush}"
+                                <Path Data="{StaticResource IconShieldCheck}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TealDeepBrush}"
                                       StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center"/>
                                 <TextBlock Text="Журнал сети" FontWeight="Bold" FontSize="{s:Fs 14}" VerticalAlignment="Center"/>
                             </StackPanel>

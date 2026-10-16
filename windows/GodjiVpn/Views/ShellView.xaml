@@ -17,33 +17,33 @@
                     <ControlTemplate TargetType="RadioButton">
                         <Border Background="Transparent">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Grid Width="56" Height="32" HorizontalAlignment="Center">
-                                    <Border x:Name="Indicator" Width="24" CornerRadius="16" Background="{DynamicResource LensBrush}"
+                                <Grid Width="44" Height="26" HorizontalAlignment="Center">
+                                    <Border x:Name="Indicator" Width="24" CornerRadius="13" Background="{DynamicResource LensBrush}"
                                             HorizontalAlignment="Center" Opacity="0"/>
-                                    <Viewbox Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Viewbox Width="19" Height="19" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Canvas Width="24" Height="24">
-                                            <Path x:Name="IconPath" Data="{TemplateBinding Tag}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="2"
+                                            <Path x:Name="IconPath" Data="{TemplateBinding Tag}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.9"
                                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                                         </Canvas>
                                     </Viewbox>
                                 </Grid>
                                 <TextBlock x:Name="Label" Text="{TemplateBinding Content}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                           FontFamily="{StaticResource ManropeFamily}" FontWeight="SemiBold" FontSize="{s:Fs 12}"
-                                           HorizontalAlignment="Center" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                           FontFamily="{StaticResource ManropeFamily}" FontWeight="SemiBold" FontSize="{s:Fs 11}"
+                                           HorizontalAlignment="Center" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Indicator" Property="Opacity" Value="1"/>
                                 <Setter TargetName="IconPath" Property="Stroke" Value="{DynamicResource OnSecondaryContainerBrush}"/>
+                                <Setter TargetName="IconPath" Property="Fill" Value="{DynamicResource OnSecondaryContainerBrush}"/>
                                 <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                <Setter TargetName="Label" Property="FontWeight" Value="Bold"/>
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
                                             <!-- spring(dampingRatio 0.6, stiffness 500) — ElasticEase с одним перелётом. -->
                                             <DoubleAnimation Storyboard.TargetName="Indicator" Storyboard.TargetProperty="Width"
-                                                             From="24" To="56" Duration="0:0:0.4">
+                                                             From="24" To="44" Duration="0:0:0.4">
                                                 <DoubleAnimation.EasingFunction>
                                                     <ElasticEase Oscillations="1" Springiness="6" EasingMode="EaseOut"/>
                                                 </DoubleAnimation.EasingFunction>
@@ -68,8 +68,8 @@
     </UserControl.Resources>
 
     <Grid Background="{DynamicResource BgBrush}">
-        <!-- Нижняя панель 64 — контент над ней. -->
-        <Grid Margin="0,0,0,64">
+        <!-- Нижняя панель 52 — контент над ней. -->
+        <Grid Margin="0,0,0,52">
             <ContentControl Content="{Binding Connect}"
                              Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVisibilityConverter}, ConverterParameter=0}"/>
             <ContentControl Content="{Binding Servers}"
@@ -81,8 +81,8 @@
         </Grid>
 
         <!-- Короткая нижняя панель навигации M3 Expressive: во всю ширину, surfaceContainer,
-             высота 64. -->
-        <Border Height="64" VerticalAlignment="Bottom" Background="{DynamicResource SurfaceContainerBrush}">
+             высота 52 (было 64, уменьшено 2026-10-16). -->
+        <Border Height="52" VerticalAlignment="Bottom" Background="{DynamicResource SurfaceContainerBrush}">
             <UniformGrid Rows="1" Columns="4">
                 <RadioButton Style="{StaticResource GlassTab}" Tag="{StaticResource TabIconHome}" Content="Главная"
                              IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"/>

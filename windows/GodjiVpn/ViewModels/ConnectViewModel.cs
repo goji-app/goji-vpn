@@ -43,6 +43,8 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool isConnected;
     [ObservableProperty] private bool isConnecting;
     [ObservableProperty] private string? errorMessage;
+    /// <summary>«Повторить» у ошибки — только когда она от кабинета/подписки, а не от туннеля.</summary>
+    [ObservableProperty] private bool canRetryRefresh;
 
     /// <summary>Карточка пробного периода у аккаунта без подписки: число дней; null — карточки нет.</summary>
     [ObservableProperty]
@@ -285,6 +287,14 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
 
     private bool CanActivateTrial() => !TrialActivating;
 
+    [RelayCommand]
+    private async Task RetryRefreshAsync()
+    {
+        CanRetryRefresh = false;
+        await _subscription.RefreshAsync();
+        RunOnUiThread(RefreshFromState);
+    }
+
     private void RefreshFromState()
     {
         IsConnected = _vpnEngine.IsRunning;
@@ -292,6 +302,7 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         if (Environment.GetEnvironmentVariable("GODJI_UI_PREVIEW_TRIAL") != "1") TrialDays = _subscription.TrialDays;
         // «Нет активной подписки» не дублируем красной строкой, когда рядом карточка пробного периода.
         ErrorMessage = _vpnEngine.LastError ?? (HasTrial ? null : _subscription.LastError);
+        CanRetryRefresh = _vpnEngine.LastError == null && ErrorMessage != null;
         ToggleCommand.NotifyCanExecuteChanged();
 
         var node = _subscription.SelectedNode;
@@ -301,7 +312,7 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         CurrentNodeName = node != null ? RemarkText.StripLeadingFlag(node.Name) : "Выбрать за меня";
         CurrentNodeMeta = geo != null ? $"{geo.City}, {geo.RuName}" : "";
         CurrentFlag = geo != null ? CountryGeoLookup.FlagEmoji(geo.Code) : "🌐";
-        CurrentFlagImagePath = FlagIcon.ImagePath(geo?.Code);
+        CurrentFlagImagePath = node != null ? FlagIcon.ForNode(node.Name, geo) : null;
 
         var greeting = Greetings.ForLang(geo?.Lang);
         GreetingHi = greeting.Hi;

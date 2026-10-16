@@ -41,11 +41,18 @@
                     <TextBlock Classes="title" Text="Твоя подписка"/>
                     <TextBlock Classes="muted" Text="Продлевается вручную — списаний врасплох не будет" Margin="0,3,0,0"/>
                 </StackPanel>
-                <Button Grid.Column="1" Classes="circle" VerticalAlignment="Top" Margin="10,0,0,0" Command="{Binding RefreshCommand}">
-                    <Panel>
-                        <Path Classes="icon teal" Data="{StaticResource IconRefresh}" Width="16" Height="16" IsVisible="{Binding !Refreshing}"/>
-                        <c:Spinner IsVisible="{Binding Refreshing}"/>
-                    </Panel>
+                <!-- Подписанная кнопка — как «Обновить» на вкладке «Серверы» (2026-10-16). -->
+                <Button Grid.Column="1" Classes="bare" VerticalAlignment="Top" Margin="10,0,0,0" Command="{Binding RefreshCommand}"
+                        AutomationProperties.Name="Обновить подписку">
+                    <Border Background="{DynamicResource SurfaceContainerHighBrush}" CornerRadius="20" Height="40" Padding="14,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                            <Panel Width="16" Height="16" VerticalAlignment="Center">
+                                <Path Classes="icon teal" Data="{StaticResource IconRefresh}" Width="16" Height="16" IsVisible="{Binding !Refreshing}"/>
+                                <c:Spinner Foreground="{DynamicResource TealDeepBrush}" IsVisible="{Binding Refreshing}"/>
+                            </Panel>
+                            <TextBlock Text="Обновить" FontWeight="Bold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TealDeepBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
                 </Button>
             </Grid>
 

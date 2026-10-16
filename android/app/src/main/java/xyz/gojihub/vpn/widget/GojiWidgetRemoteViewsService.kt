@@ -42,7 +42,7 @@ private class GojiWidgetItemFactory(private val context: Context) : RemoteViewsS
 
     override fun getViewAt(position: Int): RemoteViews {
         val node = nodes[position]
-        val flag = node.geo?.code?.let(CountryGeoLookup::flagEmoji) ?: "🌐"
+        val flag = CountryGeoLookup.nodeFlag(node.name, node.geo)
         val name = node.geo?.displayCityCountry(Loc.lang) ?: stripLeadingFlag(node.name)
         val views = RemoteViews(context.packageName, R.layout.widget_server_item)
         views.setTextViewText(R.id.item_flag, flag)

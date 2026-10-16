@@ -96,6 +96,16 @@ object CountryGeoLookup {
         return entries.firstOrNull { (aliases, _) -> aliases.any { lower.contains(it) } }?.second
     }
 
+    private val EU_REGION = Regex("""(^|[^\p{L}])EU([^\p{L}]|$)|европ|europe""", RegexOption.IGNORE_CASE)
+
+    /** Узел-регион вроде «Автовыбор серверов EU»: страны нет, но флаг есть — Евросоюза.
+     *  Отдельно от [find], чтобы глобус и фраза «Ты в …» не получили выдуманную страну. */
+    fun isEuRegion(remark: String): Boolean = EU_REGION.containsMatchIn(remark)
+
+    /** Флаг узла для списков и виджетов: страна → её флаг, регион ЕС → 🇪🇺, иначе 🌐. */
+    fun nodeFlag(remark: String, geo: CountryGeo?): String =
+        geo?.code?.let(::flagEmoji) ?: if (isEuRegion(remark)) "🇪🇺" else "🌐"
+
     /** Эмодзи-флаг из ISO alpha-2: каждая буква превращается в regional indicator symbol
      *  (пара из них сама по себе и есть флаг в Unicode — без картинок/ресурсов). */
     fun flagEmoji(isoCode: String): String {

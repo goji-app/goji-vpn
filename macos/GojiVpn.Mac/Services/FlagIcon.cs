@@ -13,8 +13,12 @@ public static class FlagIcon
     {
         "nl", "de", "fi", "ru", "tr", "us", "jp", "gb", "fr", "pl", "se", "no", "it", "es",
         "ua", "kz", "cy", "lv", "lt", "ee", "ch", "at", "cz", "bg", "ro", "sg", "in", "ca",
-        "br", "kr", "cn", "am", "ge", "az", "ie", "be", "hu", "gr", "pt"
+        "br", "kr", "cn", "am", "ge", "az", "ie", "be", "hu", "gr", "pt", "eu"
     };
+
+    /// <summary>Флаг узла: страна → её флаг, регион ЕС («Автовыбор серверов EU») → флаг Евросоюза.</summary>
+    public static string? ForNode(string remark, CountryGeo? geo) =>
+        ImagePath(geo?.Code ?? (CountryGeoLookup.IsEuRegion(remark) ? "eu" : null));
 
     /// <returns>pack-URI картинки флага, или null — если для этого ISO-кода флага нет
     /// (тогда UI должен показать generic-фоллбэк, например 🌐).</returns>

@@ -45,6 +45,7 @@ import xyz.gojihub.vpn.ui.support.TicketChatScreen
 import xyz.gojihub.vpn.ui.theme.GlassBackdrop
 import xyz.gojihub.vpn.ui.theme.GlassTab
 import xyz.gojihub.vpn.ui.theme.GlassTabBar
+import xyz.gojihub.vpn.ui.theme.TAB_BAR_HEIGHT
 import xyz.gojihub.vpn.ui.theme.GodjiColors
 import xyz.gojihub.vpn.ui.theme.GodjiVpnTheme
 import xyz.gojihub.vpn.ui.theme.GojiTabIcons
@@ -95,10 +96,10 @@ fun GodjiApp(startLoggedIn: Boolean, authRepository: AuthRepository) {
 
     val navController = rememberNavController()
     val tabs = listOf(
-        GlassTab(GodjiDestinations.CONNECT, Loc.s.tabHome, GojiTabIcons.Home),
-        GlassTab(GodjiDestinations.SERVERS, Loc.s.tabServers, GojiTabIcons.Servers),
-        GlassTab(GodjiDestinations.PLANS, Loc.s.tabPlans, GojiTabIcons.Plans),
-        GlassTab(GodjiDestinations.SETTINGS, Loc.s.tabSettings, GojiTabIcons.Settings),
+        GlassTab(GodjiDestinations.CONNECT, Loc.s.tabHome, GojiTabIcons.Home, GojiTabIcons.HomeFilled),
+        GlassTab(GodjiDestinations.SERVERS, Loc.s.tabServers, GojiTabIcons.Servers, GojiTabIcons.ServersFilled),
+        GlassTab(GodjiDestinations.PLANS, Loc.s.tabPlans, GojiTabIcons.Plans, GojiTabIcons.PlansFilled),
+        GlassTab(GodjiDestinations.SETTINGS, Loc.s.tabSettings, GojiTabIcons.Settings, GojiTabIcons.SettingsFilled),
     )
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -123,7 +124,7 @@ fun GodjiApp(startLoggedIn: Boolean, authRepository: AuthRepository) {
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.systemBars)
                 // Короткая нижняя панель M3 Expressive — 64dp над системной навигацией.
-                .padding(bottom = if (showBottomBar) 64.dp else 0.dp)
+                .padding(bottom = if (showBottomBar) TAB_BAR_HEIGHT else 0.dp)
         ) {
             composable(GodjiDestinations.LOGIN) {
                 LoginScreen(

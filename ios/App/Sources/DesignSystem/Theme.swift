@@ -109,12 +109,16 @@ enum GojiFont {
         case extraBold = "Manrope-ExtraBold"
     }
 
+    /// Общий масштаб текста (2026-10-16): шрифт во всех приложениях уменьшен на ступень, как
+    /// «Обычный» ×0.9 на Android и компьютерах. Dynamic Type по-прежнему действует поверх.
+    static let scale: CGFloat = 0.9
+
     static func manrope(_ size: CGFloat, _ weight: Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
-        .custom(weight.rawValue, size: size, relativeTo: style)
+        .custom(weight.rawValue, size: (size * scale).rounded(.toNearestOrEven), relativeTo: style)
     }
 
     static func serif(_ size: CGFloat, italic: Bool = false, relativeTo style: Font.TextStyle = .largeTitle) -> Font {
-        .custom(italic ? "InstrumentSerif-Italic" : "InstrumentSerif-Regular", size: size, relativeTo: style)
+        .custom(italic ? "InstrumentSerif-Italic" : "InstrumentSerif-Regular", size: (size * scale).rounded(.toNearestOrEven), relativeTo: style)
     }
 
     /// Заголовки экранов: Manrope Bold 26 (Android 1.0.115).

@@ -58,6 +58,14 @@ public static class CountryGeoLookup
         (["portugal", "португалия", "lisbon", "лиссабон"], new CountryGeo("Portugal", 38.72, -9.14, "pt", "PT", "Португалия", "Португалии", "Лиссабон")),
     ];
 
+    private static readonly System.Text.RegularExpressions.Regex EuRegion = new(
+        @"(^|[^\p{L}])EU([^\p{L}]|$)|европ|europe",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>Узел-регион вроде «Автовыбор серверов EU»: страны нет, но есть флаг Евросоюза.
+    /// Отдельно от <see cref="Find"/>, чтобы глобус и «Ты в …» не получили выдуманную страну.</summary>
+    public static bool IsEuRegion(string remark) => EuRegion.IsMatch(remark);
+
     public static CountryGeo? Find(string remark)
     {
         var lower = remark.ToLowerInvariant();

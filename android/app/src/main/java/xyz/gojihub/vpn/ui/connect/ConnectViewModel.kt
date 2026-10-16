@@ -227,7 +227,7 @@ class ConnectViewModel @Inject constructor(
             currentNodeName = selected?.name?.let(::stripLeadingFlag) ?: "",
             currentGeo = selected?.geo,
             currentCode = selected?.geo?.code ?: "АВТО",
-            currentFlag = selected?.geo?.code?.let(CountryGeoLookup::flagEmoji) ?: "🌐",
+            currentFlag = selected?.let { CountryGeoLookup.nodeFlag(it.name, it.geo) } ?: "🌐",
             greetingHi = g.hi,
             greetingSub = (if (g.transliteration.isNotBlank()) "«${g.transliteration}» · " else "") + g.language,
             greetingUsesSerif = g.useSerifFont

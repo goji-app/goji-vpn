@@ -1,10 +1,14 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Иконки — те же пути, что в Windows-клиенте (Themes/Icons.xaml). -->
-    <StreamGeometry x:Key="TabIconHome">M12 3l7 3v5.5c0 4.3-2.9 8.1-7 9.5-4.1-1.4-7-5.2-7-9.5V6l7-3Z M9.2 12.2l2 2 3.6-4</StreamGeometry>
-    <StreamGeometry x:Key="TabIconServers">M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0 M3 12h18 M12 3c2.5 2.6 2.5 15 0 18M12 3c-2.5 2.6-2.5 15 0 18</StreamGeometry>
-    <StreamGeometry x:Key="TabIconPlans">M6 5.5h12a3 3 0 0 1 3 3v7a3 3 0 0 1 -3 3H6a3 3 0 0 1 -3 -3v-7a3 3 0 0 1 3 -3Z M3 10h18</StreamGeometry>
-    <StreamGeometry x:Key="TabIconSettings">M4 7h10M18 7h2M4 17h4M12 17h8 M13.8 7a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0 M7.8 17a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0</StreamGeometry>
+    <!-- Иконки вкладок 2026-10-16 (как в Android GojiTabIcons): дом, метка, билет, шестерёнка.
+         Неактивная — контур, у выбранной ещё и заливка (внутренние вырезы — EvenOdd). -->
+    <!-- Щит с галочкой (бывшая иконка вкладки «Главная») — строка «Журнал сети». -->
+    <StreamGeometry x:Key="IconShieldCheck">M12 3l7 3v5.5c0 4.3-2.9 8.1-7 9.5-4.1-1.4-7-5.2-7-9.5V6l7-3Z M9.2 12.2l2 2 3.6-4</StreamGeometry>
+    <StreamGeometry x:Key="TabIconHome">M4 10.4L12 4L20 10.4V19A1.6 1.6 0 0 1 18.4 20.6H15V15.4H9V20.6H5.6A1.6 1.6 0 0 1 4 19Z</StreamGeometry>
+    <StreamGeometry x:Key="TabIconServers">M12 21C12 21 5.6 15.5 5.6 10.2A6.4 6.4 0 0 1 18.4 10.2C18.4 15.5 12 21 12 21Z M14.3 10.2A2.3 2.3 0 1 0 9.7 10.2A2.3 2.3 0 1 0 14.3 10.2Z</StreamGeometry>
+    <StreamGeometry x:Key="TabIconPlans">M5.8 5.4H18.2C19.2 5.4 20 6.2 20 7.2V9.6A2.4 2.4 0 0 0 20 14.4V16.8C20 17.8 19.2 18.6 18.2 18.6H5.8C4.8 18.6 4 17.8 4 16.8V14.4A2.4 2.4 0 0 0 4 9.6V7.2C4 6.2 4.8 5.4 5.8 5.4Z M9 12H15</StreamGeometry>
+    <StreamGeometry x:Key="TabIconSettings">M12.00 4.60L13.87 2.58L15.67 3.13L16.11 5.85L17.23 6.77L19.98 6.67L20.87 8.33L19.26 10.56L19.40 12.00L21.42 13.87L20.87 15.67L18.15 16.11L17.23 17.23L17.33 19.98L15.67 20.87L13.44 19.26L12.00 19.40L10.13 21.42L8.33 20.87L7.89 18.15L6.77 17.23L4.02 17.33L3.13 15.67L4.74 13.44L4.60 12.00L2.58 10.13L3.13 8.33L5.85 7.89L6.77 6.77L6.67 4.02L8.33 3.13L10.56 4.74Z M14.6 12A2.6 2.6 0 1 0 9.4 12A2.6 2.6 0 1 0 14.6 12Z</StreamGeometry>
     <StreamGeometry x:Key="IconPower">M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z</StreamGeometry>
     <StreamGeometry x:Key="IconArrowDown">M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z</StreamGeometry>
     <StreamGeometry x:Key="IconArrowUp">M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z</StreamGeometry>

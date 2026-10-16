@@ -100,9 +100,21 @@
                 </TextBlock>
             </StackPanel>
 
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource DangerBrush}" FontWeight="SemiBold" FontSize="{s:Fs 12}"
-                       TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,8,0,0"
-                       Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
+            <!-- Ошибка — плашкой; для сбоя кабинета/подписки рядом «Повторить» (макет 2026-10-16). -->
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="18" Tint="{DynamicResource TerracottaTintBrush}" Padding="14,10" Margin="0,8,0,0"
+                                 Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="{s:Fs 12}"
+                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Grid.Column="1" Style="{StaticResource AccentPillButton}" Height="34" Padding="14,0" FontSize="{s:Fs 12}" VerticalAlignment="Center"
+                            Content="Повторить" Command="{Binding RetryRefreshCommand}"
+                            Visibility="{Binding CanRetryRefresh, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </Grid>
+            </controls:GlassPanel>
 
             <!-- Пробный период у аккаунта без подписки (порт Android TrialCard). -->
             <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Tint="{DynamicResource TealTintBrush}" Padding="14,12" Margin="0,8,0,0"
@@ -267,7 +279,7 @@
                     <Button Style="{StaticResource RowButton}" Padding="14,10,14,11" Command="{Binding OpenJournalCommand}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <Path Data="{StaticResource TabIconHome}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TealDeepBrush}"
+                                <Path Data="{StaticResource IconShieldCheck}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TealDeepBrush}"
                                       StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center"/>
                                 <TextBlock Text="Журнал сети" FontWeight="Bold" FontSize="{s:Fs 14}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>

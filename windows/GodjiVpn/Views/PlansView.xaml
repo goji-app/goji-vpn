@@ -28,14 +28,21 @@
                     <TextBlock Text="Продлевается вручную — списаний врасплох не будет" FontWeight="Medium" FontSize="{s:Fs 12}"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
-                <Button Grid.Column="1" Style="{StaticResource GlassCircleButton}" VerticalAlignment="Top" Margin="10,0,0,0"
-                        Command="{Binding RefreshCommand}">
-                    <Grid>
-                        <Path Data="{StaticResource IconRefresh}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource TealDeepBrush}"
-                              Visibility="{Binding Refreshing, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
-                        <controls:Spinner Foreground="{DynamicResource TealBrush}"
-                                          Visibility="{Binding Refreshing, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    </Grid>
+                <!-- Подписанная кнопка — как «Обновить» на вкладке «Серверы» (2026-10-16). -->
+                <Button Grid.Column="1" Style="{StaticResource BareButton}" VerticalAlignment="Top" Margin="10,0,0,0"
+                        Command="{Binding RefreshCommand}" AutomationProperties.Name="Обновить подписку">
+                    <Border Background="{DynamicResource SurfaceContainerHighBrush}" CornerRadius="20" Height="40" Padding="14,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Grid Width="16" Height="16" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconRefresh}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource TealDeepBrush}"
+                                      Visibility="{Binding Refreshing, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                <controls:Spinner Foreground="{DynamicResource TealDeepBrush}"
+                                                  Visibility="{Binding Refreshing, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </Grid>
+                            <TextBlock Text="Обновить" FontWeight="Bold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TealDeepBrush}"
+                                       VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        </StackPanel>
+                    </Border>
                 </Button>
             </Grid>
 

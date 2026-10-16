@@ -5,7 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
-enum class FontSizePreset(val multiplier: Float) { SMALL(0.9f), NORMAL(1f), LARGE(1.15f) }
+// Шкала сдвинута на ступень вниз 2026-10-16: «Обычный» = прежний «Маленький», «Большой» = прежний «Обычный».
+enum class FontSizePreset(val multiplier: Float) { SMALL(0.8f), NORMAL(0.9f), LARGE(1f) }
 
 /**
  * Токены дизайна «Goji Expressive» — Material 3 Expressive (Android 16/17): плотные тональные

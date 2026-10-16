@@ -1,5 +1,6 @@
 package xyz.gojihub.vpn.ui.plans
 
+import xyz.gojihub.vpn.ui.theme.RefreshPill
 import androidx.compose.ui.semantics.Role
 import android.content.Intent
 import android.net.Uri
@@ -101,13 +102,7 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
                 Text(Loc.s.plansSubtitle, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 12.sp)
             }
             Spacer(Modifier.width(10.dp))
-            Box(
-                Modifier.size(40.dp).godjiGlassPill().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = viewModel::refresh),
-                contentAlignment = Alignment.Center
-            ) {
-                if (state.refreshing) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = GodjiColors.Teal, trackColor = GodjiColors.TrackBg)
-                else Icon(Icons.Filled.Refresh, contentDescription = Loc.s.serversRefresh, tint = GodjiColors.TealDeep, modifier = Modifier.size(16.dp))
-            }
+            RefreshPill(label = Loc.s.serversRefresh, busy = state.refreshing, onClick = viewModel::refresh)
         }
 
         SubscriptionCard(state)

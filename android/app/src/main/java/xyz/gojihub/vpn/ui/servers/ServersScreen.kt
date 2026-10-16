@@ -1,5 +1,6 @@
 package xyz.gojihub.vpn.ui.servers
 
+import xyz.gojihub.vpn.ui.theme.RefreshPill
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.foundation.selection.toggleable
@@ -21,7 +22,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Close
@@ -84,16 +85,12 @@ fun ServersScreen(viewModel: ServersViewModel = hiltViewModel(), onServerPicked:
                 Text(Loc.s.serversCount(state.servers.size), color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 12.sp)
             }
             Spacer(Modifier.width(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HeaderCircleButton(
-                    label = Loc.s.serversRefresh, color = GodjiColors.Terracotta, busy = refreshingSubscription,
-                    onClick = viewModel::refreshSubscription
-                ) { Icon(Icons.Filled.Refresh, contentDescription = null, tint = GodjiColors.Terracotta, modifier = Modifier.size(16.dp)) }
-                HeaderCircleButton(
-                    label = Loc.s.serversPing, color = GodjiColors.TealDeep, busy = state.checkingAll,
-                    onClick = viewModel::pingAll
-                ) { Icon(Icons.Filled.Bolt, contentDescription = null, tint = GodjiColors.TealDeep, modifier = Modifier.size(16.dp)) }
-            }
+            // Одна кнопка вместо «Обновить» + «Пинг»: refreshSubscription() скачивает свежий список
+            // и сразу проверяет пинг всех узлов (а при открытии вкладки пинг запускается и сам).
+            RefreshPill(
+                label = Loc.s.serversRefresh, busy = refreshingSubscription || state.checkingAll,
+                onClick = viewModel::refreshSubscription
+            )
         }
 
         SortSegments(state.sort, onSelect = viewModel::setSort)
@@ -245,25 +242,6 @@ private fun SortSegments(selected: ServerSort, onSelect: (ServerSort) -> Unit) {
 }
 
 /** Круглая стеклянная кнопка 40dp с подписью 9.5sp под ней (gap 3) — "Обновить"/"Пинг". */
-@Composable
-private fun HeaderCircleButton(label: String, color: Color, busy: Boolean, onClick: () -> Unit, icon: @Composable () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    Column(
-        Modifier
-            .scale(if (pressed) 0.92f else 1f)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        Box(Modifier.size(40.dp).godjiGlassPill(), contentAlignment = Alignment.Center) {
-            if (busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = color, trackColor = GodjiColors.TrackBg)
-            else icon()
-        }
-        Text(label, color = color, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
-    }
-}
-
 /** Эталон: padding 11/13, радиус 20, круг 24dp с галочкой, текст 12sp, крестик 22dp на hair. */
 @Composable
 private fun RefreshBanner(message: RefreshMessage, onDismiss: () -> Unit) {

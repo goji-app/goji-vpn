@@ -63,7 +63,7 @@ class ServersViewModel @Inject constructor(
                 NodeUi(
                     id = it.id, name = stripLeadingFlag(it.name),
                     code = it.geo?.code ?: "??",
-                    flag = it.geo?.code?.let(CountryGeoLookup::flagEmoji) ?: "🌐",
+                    flag = CountryGeoLookup.nodeFlag(it.name, it.geo),
                     host = it.host, port = it.port, pingMs = pings[it.id] ?: -2
                 )
             },

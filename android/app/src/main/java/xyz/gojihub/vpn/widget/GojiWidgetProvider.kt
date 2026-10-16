@@ -78,7 +78,7 @@ class GojiWidgetProvider : AppWidgetProvider() {
             val cached = NodeListCache.load(context)
             val selected = cached?.nodes?.firstOrNull { it.id == cached.selectedId }
             val nodeLabel = selected?.let { n ->
-                val flag = n.geo?.code?.let(xyz.gojihub.vpn.geo.CountryGeoLookup::flagEmoji) ?: "🌐"
+                val flag = xyz.gojihub.vpn.geo.CountryGeoLookup.nodeFlag(n.name, n.geo)
                 "$flag  " + (n.geo?.displayCityCountry(Loc.lang) ?: stripLeadingFlag(n.name))
             } ?: Loc.s.widgetNotSelected
 
