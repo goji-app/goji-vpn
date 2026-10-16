@@ -280,6 +280,7 @@ fun SettingsScreen(
             }
 
             SettingsPage.ABOUT -> {
+                LaunchedEffect(Unit) { viewModel.refreshSubscriptionId() }
                 SectionLabel(Loc.s.settingsAboutCopyHint)
                 RefCard {
                     AboutRow(Loc.s.settingsAppVersion, state.appVersion)

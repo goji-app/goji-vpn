@@ -98,6 +98,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /** ID подписки — из уже загруженного списка серверов; перечитывается при каждом открытии
+     *  «О программе» (при запуске серверы могут быть ещё не получены, а аккаунт — смениться). */
+    fun refreshSubscriptionId() {
+        _state.value = _state.value.copy(subscriptionId = subscriptionRepository.clientUuid())
+    }
+
     fun setLanguage(language: AppLanguage) {
         _state.value = _state.value.copy(language = language)
         Loc.lang = language
