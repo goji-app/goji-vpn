@@ -40,7 +40,7 @@ struct ConnectView: View {
             }
             .padding(.horizontal, GojiMetrics.screenPadding)
             .padding(.top, 6)
-            .padding(.bottom, GojiMetrics.tabBarHeight + 16)
+            .padding(.bottom, 16)
         }
         .scrollIndicators(.hidden)
         .refreshable { await store.refresh() }

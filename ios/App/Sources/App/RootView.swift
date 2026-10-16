@@ -57,83 +57,28 @@ struct ToastView: View {
     }
 }
 
+/// Нижняя навигация — системная панель вкладок iOS (на iOS 26 — Liquid Glass). Раньше здесь была
+/// перенесённая с Android панель Material 3: без системного вида, возврата наверх повторным
+/// нажатием на вкладку и крупного шрифта.
 struct MainTabView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Group {
-                switch model.tab {
-                case .home: NavigationStack { ConnectView() }
-                case .servers: NavigationStack { ServersView() }
-                case .subscription: NavigationStack { SubscriptionView() }
-                case .settings: NavigationStack { SettingsView() }
-                }
-            }
-            GlassTabBar(selection: $model.tab)
+        TabView(selection: $model.tab) {
+            NavigationStack { ConnectView() }
+                .tabItem { Label(L("tab.home"), systemImage: "checkmark.shield") }
+                .tag(AppModel.Tab.home)
+            NavigationStack { ServersView() }
+                .tabItem { Label(L("tab.servers"), systemImage: "globe") }
+                .tag(AppModel.Tab.servers)
+            NavigationStack { SubscriptionView() }
+                .tabItem { Label(L("tab.subscription"), systemImage: "creditcard") }
+                .tag(AppModel.Tab.subscription)
+            NavigationStack { SettingsView() }
+                .tabItem { Label(L("tab.settings"), systemImage: "slider.horizontal.3") }
+                .tag(AppModel.Tab.settings)
         }
-        .ignoresSafeArea(.keyboard)
-    }
-}
-
-/// Короткая нижняя панель навигации Material 3 Expressive (порт Android GlassTabBar.kt, 163f5ab):
-/// во всю ширину, surfaceContainer, высота 64 над индикатором «домой». У выбранной вкладки под
-/// иконкой — таблетка secondaryContainer 56×32, раскрывается пружиной.
-struct GlassTabBar: View {
-    @Binding var selection: AppModel.Tab
-
-    private struct Item: Identifiable {
-        let tab: AppModel.Tab
-        let icon: String
-        let title: String
-        var id: AppModel.Tab { tab }
-    }
-
-    private let items: [Item] = [
-        Item(tab: .home, icon: "checkmark.shield", title: "tab.home"),
-        Item(tab: .servers, icon: "globe", title: "tab.servers"),
-        Item(tab: .subscription, icon: "creditcard", title: "tab.subscription"),
-        Item(tab: .settings, icon: "slider.horizontal.3", title: "tab.settings")
-    ]
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(items) { item in
-                let tab = item.tab, icon = item.icon, title = item.title
-                let selected = selection == tab
-                Button {
-                    if selection != tab {
-                        Haptics.light()
-                        selection = tab
-                    }
-                } label: {
-                    VStack(spacing: 4) {
-                        ZStack {
-                            Capsule()
-                                .fill(GojiColor.selection)
-                                .frame(width: selected ? 56 : 24, height: 32)
-                                .opacity(selected ? 1 : 0)
-                            Image(systemName: icon)
-                                .font(.system(size: 18, weight: selected ? .semibold : .regular))
-                                .foregroundStyle(selected ? GojiColor.onSecondaryContainer : GojiColor.textSecondary)
-                        }
-                        .frame(width: 56, height: 32)
-                        Text(L(title))
-                            .font(GojiFont.manrope(12, selected ? .bold : .semibold, relativeTo: .caption2))
-                            .foregroundStyle(selected ? GojiColor.textPrimary : GojiColor.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: GojiMetrics.tabBarHeight)
-                    .contentShape(Rectangle())
-                    .animation(.spring(response: 0.35, dampingFraction: 0.6), value: selected)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(L(title))
-                .accessibilityAddTraits(selected ? .isSelected : [])
-            }
-        }
-        .frame(height: GojiMetrics.tabBarHeight)
-        .background(GojiColor.surfaceContainer.ignoresSafeArea(edges: .bottom))
+        .tint(GojiColor.tealDeep)
+        .onChange(of: model.tab) { _ in Haptics.light() }
     }
 }

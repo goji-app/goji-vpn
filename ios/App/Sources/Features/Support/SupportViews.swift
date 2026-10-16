@@ -306,7 +306,7 @@ struct TicketChatView: View {
                     composer
                 }
             }
-            .padding(.bottom, GojiMetrics.tabBarHeight + 8)
+            .padding(.bottom, 8)
         }
         .navigationTitle(title ?? L("support.title"))
         .navigationBarTitleDisplayMode(.inline)

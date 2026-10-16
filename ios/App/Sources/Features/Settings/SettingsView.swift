@@ -143,7 +143,7 @@ struct SubScreen<Content: View>: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) { content }
                     .padding(.horizontal, GojiMetrics.screenPadding)
-                    .padding(.bottom, GojiMetrics.tabBarHeight + 24)
+                    .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
         }

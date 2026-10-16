@@ -179,12 +179,12 @@ struct PillSegmented<T: Hashable>: View {
     }
 }
 
-/// Общая «оболочка» экрана: фон + заголовок + прокручиваемое содержимое с отступом под таб-бар.
+/// Общая «оболочка» экрана: фон + заголовок + прокручиваемое содержимое.
 struct ScreenScaffold<Content: View>: View {
     let title: String
     var subtitle: String? = nil
     var trailing: AnyView? = nil
-    var bottomInset: CGFloat = GojiMetrics.tabBarHeight + 24
+    var bottomInset: CGFloat = 24
     @ViewBuilder var content: Content
 
     var body: some View {

@@ -129,5 +129,4 @@ enum GojiMetrics {
     static let screenPadding: CGFloat = 16
     static let cardRadius: CGFloat = 24
     static let buttonRadius: CGFloat = 18
-    static let tabBarHeight: CGFloat = 64
 }
