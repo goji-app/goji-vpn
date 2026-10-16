@@ -292,7 +292,7 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
         try
         {
             var response = await _api.ActivateTrialAsync();
-            if (response.Success == false)
+            if (response?.Success == false)
                 return string.IsNullOrWhiteSpace(response.Message) ? TrialError : response.Message.Trim();
         }
         catch (ApiException ex)

@@ -64,7 +64,13 @@ struct MainTabView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        TabView(selection: $model.tab) {
+        TabView(selection: Binding(
+            get: { model.tab },
+            set: { tab in
+                if tab != model.tab { Haptics.light() }
+                model.tab = tab
+            }
+        )) {
             NavigationStack { ConnectView() }
                 .tabItem { Label(L("tab.home"), systemImage: "checkmark.shield") }
                 .tag(AppModel.Tab.home)
@@ -79,6 +85,5 @@ struct MainTabView: View {
                 .tag(AppModel.Tab.settings)
         }
         .tint(GojiColor.tealDeep)
-        .onChange(of: model.tab) { _ in Haptics.light() }
     }
 }

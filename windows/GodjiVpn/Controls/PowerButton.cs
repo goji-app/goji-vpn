@@ -61,6 +61,7 @@ public class PowerButton : UserControl
         {
             if (e.Key is not (Key.Enter or Key.Space)) return;
             e.Handled = true;
+            if (e.IsRepeat) return; // автоповтор зажатой клавиши сразу отключил бы VPN обратно
             Invoke();
         };
         HorizontalAlignment = HorizontalAlignment.Center;

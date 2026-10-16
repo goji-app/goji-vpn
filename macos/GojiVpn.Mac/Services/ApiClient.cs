@@ -92,9 +92,16 @@ public sealed class ApiClient
     public async Task<DashboardResponse> GetDashboardAsync(CancellationToken ct = default) =>
         await GetAsync<DashboardResponse>("api/dashboard", ct).ConfigureAwait(false);
 
-    /// <summary>Бесплатный пробный период для аккаунта без подписки (как кнопка в веб-кабинете).</summary>
-    public async Task<TrialResponse> ActivateTrialAsync(CancellationToken ct = default) =>
-        await PostAsync<EmptyRequest, TrialResponse>("api/dashboard/trial", new EmptyRequest(), ct).ConfigureAwait(false);
+    /// <summary>Бесплатный пробный период для аккаунта без подписки (как кнопка в веб-кабинете).
+    /// Пустое тело успешного ответа — тоже успех (null).</summary>
+    public async Task<TrialResponse?> ActivateTrialAsync(CancellationToken ct = default)
+    {
+        using var response = await SendWithRefreshAsync(() => new HttpRequestMessage(HttpMethod.Post, "api/dashboard/trial")
+        {
+            Content = JsonContent.Create(new EmptyRequest(), options: JsonOptions)
+        }, ct).ConfigureAwait(false);
+        return await ReadNullableOrThrowAsync<TrialResponse>(response, ct).ConfigureAwait(false);
+    }
 
     public async Task<SubscriptionsResponse> GetSubscriptionsAsync(CancellationToken ct = default) =>
         await GetAsync<SubscriptionsResponse>("api/subscriptions", ct).ConfigureAwait(false);

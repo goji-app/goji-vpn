@@ -124,8 +124,12 @@ public class PowerButton : AnimatedControl
         {
             if (e.Key is not (Key.Enter or Key.Space)) return;
             e.Handled = true;
+            // Автоповтор зажатой клавиши сразу отключил бы VPN обратно: одно нажатие — одно действие.
+            if (_keyHeld) return;
+            _keyHeld = true;
             Invoke();
         };
+        KeyUp += (_, e) => { if (e.Key is Key.Enter or Key.Space) _keyHeld = false; };
         GotFocus += (_, e) => { _focusVisible = e.NavigationMethod == NavigationMethod.Tab; InvalidateVisual(); };
         LostFocus += (_, _) => { _focusVisible = false; InvalidateVisual(); };
         UpdateAutomation();
@@ -151,6 +155,7 @@ public class PowerButton : AnimatedControl
     }
 
     private bool _focusVisible;
+    private bool _keyHeld;
 
     private void Invoke()
     {

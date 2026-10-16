@@ -145,6 +145,7 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
 
         _vpnEngine.PropertyChanged += OnVpnEnginePropertyChanged;
         _subscription.PropertyChanged += OnSubscriptionPropertyChanged;
+        _subscription.AccountCleared += () => RunOnUiThread(ClearTrialNotice);
         NetworkChange.NetworkAddressChanged += OnNetworkChanged;
         NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
 
@@ -261,9 +262,25 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         {
             var error = await _subscription.ActivateTrialAsync();
             TrialFailed = error != null;
-            TrialNotice = error ?? "Пробный период активирован";
+            var notice = error ?? "Пробный период активирован";
+            TrialNotice = notice;
+            _ = ClearTrialNoticeLaterAsync(notice);
         }
         finally { TrialActivating = false; }
+    }
+
+    private static readonly TimeSpan TrialNoticeDuration = TimeSpan.FromSeconds(8);
+
+    private async Task ClearTrialNoticeLaterAsync(string notice)
+    {
+        await Task.Delay(TrialNoticeDuration);
+        if (TrialNotice == notice) ClearTrialNotice();
+    }
+
+    private void ClearTrialNotice()
+    {
+        TrialNotice = null;
+        TrialFailed = false;
     }
 
     private bool CanActivateTrial() => !TrialActivating;
