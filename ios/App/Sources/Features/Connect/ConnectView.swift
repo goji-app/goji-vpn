@@ -600,7 +600,9 @@ struct PingLabel: View {
     let ms: Int
 
     var body: some View {
-        let color: Color = ms < 0 ? GojiColor.danger : (ms < 150 ? GojiColor.teal : (ms < 400 ? GojiColor.warning : GojiColor.terracotta))
+        // Пинг меряется через туннель до узла в Европе: обычные значения 300–1800 мс, поэтому пороги
+        // 500/1000 мс — одинаково на всех платформах.
+        let color: Color = ms < 0 ? GojiColor.danger : (ms < 500 ? GojiColor.teal : (ms < 1000 ? GojiColor.warning : GojiColor.terracotta))
         Text(ms < 0 ? L("servers.unavailable") : L("servers.ping_ms", ms))
             .font(GojiFont.manrope(12, .bold, relativeTo: .caption).monospacedDigit())
             .foregroundStyle(color)

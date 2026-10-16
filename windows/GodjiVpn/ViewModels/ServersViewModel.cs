@@ -9,7 +9,7 @@ using GodjiVpn.Utils;
 namespace GodjiVpn.ViewModels;
 
 /// <summary>Цвет плашки пинга — pingColor() из эталона: не проверен — TextSecondary,
-/// &lt;40 — TealDeep, &lt;90 — жёлтый, иначе/недоступен — Danger.</summary>
+/// &lt;500 мс — TealDeep, &lt;1000 мс — жёлтый, иначе/недоступен — Danger.</summary>
 public enum PingLevel { Unchecked, Good, Mid, Bad }
 
 public sealed partial class NodeItem : ObservableObject
@@ -37,8 +37,10 @@ public sealed partial class NodeItem : ObservableObject
     {
         -2 => PingLevel.Unchecked,
         < 0 => PingLevel.Bad,
-        < 40 => PingLevel.Good,
-        < 90 => PingLevel.Mid,
+        // Пинг меряется через туннель до узла в Европе: обычные значения 300–1800 мс, поэтому пороги
+        // 500/1000 мс (как на Android и iOS); при прежних 40/90 мс красным был каждый узел.
+        < 500 => PingLevel.Good,
+        < 1000 => PingLevel.Mid,
         _ => PingLevel.Bad
     };
 

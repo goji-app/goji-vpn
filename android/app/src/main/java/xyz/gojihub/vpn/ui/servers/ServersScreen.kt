@@ -298,12 +298,16 @@ private fun RefreshBanner(message: RefreshMessage, onDismiss: () -> Unit) {
     }
 }
 
-/** Цвета пинга — как pingColor() в эталоне: не проверен — sub, недоступен/≥90 — danger,
- *  <40 — accentInk, <90 — #C98B12. */
+/** Цвета пинга: не проверен — sub, недоступен/медленный — danger, быстрый — accentInk,
+ *  средний — #C98B12. Пинг меряется через туннель до узла в Европе: обычные значения 300–1800 мс, поэтому пороги
+ *  500/1000 мс (как на Windows, macOS и iOS); при прежних 40/90 мс красным был каждый узел. */
+private const val PING_GOOD_MS = 500
+private const val PING_MID_MS = 1000
+
 private fun pingColor(pingMs: Int): Color = when {
     pingMs == -2 -> GodjiColors.TextSecondary
     pingMs < 0 -> GodjiColors.Danger
-    pingMs < 40 -> GodjiColors.TealDeep
-    pingMs < 90 -> Color(0xFFC98B12)
+    pingMs < PING_GOOD_MS -> GodjiColors.TealDeep
+    pingMs < PING_MID_MS -> Color(0xFFC98B12)
     else -> GodjiColors.Danger
 }
