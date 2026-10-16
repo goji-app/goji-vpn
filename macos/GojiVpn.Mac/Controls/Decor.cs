@@ -1,6 +1,9 @@
 using GodjiVpn.Utils;
 using System.Windows.Input;
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -114,13 +117,25 @@ public class PowerButton : AnimatedControl
         Height = Size;
         HorizontalAlignment = HorizontalAlignment.Center;
         Cursor = new Cursor(StandardCursorType.Hand);
+        // Главная кнопка доступна с клавиатуры (Tab, Enter/Пробел) и для VoiceOver.
+        Focusable = true;
+        IsTabStop = true;
+        KeyDown += (_, e) =>
+        {
+            if (e.Key is not (Key.Enter or Key.Space)) return;
+            e.Handled = true;
+            Invoke();
+        };
+        GotFocus += (_, e) => { _focusVisible = e.NavigationMethod == NavigationMethod.Tab; InvalidateVisual(); };
+        LostFocus += (_, _) => { _focusVisible = false; InvalidateVisual(); };
+        UpdateAutomation();
         PointerPressed += (_, _) => { _pressed = true; Restart(); };
         PointerReleased += (_, e) =>
         {
             var inside = new Rect(Bounds.Size).Contains(e.GetPosition(this));
             _pressed = false;
             Restart();
-            if (inside && e.InitialPressMouseButton == MouseButton.Left && Command?.CanExecute(null) == true) Command.Execute(null);
+            if (inside && e.InitialPressMouseButton == MouseButton.Left) Invoke();
         };
         PointerCaptureLost += (_, _) => { _pressed = false; Restart(); };
     }
@@ -128,7 +143,35 @@ public class PowerButton : AnimatedControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == IsOnProperty || change.Property == IsBusyProperty) Restart();
+        if (change.Property == IsOnProperty || change.Property == IsBusyProperty)
+        {
+            UpdateAutomation();
+            Restart();
+        }
+    }
+
+    private bool _focusVisible;
+
+    private void Invoke()
+    {
+        if (Command?.CanExecute(null) == true) Command.Execute(null);
+    }
+
+    /// <summary>Название и состояние для VoiceOver.</summary>
+    private void UpdateAutomation()
+    {
+        AutomationProperties.SetName(this, IsOn || IsBusy ? "Отключить VPN" : "Подключить VPN");
+        AutomationProperties.SetHelpText(this, IsOn ? "Защита включена" : IsBusy ? "Подключение" : "Защита выключена");
+    }
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new PowerButtonPeer(this);
+
+    private sealed class PowerButtonPeer(PowerButton owner) : ControlAutomationPeer(owner), IInvokeProvider
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
+        protected override bool IsContentElementCore() => true;
+        protected override bool IsControlElementCore() => true;
+        public void Invoke() => owner.Invoke();
     }
 
     // Вращается, пока идёт подключение; пружина формы успокаивается примерно за секунду.
@@ -169,6 +212,9 @@ public class PowerButton : AnimatedControl
             s.EndFigure(true);
         }
         ctx.DrawGeometry(fill, null, g);
+        // Кольцо фокуса только при переходе клавишей Tab (не при клике мышью).
+        if (_focusVisible)
+            ctx.DrawEllipse(null, new Pen(Res("TealBrush", Brushes.Teal), 2), new Point(cx, cy), cx + 4, cy + 4);
 
         if (this.TryFindResource("IconPower", ActualThemeVariant, out var icon) && icon is Geometry iconGeometry)
         {

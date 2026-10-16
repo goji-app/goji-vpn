@@ -146,7 +146,8 @@ struct ServerRow: View {
             Button(action: onFavorite) {
                 Image(systemName: favorite ? "star.fill" : "star")
                     .foregroundStyle(favorite ? GojiColor.warning : GojiColor.textMuted)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 44, height: 44) // минимальная зона нажатия по HIG
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(favorite ? L("servers.unfavorite") : L("servers.favorite"))

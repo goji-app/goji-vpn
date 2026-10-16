@@ -1,5 +1,6 @@
 package xyz.gojihub.vpn.ui.settings
 
+import androidx.compose.ui.semantics.Role
 import android.content.Intent
 import android.provider.Settings
 import xyz.gojihub.vpn.BuildConfig
@@ -117,6 +118,7 @@ fun SettingsScreen(
                 LinkRow(Loc.s.support.settingsSupportLink, Loc.s.support.settingsSupportLinkDesc, onOpenSupport)
             }
             Spacer(Modifier.height(4.dp))
+            var confirmLogout by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
             val (outInteraction, outScale) = rememberPressScale()
             Box(
                 Modifier
@@ -125,12 +127,27 @@ fun SettingsScreen(
                     .scale(outScale.value)
                     .godjiCard(RoundedCornerShape(24.dp))
                     .clip(RoundedCornerShape(24.dp))
-                    .clickable(interactionSource = outInteraction, indication = null) {
-                        viewModel.logout(); onLoggedOut()
+                    .clickable(interactionSource = outInteraction, indication = null, role = Role.Button) {
+                        confirmLogout = true
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Text(Loc.s.settingsLogout, color = GodjiColors.Danger, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+            if (confirmLogout) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { confirmLogout = false },
+                    title = { Text(Loc.f.logoutConfirmTitle, fontWeight = FontWeight.Bold) },
+                    text = { Text(Loc.f.logoutConfirmText, fontSize = 13.5.sp, lineHeight = 19.sp) },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { confirmLogout = false; viewModel.logout(); onLoggedOut() }) {
+                            Text(Loc.f.logoutConfirm, color = GodjiColors.Danger, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { confirmLogout = false }) { Text(Loc.s.plansDevicesCancel) }
+                    }
+                )
             }
             // Удаление аккаунта — Google Play требует путь к нему внутри приложения.
             var confirmDelete by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }

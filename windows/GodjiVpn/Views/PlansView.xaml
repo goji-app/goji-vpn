@@ -198,12 +198,12 @@
                                                               Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
                                                         Visibility="{Binding IsBusy, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                                                <Button Style="{StaticResource BareButton}" Padding="3" Margin="0,0,6,0"
+                                                <Button Style="{StaticResource BareButton}" Padding="7" Margin="0,0,2,0"
                                                         Command="{Binding DataContext.RenameDeviceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Переименовать устройство"
                                                         CommandParameter="{Binding}">
                                                     <Path Data="{StaticResource IconEdit}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource TealDeepBrush}"/>
                                                 </Button>
-                                                <Button Style="{StaticResource BareButton}" Padding="3"
+                                                <Button Style="{StaticResource BareButton}" Padding="7"
                                                         Command="{Binding DataContext.DeleteDeviceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Удалить устройство"
                                                         CommandParameter="{Binding}">
                                                     <Path Data="{StaticResource IconClose}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource DangerBrush}"/>

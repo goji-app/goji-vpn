@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -51,6 +54,15 @@ public class PowerButton : UserControl
         Width = Size;
         Height = Size;
         Cursor = Cursors.Hand;
+        // Главная кнопка доступна с клавиатуры (Tab, Enter/Пробел) и для экранного диктора.
+        Focusable = true;
+        IsTabStop = true;
+        KeyDown += (_, e) =>
+        {
+            if (e.Key is not (Key.Enter or Key.Space)) return;
+            e.Handled = true;
+            Invoke();
+        };
         HorizontalAlignment = HorizontalAlignment.Center;
 
         _cookie.RenderTransform = _spin;
@@ -66,7 +78,7 @@ public class PowerButton : UserControl
         {
             var inside = new Rect(RenderSize).Contains(e.GetPosition(this));
             ReleasePress();
-            if (inside && Command?.CanExecute(null) == true) Command.Execute(null);
+            if (inside) Invoke();
         };
         LostMouseCapture += (_, _) => ReleasePress();
 
@@ -82,8 +94,37 @@ public class PowerButton : UserControl
         UpdateDepth();
     }
 
+    private void Invoke()
+    {
+        if (Command?.CanExecute(null) == true) Command.Execute(null);
+    }
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new PowerButtonPeer(this);
+
+    /// <summary>Для экранного диктора — обычная кнопка с действием «нажать».</summary>
+    private sealed class PowerButtonPeer(PowerButton owner) : FrameworkElementAutomationPeer(owner), IInvokeProvider
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
+        protected override string GetClassNameCore() => nameof(PowerButton);
+        public override object? GetPattern(PatternInterface patternInterface) =>
+            patternInterface == PatternInterface.Invoke ? this : base.GetPattern(patternInterface);
+        public void Invoke() => owner.Invoke();
+    }
+
+    /// <summary>Название и состояние для экранного диктора; смена озвучивается.</summary>
+    private void UpdateAutomation()
+    {
+        var oldName = AutomationProperties.GetName(this);
+        var name = IsOn || IsBusy ? "Отключить VPN" : "Подключить VPN";
+        AutomationProperties.SetName(this, name);
+        AutomationProperties.SetItemStatus(this, IsOn ? "Защита включена" : IsBusy ? "Подключение" : "Защита выключена");
+        if (oldName != name && UIElementAutomationPeer.FromElement(this) is { } peer)
+            peer.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, oldName, name);
+    }
+
     private void UpdateState()
     {
+        UpdateAutomation();
         if (IsOn)
         {
             _cookie.SetResourceReference(Shape.FillProperty, "TealBrush");

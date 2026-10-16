@@ -156,11 +156,11 @@
                                             </StackPanel>
                                             <c:Spinner Grid.Column="1" IsVisible="{Binding IsBusy}"/>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding !IsBusy}">
-                                                <Button Classes="bare" Padding="3" Margin="0,0,6,0" ToolTip.Tip="Переименовать"
+                                                <Button Classes="bare" Padding="7" Margin="0,0,2,0" ToolTip.Tip="Переименовать" AutomationProperties.Name="Переименовать устройство"
                                                         Command="{Binding $parent[UserControl].DataContext.RenameDeviceCommand}" CommandParameter="{Binding}">
                                                     <Path Classes="icon teal" Data="{StaticResource IconEdit}" Width="16" Height="16"/>
                                                 </Button>
-                                                <Button Classes="bare" Padding="3" ToolTip.Tip="Удалить"
+                                                <Button Classes="bare" Padding="7" ToolTip.Tip="Удалить" AutomationProperties.Name="Удалить устройство"
                                                         Command="{Binding $parent[UserControl].DataContext.DeleteDeviceCommand}" CommandParameter="{Binding}">
                                                     <Path Classes="icon danger" Data="{StaticResource IconClose}" Width="16" Height="16"/>
                                                 </Button>

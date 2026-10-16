@@ -106,7 +106,7 @@
                                             <Path Grid.Column="2" Classes="icon teal" Data="{StaticResource IconCheck}" Width="18" Height="18" IsVisible="{Binding IsSelected}"/>
                                         </Grid>
                                     </Button>
-                                    <Button Grid.Column="1" Classes="bare" Padding="6" Margin="4,0,0,0" VerticalAlignment="Center"
+                                    <Button Grid.Column="1" Classes="bare" Padding="9" Margin="2,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Избранное"
                                             Command="{Binding $parent[ItemsControl].DataContext.ToggleFavoriteCommand}" CommandParameter="{Binding}">
                                         <Path Classes="icon star" Classes.on="{Binding IsFavorite}" Width="15" Height="15"/>
                                     </Button>

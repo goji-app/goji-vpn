@@ -221,7 +221,8 @@ struct SubscriptionView: View {
                         } label: {
                             Image(systemName: "ellipsis")
                                 .foregroundStyle(GojiColor.textSecondary)
-                                .frame(width: 36, height: 36)
+                                .frame(width: 44, height: 44) // минимальная зона нажатия по HIG
+                                .contentShape(Rectangle())
                         }
                         .accessibilityLabel(L("devices.actions"))
                     }

@@ -576,6 +576,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task LogoutAsync()
     {
+        var confirm = new PromptDialog
+        {
+            Owner = Application.Current.MainWindow,
+            PromptTitle = "Выйти из аккаунта?",
+            Message = "VPN отключится. Чтобы войти снова, понадобится код из письма.",
+            ShowInput = false,
+            PrimaryText = "Выйти",
+            IsPrimaryDanger = true
+        };
+        if (confirm.ShowDialog() != true) return;
+
         if (_vpnEngine.IsRunning) await _vpnEngine.DisconnectAsync();
         _tokenStore.Clear();
         RequestLogout?.Invoke();

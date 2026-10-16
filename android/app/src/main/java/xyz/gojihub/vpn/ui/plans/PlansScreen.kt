@@ -1,5 +1,6 @@
 package xyz.gojihub.vpn.ui.plans
 
+import androidx.compose.ui.semantics.Role
 import android.content.Intent
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
@@ -106,7 +107,7 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
                             .clip(RoundedCornerShape(50))
                             .background(GodjiColors.Chip)
                             .border(1.dp, GodjiColors.CardBorder, RoundedCornerShape(50))
-                            .clickable { clipboard.setText(AnnotatedString(id)) }
+                            .clickable(onClickLabel = Loc.f.a11yCopyId) { clipboard.setText(AnnotatedString(id)) }
                             .padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -519,8 +520,8 @@ private fun DevicesSection(
         }
         devices.forEachIndexed { index, device ->
             if (index > 0) HorizontalDivider(thickness = 1.dp, color = GodjiColors.Hair)
-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(device.name, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     val subtitle = listOfNotNull(device.details.takeIf { it.isNotEmpty() }, device.createdAtLabel).joinToString(" · ")
                     if (subtitle.isNotEmpty()) {
@@ -528,18 +529,13 @@ private fun DevicesSection(
                     }
                 }
                 if (device.busy) {
-                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = GodjiColors.Teal, trackColor = GodjiColors.TrackBg)
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(
-                            Icons.Filled.Edit, contentDescription = null, tint = GodjiColors.TealDeep,
-                            modifier = Modifier.size(22.dp).clip(CircleShape).clickable { renameTarget = device }.padding(3.dp)
-                        )
-                        Icon(
-                            Icons.Filled.Close, contentDescription = null, tint = GodjiColors.Danger,
-                            modifier = Modifier.size(22.dp).clip(CircleShape).clickable { deleteTarget = device }.padding(3.dp)
-                        )
+                    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = GodjiColors.Teal, trackColor = GodjiColors.TrackBg)
                     }
+                } else {
+                    // Зона нажатия 48dp (норма Material), значок прежнего размера.
+                    DeviceAction(Icons.Filled.Edit, Loc.f.a11yRenameDevice(device.name), GodjiColors.TealDeep) { renameTarget = device }
+                    DeviceAction(Icons.Filled.Close, Loc.f.a11yDeleteDevice(device.name), GodjiColors.Danger) { deleteTarget = device }
                 }
             }
         }
@@ -578,6 +574,16 @@ private fun DevicesSection(
             },
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(Loc.s.plansDevicesCancel) } }
         )
+    }
+}
+
+@Composable
+private fun DeviceAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, tint: Color, onClick: () -> Unit) {
+    Box(
+        Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(17.dp))
     }
 }
 

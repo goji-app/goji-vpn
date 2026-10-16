@@ -1,5 +1,11 @@
 package xyz.gojihub.vpn.ui.servers
 
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -139,15 +145,26 @@ fun ServersScreen(viewModel: ServersViewModel = hiltViewModel(), onServerPicked:
                     }
                     // Избранное — в эталоне его нет, но это рабочая функция приложения, а не
                     // визуальная деталь, поэтому оставлена компактной звёздочкой.
-                    Text(
-                        if (node.isFavorite) "★" else "☆",
-                        color = if (node.isFavorite) GodjiColors.Warning else GodjiColors.TextMuted,
-                        fontSize = 14.sp,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { viewModel.toggleFavorite(node.id) }
-                            .padding(3.dp)
-                    )
+                    // Зона нажатия 44dp вместо 20dp у прежнего символа «☆»; TalkBack слышит переключатель.
+                    Box(
+                        Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .toggleable(
+                                value = node.isFavorite,
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                role = Role.Checkbox
+                            ) { viewModel.toggleFavorite(node.id) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            if (node.isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                            contentDescription = Loc.f.a11yFavorite,
+                            tint = if (node.isFavorite) GodjiColors.Warning else GodjiColors.TextMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                     // Плашка пинга — отдельная кнопка: проверить только этот узел.
                     val pingInteraction = remember { MutableInteractionSource() }
                     val pingPressed by pingInteraction.collectIsPressedAsState()
@@ -157,7 +174,7 @@ fun ServersScreen(viewModel: ServersViewModel = hiltViewModel(), onServerPicked:
                             .defaultMinSize(minWidth = 70.dp)
                             .height(30.dp)
                             .godjiGlassFlat(RoundedCornerShape(50))
-                            .clickable(interactionSource = pingInteraction, indication = null) { viewModel.pingOne(node.id) }
+                            .clickable(interactionSource = pingInteraction, indication = null, onClickLabel = Loc.f.a11yPingOne) { viewModel.pingOne(node.id) }
                             .padding(horizontal = 11.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -267,10 +284,16 @@ private fun RefreshBanner(message: RefreshMessage, onDismiss: () -> Unit) {
         }
         Text(if (message.isError) Loc.s.refreshFail else Loc.s.refreshOk, color = GodjiColors.TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.weight(1f))
         Box(
-            Modifier.size(22.dp).clip(CircleShape).background(GodjiColors.Hair).clickable { onDismiss() },
+            Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClickLabel = Loc.f.qrClose) { onDismiss() }
+                .semantics { contentDescription = Loc.f.qrClose },
             contentAlignment = Alignment.Center
         ) {
-            Text("×", color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Box(Modifier.size(22.dp).clip(CircleShape).background(GodjiColors.Hair), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Close, contentDescription = null, tint = GodjiColors.TextPrimary, modifier = Modifier.size(13.dp))
+            }
         }
     }
 }

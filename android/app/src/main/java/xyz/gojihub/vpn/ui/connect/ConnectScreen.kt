@@ -1,5 +1,11 @@
 package xyz.gojihub.vpn.ui.connect
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -166,7 +172,9 @@ fun ConnectScreen(viewModel: ConnectViewModel = hiltViewModel(), onOpenPlans: ()
                     letterSpacing = (-0.4).sp,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    // Смена «Пока без защиты» → «Ты в Финляндии» озвучивается сама.
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     Box(Modifier.size(7.dp).clip(CircleShape).background(dotColor(state)))
@@ -358,7 +366,16 @@ private fun ConnectButton(state: ConnectUiState, onClick: () -> Unit) {
             }
             .background(fill, shape)
             .clip(shape)
-            .clickable(interactionSource = pressInteraction, indication = null, onClick = onClick),
+            .clickable(interactionSource = pressInteraction, indication = null, role = Role.Button, onClick = onClick)
+            // Главная кнопка приложения: TalkBack называет действие и текущее состояние защиты.
+            .semantics {
+                contentDescription = if (state.connected || state.connecting) Loc.f.a11yDisconnect else Loc.f.a11yConnect
+                stateDescription = when {
+                    state.connected -> Loc.f.a11yStateOn
+                    state.connecting -> Loc.f.a11yStateConnecting
+                    else -> Loc.f.a11yStateOff
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         Icon(

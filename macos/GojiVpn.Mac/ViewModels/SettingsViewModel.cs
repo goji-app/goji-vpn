@@ -501,6 +501,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task LogoutAsync()
     {
+        var confirm = new PromptDialog
+        {
+            PromptTitle = "Выйти из аккаунта?",
+            Message = "VPN отключится. Чтобы войти снова, понадобится код из письма.",
+            ShowInput = false,
+            PrimaryText = "Выйти",
+            IsPrimaryDanger = true
+        };
+        if (await Ui.ShowDialogAsync<bool>(confirm) != true) return;
+
         if (_vpnEngine.IsRunning) await _vpnEngine.DisconnectAsync();
         _tokenStore.Clear();
         RequestLogout?.Invoke();

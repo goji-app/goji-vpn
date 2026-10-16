@@ -163,6 +163,20 @@ data class FeatureStrings(
     val trialError: String,
     val deleteAccountServerError: String,
     val payInCabinet: String,
+    // ── Доступность и подтверждение выхода ──
+    val a11yConnect: String,
+    val a11yDisconnect: String,
+    val a11yStateOn: String,
+    val a11yStateOff: String,
+    val a11yStateConnecting: String,
+    val a11yRenameDevice: (name: String) -> String,
+    val a11yDeleteDevice: (name: String) -> String,
+    val a11yCopyId: String,
+    val logoutConfirmTitle: String,
+    val logoutConfirmText: String,
+    val logoutConfirm: String,
+    val a11yFavorite: String,
+    val a11yPingOne: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -336,6 +350,19 @@ data class FeatureStrings(
             trialError = "Не удалось активировать пробный период",
             deleteAccountServerError = "Не удалось отправить заявку. Напишите в поддержку: «Удалить аккаунт».",
             payInCabinet = "Оплатить в личном кабинете",
+            a11yConnect = "Подключить VPN",
+            a11yDisconnect = "Отключить VPN",
+            a11yStateOn = "Защита включена",
+            a11yStateOff = "Защита выключена",
+            a11yStateConnecting = "Подключение",
+            a11yRenameDevice = { "Переименовать «$it»" },
+            a11yDeleteDevice = { "Удалить «$it»" },
+            a11yCopyId = "Скопировать ID",
+            logoutConfirmTitle = "Выйти из аккаунта?",
+            logoutConfirmText = "VPN отключится. Чтобы войти снова, понадобится код из письма.",
+            logoutConfirm = "Выйти",
+            a11yFavorite = "Избранное",
+            a11yPingOne = "Проверить пинг",
         )
 
         private val EN = FeatureStrings(
@@ -503,6 +530,19 @@ data class FeatureStrings(
             trialError = "Could not activate the free trial",
             deleteAccountServerError = "Could not send the request. Please write to support: \"Delete account\".",
             payInCabinet = "Pay in your account",
+            a11yConnect = "Connect VPN",
+            a11yDisconnect = "Disconnect VPN",
+            a11yStateOn = "Protection on",
+            a11yStateOff = "Protection off",
+            a11yStateConnecting = "Connecting",
+            a11yRenameDevice = { "Rename “$it”" },
+            a11yDeleteDevice = { "Remove “$it”" },
+            a11yCopyId = "Copy ID",
+            logoutConfirmTitle = "Log out?",
+            logoutConfirmText = "VPN will be disconnected. To sign in again you will need a code from your email.",
+            logoutConfirm = "Log out",
+            a11yFavorite = "Favorite",
+            a11yPingOne = "Check ping",
         )
 
         private val ZH = FeatureStrings(
@@ -670,6 +710,19 @@ data class FeatureStrings(
             trialError = "无法激活免费试用",
             deleteAccountServerError = "请求发送失败。请联系客服：“删除账户”。",
             payInCabinet = "在个人中心付款",
+            a11yConnect = "连接 VPN",
+            a11yDisconnect = "断开 VPN",
+            a11yStateOn = "保护已开启",
+            a11yStateOff = "保护已关闭",
+            a11yStateConnecting = "正在连接",
+            a11yRenameDevice = { "重命名“$it”" },
+            a11yDeleteDevice = { "删除“$it”" },
+            a11yCopyId = "复制 ID",
+            logoutConfirmTitle = "退出登录？",
+            logoutConfirmText = "VPN 将断开。再次登录需要邮件中的验证码。",
+            logoutConfirm = "退出",
+            a11yFavorite = "收藏",
+            a11yPingOne = "检测延迟",
         )
     }
 }
