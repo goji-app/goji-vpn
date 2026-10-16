@@ -36,7 +36,7 @@ public partial class App : Application
             MessageBox.Show(
                 "Произошла непредвиденная ошибка:\n\n" + args.Exception.Message +
                 "\n\nПодробности сохранены в журнал (Настройки → Журнал). Приложение продолжит работу.",
-                "Godji VPN", MessageBoxButton.OK, MessageBoxImage.Warning);
+                "Goji VPN", MessageBoxButton.OK, MessageBoxImage.Warning);
             args.Handled = true;
         };
         TaskScheduler.UnobservedTaskException += (_, args) =>

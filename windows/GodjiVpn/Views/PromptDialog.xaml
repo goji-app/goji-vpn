@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:s="clr-namespace:GodjiVpn.Utils"
         xmlns:controls="clr-namespace:GodjiVpn.Controls"
-        Title="Godji VPN" Width="380" SizeToContent="Height"
+        Title="Goji VPN" Width="380" SizeToContent="Height"
         MinWidth="320" ResizeMode="NoResize"
         Background="{DynamicResource BgSolidBrush}"
         WindowStartupLocation="CenterOwner"

@@ -79,6 +79,29 @@ public sealed class MeResponse
     public bool ConsentRequired { get; set; }
 }
 
+/// <summary>Сводка кабинета (api/dashboard) — нужны только поля пробного периода.</summary>
+public sealed class DashboardResponse
+{
+    [JsonPropertyName("trial_available")]
+    public bool? TrialAvailable { get; set; }
+
+    [JsonPropertyName("trial_days")]
+    public int? TrialDays { get; set; }
+
+    [JsonPropertyName("trial_paid")]
+    public bool? TrialPaid { get; set; }
+}
+
+public sealed class TrialResponse
+{
+    public bool? Success { get; set; }
+    public string? Message { get; set; }
+}
+
+public sealed class EmptyRequest
+{
+}
+
 public sealed class ConsentRequest
 {
     public bool Terms { get; set; } = true;

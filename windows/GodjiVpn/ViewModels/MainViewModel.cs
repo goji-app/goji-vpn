@@ -69,9 +69,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnLoggedOut()
     {
         // LoginViewModel — один и тот же экземпляр на всё время жизни процесса (не
-        // пересоздаётся при выходе), поэтому если пользователь на прошлом заходе успел
-        // переключиться на email-форму (EmailMode=true), после разлогина экран молча
-        // показывал бы её вместо стартовых кнопок OAuth — сбрасываем состояние явно.
+        // пересоздаётся при выходе): сбрасываем почту, код и ошибки прошлого входа.
         _login.Reset();
         CurrentViewModel = _login;
     }

@@ -94,6 +94,22 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
         private set { _broadcasts = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Broadcasts))); }
     }
 
+    private const string TrialError = "Не удалось активировать пробный период";
+
+    /// <summary>Пробный период, который можно включить прямо из приложения (только у аккаунта
+    /// без подписки и только бесплатный): число дней (0, если бэкенд его не сообщил); null —
+    /// предлагать нечего. Порт Android SubscriptionRepository.trialDays.</summary>
+    private int? _trialDays;
+    public int? TrialDays
+    {
+        get => _trialDays;
+        private set { _trialDays = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TrialDays))); }
+    }
+
+    // Поколение предложения: ответ api/dashboard, ушедший до активации или выхода, не должен
+    // вернуть уже скрытую карточку.
+    private int _trialGeneration;
+
     public SubscriptionRepository(ApiClient api, SubscriptionService subscriptionService, CustomNodeStore customNodes)
     {
         _api = api;
@@ -145,6 +161,8 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
         _lastOkRefreshUtc = DateTime.MinValue;
         _subscriptionNodes = Array.Empty<VlessNode>();
         Subscription = null;
+        _trialGeneration++;
+        TrialDays = null;
         Broadcasts = Array.Empty<BroadcastDto>();
         LastError = null;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Nodes)));
@@ -229,6 +247,7 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
         Subscription = active;
         if (active != null) AccountCache.Save(AccountCache.Key.Subscription, active);
         else AccountCache.Remove(AccountCache.Key.Subscription);
+        await RefreshTrialOfferAsync(hasSubscription: active != null);
         if (active == null)
         {
             LastError = subsResponse.Subscriptions.Count == 0
@@ -265,6 +284,61 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
     }
 
     public void Select(string id) => SelectedId = id;
+
+    /// <summary>Включает пробный период. null — успех, иначе текст ошибки (сообщение бэкенда,
+    /// если оно есть). После успеха подписка обновляется сама.</summary>
+    public async Task<string?> ActivateTrialAsync()
+    {
+        try
+        {
+            var response = await _api.ActivateTrialAsync();
+            if (response.Success == false)
+                return string.IsNullOrWhiteSpace(response.Message) ? TrialError : response.Message.Trim();
+        }
+        catch (ApiException ex)
+        {
+            // Отказ («уже использован», «недоступен») — перепроверяем, предлагать ли карточку.
+            if (ex.StatusCode != System.Net.HttpStatusCode.Unauthorized)
+                _ = RefreshTrialOfferAsync(hasSubscription: Subscription != null);
+            return BackendMessage(ex.Body) ?? TrialError;
+        }
+        catch (Exception)
+        {
+            return TrialError;
+        }
+        _trialGeneration++;
+        TrialDays = null;
+        _ = RefreshAsync();
+        return null;
+    }
+
+    private async Task RefreshTrialOfferAsync(bool hasSubscription)
+    {
+        var generation = _trialGeneration;
+        if (hasSubscription) { TrialDays = null; return; }
+        Models.DashboardResponse dashboard;
+        try { dashboard = await _api.GetDashboardAsync(); }
+        catch { return; } // не критично: карточка появится при следующем обновлении
+        if (generation != _trialGeneration) return;
+        TrialDays = dashboard.TrialAvailable == true && dashboard.TrialPaid != true ? dashboard.TrialDays ?? 0 : null;
+    }
+
+    /// <summary>Короткое сообщение бэкенда из тела ошибки ({"message": …} или {"error": …}).</summary>
+    private static string? BackendMessage(string body)
+    {
+        try
+        {
+            using var json = System.Text.Json.JsonDocument.Parse(body);
+            foreach (var key in new[] { "message", "error" })
+            {
+                if (json.RootElement.TryGetProperty(key, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String &&
+                    value.GetString()?.Trim() is { Length: > 0 and <= 300 } text)
+                    return text;
+            }
+        }
+        catch (System.Text.Json.JsonException) { }
+        return null;
+    }
 
     private static string Shorten(string message)
     {

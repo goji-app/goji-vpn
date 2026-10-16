@@ -442,13 +442,22 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Bd" Background="{DynamicResource ChipBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                    <!-- Рамка — outline (M3): на стеклянной карточке тёмной темы поле с CardBorder
+                         сливалось с фоном. Tag — подсказка в пустом поле. -->
+                    <Border x:Name="Bd" Background="{DynamicResource ChipBrush}" BorderBrush="{DynamicResource OutlineBrush}"
                             BorderThickness="1.5" CornerRadius="16">
-                        <!-- Без Margin=Padding: TextBox сам применяет Padding внутри своего
-                             TextBoxView, иначе отступ удваивался и поле выходило вдвое выше. -->
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        <Grid>
+                            <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Foreground="{DynamicResource TextMutedBrush}"
+                                       Margin="16,0,14,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
+                            <!-- Без Margin=Padding: TextBox сам применяет Padding внутри своего
+                                 TextBoxView, иначе отступ удваивался и поле выходило вдвое выше. -->
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Hint" Property="Visibility" Value="Visible"/>
+                        </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TealBrush}"/>
                         </Trigger>

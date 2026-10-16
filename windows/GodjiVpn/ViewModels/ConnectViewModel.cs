@@ -44,6 +44,20 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool isConnecting;
     [ObservableProperty] private string? errorMessage;
 
+    /// <summary>Карточка пробного периода у аккаунта без подписки: число дней; null — карточки нет.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTrial), nameof(TrialTitle))]
+    private int? trialDays;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ActivateTrialCommand))]
+    private bool trialActivating;
+    /// <summary>Итог нажатия «Активировать»: успех или текст ошибки.</summary>
+    [ObservableProperty] private string? trialNotice;
+    [ObservableProperty] private bool trialFailed;
+
+    public bool HasTrial => TrialDays != null;
+    public string TrialTitle => TrialDays is > 0 and var d ? $"Пробный период — {d} {RuPlural.Days(d)}" : "Пробный период";
+
     [ObservableProperty] private string headline = "Пока без защиты";
     [ObservableProperty] private string subline = "Провайдер видит всё, что ты открываешь";
 
@@ -161,6 +175,8 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         SubBars = 3;
         SubBarLevel = "ok";
         SubDetail = "до 14 октября · 12,4 ГБ / ∞";
+        // GODJI_UI_PREVIEW_TRIAL=1 — сверка карточки пробного периода.
+        if (Environment.GetEnvironmentVariable("GODJI_UI_PREVIEW_TRIAL") == "1") TrialDays = 7;
     }
 
     public async Task LoadAsync()
@@ -236,11 +252,29 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanActivateTrial))]
+    private async Task ActivateTrialAsync()
+    {
+        TrialActivating = true;
+        TrialNotice = null;
+        try
+        {
+            var error = await _subscription.ActivateTrialAsync();
+            TrialFailed = error != null;
+            TrialNotice = error ?? "Пробный период активирован";
+        }
+        finally { TrialActivating = false; }
+    }
+
+    private bool CanActivateTrial() => !TrialActivating;
+
     private void RefreshFromState()
     {
         IsConnected = _vpnEngine.IsRunning;
         IsConnecting = _vpnEngine.IsConnecting;
-        ErrorMessage = _vpnEngine.LastError ?? _subscription.LastError;
+        if (Environment.GetEnvironmentVariable("GODJI_UI_PREVIEW_TRIAL") != "1") TrialDays = _subscription.TrialDays;
+        // «Нет активной подписки» не дублируем красной строкой, когда рядом карточка пробного периода.
+        ErrorMessage = _vpnEngine.LastError ?? (HasTrial ? null : _subscription.LastError);
         ToggleCommand.NotifyCanExecuteChanged();
 
         var node = _subscription.SelectedNode;

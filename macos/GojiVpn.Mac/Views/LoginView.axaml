@@ -23,25 +23,10 @@
                     <StackPanel Margin="16,20,16,16">
                         <TextBlock Text="Привет. Куда&#10;подключаемся сегодня?" FontWeight="SemiBold" FontSize="{s:Fs 30}" LineHeight="{s:Fs 33}" TextWrapping="Wrap"/>
 
-                        <!-- "Впервые здесь?" — рабочий пробный период выдаёт бот. -->
-                        <Button Classes="bare" HorizontalAlignment="Stretch" Margin="0,14,0,0" Command="{Binding OpenBotCommand}">
-                            <c:GlassPanel Classes="flat" CornerRadius="20" Padding="12">
-                                <Grid ColumnDefinitions="Auto,*,Auto">
-                                    <Border Width="36" Height="36" CornerRadius="18" Background="#2AABEE" VerticalAlignment="Center">
-                                        <Path Classes="icon white" Width="17" Height="17" Margin="0,0,1,0"
-                                              Data="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
-                                    </Border>
-                                    <StackPanel Grid.Column="1" Margin="11,0,8,0" VerticalAlignment="Center">
-                                        <TextBlock Text="Впервые здесь?" FontWeight="Bold" FontSize="{s:Fs 12.5}"/>
-                                        <TextBlock Classes="rowSub" Text="Сначала откройте бота в Telegram — там вы подтвердите, что не робот, и получите рабочий пробный период."/>
-                                    </StackPanel>
-                                    <Path Grid.Column="2" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="18" Height="18"/>
-                                </Grid>
-                            </c:GlassPanel>
-                        </Button>
-
+                        <!-- Вход — только email и код из письма, как во всех приложениях Goji. Аккаунт и
+                             пробный период создаются сами; пробный период включается на главной. -->
                         <TextBlock Text="Email" FontWeight="SemiBold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="6,16,0,6"/>
-                        <TextBox Name="EmailBox" Classes="glass" Text="{Binding Email}" Watermark="you@mail.ru"/>
+                        <TextBox Name="EmailBox" Classes="glass" Text="{Binding Email}" Watermark="you@mail.ru" AutomationProperties.Name="Email"/>
                         <Button Classes="accent" Height="54" FontSize="{s:Fs 15}" Margin="0,12,0,0"
                                 Content="{Binding SendOtpButtonText}" Command="{Binding SendOtpCommand}"/>
 

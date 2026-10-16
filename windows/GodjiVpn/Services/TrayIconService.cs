@@ -29,7 +29,7 @@ public sealed class TrayIconService : IDisposable
         _icon = new TaskbarIcon
         {
             IconSource = new BitmapImage(new Uri("pack://application:,,,/Assets/Images/logo.png")),
-            ToolTipText = "Godji VPN — отключено"
+            ToolTipText = "Goji VPN — отключено"
         };
 
         var openItem = new MenuItem { Header = "Открыть" };
@@ -80,9 +80,9 @@ public sealed class TrayIconService : IDisposable
         // Аналог ярлыка "Подключиться: <последний узел>" на иконке Android (59e214b): из трея
         // VPN поднимается на выбранном узле без открытия окна — и видно, на каком именно.
         var node = _connect.CurrentNodeName;
-        _icon.ToolTipText = _vpnEngine.IsRunning ? $"Godji VPN — подключено: {node}"
-            : _vpnEngine.IsConnecting ? $"Godji VPN — подключаемся: {node}"
-            : "Godji VPN — отключено";
+        _icon.ToolTipText = _vpnEngine.IsRunning ? $"Goji VPN — подключено: {node}"
+            : _vpnEngine.IsConnecting ? $"Goji VPN — подключаемся: {node}"
+            : "Goji VPN — отключено";
         _toggleItem.Header = _vpnEngine.IsRunning ? "Отключить VPN"
             : _vpnEngine.IsConnecting ? $"Подключаемся: {node}"
             : $"Подключиться: {node}";

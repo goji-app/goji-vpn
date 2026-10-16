@@ -76,6 +76,27 @@
             <TextBlock Classes="error" Text="{Binding ErrorMessage}" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"
                        Margin="0,8,0,0" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 
+            <!-- Пробный период у аккаунта без подписки (порт Android TrialCard). -->
+            <c:GlassPanel Classes="card" CornerRadius="24" Tint="{DynamicResource TealTintBrush}" Padding="14,12" Margin="0,8,0,0"
+                          IsVisible="{Binding HasTrial}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding TrialTitle}" FontWeight="Bold" FontSize="{s:Fs 14}" TextWrapping="Wrap"/>
+                        <TextBlock Text="Подписки пока нет. Включите бесплатный пробный период — без оплаты и привязки карты."
+                                   FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="accent" Height="38" Padding="16,0" VerticalAlignment="Center" Command="{Binding ActivateTrialCommand}">
+                        <Panel>
+                            <TextBlock Text="Активировать" FontSize="{s:Fs 13}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}" IsVisible="{Binding !TrialActivating}"/>
+                            <TextBlock Text="Активируем…" FontSize="{s:Fs 13}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}" IsVisible="{Binding TrialActivating}"/>
+                        </Panel>
+                    </Button>
+                </Grid>
+            </c:GlassPanel>
+            <TextBlock Classes.error="{Binding TrialFailed}" Text="{Binding TrialNotice}" FontWeight="SemiBold" FontSize="{s:Fs 12}" TextWrapping="Wrap"
+                       TextAlignment="Center" HorizontalAlignment="Center" Margin="0,8,0,0"
+                       IsVisible="{Binding TrialNotice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
             <!-- Скорость сейчас: ↓ крупно, ↑ мелко и мини-график последних ~30 с. -->
             <c:GlassPanel Classes="card" Padding="16,12" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="*,Auto">

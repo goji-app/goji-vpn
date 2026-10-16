@@ -5,7 +5,6 @@ import CoreImage.CIFilterBuiltins
 final class AccountViewModel: ObservableObject {
     @Published var devices: [DeviceInfo] = []
     @Published var devicesError: String?
-    @Published var referrals: ReferralsResponse?
     @Published var loading = false
 
     private let api = APIClient.shared
@@ -25,7 +24,6 @@ final class AccountViewModel: ObservableObject {
                 devicesError = error.localizedDescription
             }
         }
-        referrals = try? await api.get("api/dashboard/referrals")
     }
 
     func rename(_ device: DeviceInfo, to name: String, subscriptionId: Int64) async throws {
@@ -55,7 +53,6 @@ struct SubscriptionView: View {
         ScreenScaffold(title: L("sub.title"), subtitle: L("sub.subtitle")) {
             planCard
             if let sub = store.subscription { devicesSection(sub) }
-            referralSection
             newsSection
             SectionHeader(title: L("sub.more"))
             VStack(spacing: 10) {
@@ -241,89 +238,6 @@ struct SubscriptionView: View {
         if p.contains("android") { return "candybarphone" }
         if p.contains("windows") || p.contains("mac") || p.contains("linux") { return "laptopcomputer" }
         return "desktopcomputer"
-    }
-
-    // MARK: - Рефералы
-
-    @ViewBuilder
-    private var referralSection: some View {
-        if let ref = account.referrals, let link = ref.link, !link.isEmpty {
-            SectionHeader(title: L("referral.title"))
-            GlassCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    if let description = ref.description, !description.isEmpty {
-                        Text(RichText.attributed(description))
-                            .font(GojiFont.caption())
-                            .foregroundStyle(GojiColor.textSecondary)
-                    }
-                    HStack(spacing: 10) {
-                        stat(L("referral.invited"), ref.summary?.totalReferrals ?? 0)
-                        stat(L("referral.active"), ref.summary?.activeReferrals ?? 0)
-                        stat(L("referral.bonus_days"), ref.summary?.totalBonusDays ?? 0)
-                    }
-                    Text(link)
-                        .font(GojiFont.manrope(12, .medium).monospaced())
-                        .foregroundStyle(GojiColor.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(GojiColor.chip))
-                    HStack(spacing: 10) {
-                        Button {
-                            UIPasteboard.general.string = link
-                            model.toast = L("common.copied")
-                        } label: {
-                            Label(L("referral.copy"), systemImage: "doc.on.doc")
-                        }
-                        .buttonStyle(SecondaryButtonStyle())
-                        if let url = URL(string: link) {
-                            ShareLink(item: url) {
-                                Label(L("referral.share"), systemImage: "square.and.arrow.up")
-                            }
-                            .buttonStyle(SecondaryButtonStyle())
-                        }
-                    }
-                    if let list = ref.referrals, !list.isEmpty {
-                        Divider().overlay(GojiColor.hair)
-                        ForEach(list.prefix(20)) { entry in
-                            HStack {
-                                Text(entry.displayName)
-                                    .font(GojiFont.manrope(13, .semibold))
-                                    .foregroundStyle(GojiColor.textPrimary)
-                                Spacer()
-                                if let days = entry.bonusDays, days > 0 {
-                                    Text(L("referral.bonus_suffix", days))
-                                        .font(GojiFont.caption())
-                                        .foregroundStyle(GojiColor.tealDeep)
-                                }
-                                Badge(
-                                    text: entry.isActive == true ? L("referral.badge.active") : L("referral.badge.inactive"),
-                                    color: entry.isActive == true ? GojiColor.tealDeep : GojiColor.textSecondary,
-                                    background: entry.isActive == true ? GojiColor.tealTint : GojiColor.chip
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func stat(_ title: String, _ value: Int) -> some View {
-        VStack(spacing: 2) {
-            Text("\(value)")
-                .font(GojiFont.manrope(20, .bold))
-                .foregroundStyle(GojiColor.textPrimary)
-            Text(title)
-                .font(GojiFont.manrope(10.5, .medium, relativeTo: .caption2))
-                .foregroundStyle(GojiColor.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 14).fill(GojiColor.chip))
-        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Новости

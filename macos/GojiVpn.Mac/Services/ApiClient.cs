@@ -88,6 +88,14 @@ public sealed class ApiClient
     public async Task ConsentAsync(CancellationToken ct = default) =>
         await PostAsync<ConsentRequest, object?>("api/auth/consent", new ConsentRequest(), ct).ConfigureAwait(false);
 
+    /// <summary>Сводка кабинета — из неё нужны только поля пробного периода.</summary>
+    public async Task<DashboardResponse> GetDashboardAsync(CancellationToken ct = default) =>
+        await GetAsync<DashboardResponse>("api/dashboard", ct).ConfigureAwait(false);
+
+    /// <summary>Бесплатный пробный период для аккаунта без подписки (как кнопка в веб-кабинете).</summary>
+    public async Task<TrialResponse> ActivateTrialAsync(CancellationToken ct = default) =>
+        await PostAsync<EmptyRequest, TrialResponse>("api/dashboard/trial", new EmptyRequest(), ct).ConfigureAwait(false);
+
     public async Task<SubscriptionsResponse> GetSubscriptionsAsync(CancellationToken ct = default) =>
         await GetAsync<SubscriptionsResponse>("api/subscriptions", ct).ConfigureAwait(false);
 
@@ -423,4 +431,6 @@ public sealed class ApiException(HttpStatusCode statusCode, string body)
     : Exception($"HTTP {(int)statusCode}: {body}")
 {
     public HttpStatusCode StatusCode { get; } = statusCode;
+    /// <summary>Тело ответа с ошибкой — в нём бывает понятное пользователю сообщение бэкенда.</summary>
+    public string Body { get; } = body;
 }

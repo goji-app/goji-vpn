@@ -6,13 +6,10 @@ using GodjiVpn.Views;
 
 namespace GodjiVpn.ViewModels;
 
-/// <summary>Аналог LoginViewModel.kt/AuthRepository.kt (Android) — email+OTP и вход через сайт
-/// (см. OpenWebLoginAsync). Раньше здесь были отдельные PKCE-команды для Google/Yandex/Telegram
-/// (native-exchange OAuth) — убраны целиком: на бэкенде 7.1.0 api/auth/native/exchange отвечает
-/// 400 на любой запрос независимо от провайдера, чинить было нечего, только заменять механизм.</summary>
+/// <summary>Аналог LoginViewModel.kt/AuthRepository.kt (Android) — вход по email и коду из
+/// письма, как во всех приложениях Goji. Бот в Telegram с экрана входа убран.</summary>
 public sealed partial class LoginViewModel : ObservableObject
 {
-    private const string BotUrl = "https://t.me/Shadow_Duck_bot";
     private const string TermsUrl = "https://telegra.ph/Polzovatelskoe-soglashenie-Goji-VPN-09-20";
     private const string PrivacyUrl = "https://telegra.ph/Politika-konfidencialnosti-Goji-VPN-09-20";
 
@@ -21,7 +18,6 @@ public sealed partial class LoginViewModel : ObservableObject
 
     public event Action? LoggedIn;
 
-    [ObservableProperty] private bool emailMode;
     [ObservableProperty] private string email = "";
     [ObservableProperty] private string code = "";
     [ObservableProperty] private bool otpSent;
@@ -40,18 +36,6 @@ public sealed partial class LoginViewModel : ObservableObject
     {
         _api = api;
         _tokenStore = tokenStore;
-    }
-
-    [RelayCommand]
-    private void ShowEmailForm() => EmailMode = true;
-
-    [RelayCommand]
-    private void ShowOAuthOptions()
-    {
-        EmailMode = false;
-        OtpSent = false;
-        ErrorMessage = null;
-        InfoMessage = null;
     }
 
     [RelayCommand(CanExecute = nameof(CanSendOtp))]
@@ -110,7 +94,6 @@ public sealed partial class LoginViewModel : ObservableObject
     /// MainViewModel.OnLoggedOut().</summary>
     public void Reset()
     {
-        EmailMode = false;
         Email = "";
         Code = "";
         OtpSent = false;
@@ -148,9 +131,6 @@ public sealed partial class LoginViewModel : ObservableObject
 
         LoggedIn?.Invoke();
     }
-
-    [RelayCommand]
-    private void OpenBot() => OpenUrl(BotUrl);
 
     [RelayCommand]
     private void OpenTerms() => OpenUrl(TermsUrl);

@@ -24,7 +24,7 @@ public sealed class UpdateNotifier
     {
         var state = Load();
         if (state.LastNotifiedVersion == update.VersionLabel) return;
-        NotificationRequested?.Invoke("Доступно обновление Godji VPN",
+        NotificationRequested?.Invoke("Доступно обновление Goji VPN",
             $"Версия {update.VersionLabel} — откройте «Настройки», чтобы посмотреть изменения и обновиться.");
         state.LastNotifiedVersion = update.VersionLabel;
         Save(state);

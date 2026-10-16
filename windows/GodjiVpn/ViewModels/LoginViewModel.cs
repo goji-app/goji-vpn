@@ -7,13 +7,10 @@ using GodjiVpn.Views;
 
 namespace GodjiVpn.ViewModels;
 
-/// <summary>Аналог LoginViewModel.kt/AuthRepository.kt (Android) — email+OTP и вход через сайт
-/// (см. OpenWebLoginAsync). Раньше здесь были отдельные PKCE-команды для Google/Yandex/Telegram
-/// (native-exchange OAuth) — убраны целиком: на бэкенде 7.1.0 api/auth/native/exchange отвечает
-/// 400 на любой запрос независимо от провайдера, чинить было нечего, только заменять механизм.</summary>
+/// <summary>Аналог LoginViewModel.kt/AuthRepository.kt (Android) — вход по email и коду из
+/// письма, как во всех приложениях Goji. Вход через сайт и бот в Telegram убраны.</summary>
 public sealed partial class LoginViewModel : ObservableObject
 {
-    private const string BotUrl = "https://t.me/Shadow_Duck_bot";
     private const string TermsUrl = "https://telegra.ph/Polzovatelskoe-soglashenie-Goji-VPN-09-20";
     private const string PrivacyUrl = "https://telegra.ph/Politika-konfidencialnosti-Goji-VPN-09-20";
 
@@ -22,7 +19,6 @@ public sealed partial class LoginViewModel : ObservableObject
 
     public event Action? LoggedIn;
 
-    [ObservableProperty] private bool emailMode;
     [ObservableProperty] private string email = "";
     [ObservableProperty] private string code = "";
     [ObservableProperty] private bool otpSent;
@@ -37,18 +33,6 @@ public sealed partial class LoginViewModel : ObservableObject
     {
         _api = api;
         _tokenStore = tokenStore;
-    }
-
-    [RelayCommand]
-    private void ShowEmailForm() => EmailMode = true;
-
-    [RelayCommand]
-    private void ShowOAuthOptions()
-    {
-        EmailMode = false;
-        OtpSent = false;
-        ErrorMessage = null;
-        InfoMessage = null;
     }
 
     [RelayCommand(CanExecute = nameof(CanSendOtp))]
@@ -107,7 +91,6 @@ public sealed partial class LoginViewModel : ObservableObject
     /// MainViewModel.OnLoggedOut().</summary>
     public void Reset()
     {
-        EmailMode = false;
         Email = "";
         Code = "";
         OtpSent = false;
@@ -124,30 +107,6 @@ public sealed partial class LoginViewModel : ObservableObject
         Code = "";
         ErrorMessage = null;
         InfoMessage = null;
-    }
-
-    /// <summary>Открывает встроенное окно веб-входа (см. Views/WebLoginWindow) — показывает
-    /// пользователю сам сайт целиком, ждёт, пока он там залогинится любым способом (Google/
-    /// Яндекс/Telegram/email), и забирает сессионный токен из выставленной сайтом куки. Замена
-    /// сломанного на бэкенде 7.1.0 native-exchange OAuth (см. заголовок класса), портировано
-    /// с Android WebLoginActivity.kt.</summary>
-    [RelayCommand]
-    private async Task OpenWebLoginAsync()
-    {
-        ErrorMessage = null;
-        var window = new WebLoginWindow { Owner = Application.Current.MainWindow };
-        var completed = window.ShowDialog();
-        if (completed != true || string.IsNullOrEmpty(window.SessionToken)) return;
-
-        IsBusy = true;
-        try
-        {
-            await OnAuthenticatedAsync(window.SessionToken, window.RefreshToken);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
     }
 
     /// <summary>refreshToken — rw_refresh_token, живёт намного дольше сессионного JWT (тот
@@ -169,9 +128,6 @@ public sealed partial class LoginViewModel : ObservableObject
 
         LoggedIn?.Invoke();
     }
-
-    [RelayCommand]
-    private void OpenBot() => OpenUrl(BotUrl);
 
     [RelayCommand]
     private void OpenTerms() => OpenUrl(TermsUrl);

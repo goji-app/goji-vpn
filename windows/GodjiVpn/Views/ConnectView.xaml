@@ -104,6 +104,48 @@
                        TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,8,0,0"
                        Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
 
+            <!-- Пробный период у аккаунта без подписки (порт Android TrialCard). -->
+            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Tint="{DynamicResource TealTintBrush}" Padding="14,12" Margin="0,8,0,0"
+                                 Visibility="{Binding HasTrial, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding TrialTitle}" FontWeight="Bold" FontSize="{s:Fs 14}" TextWrapping="Wrap"/>
+                        <TextBlock Text="Подписки пока нет. Включите бесплатный пробный период — без оплаты и привязки карты."
+                                   FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Height="38" Padding="16,0" FontSize="{s:Fs 13}" VerticalAlignment="Center" Command="{Binding ActivateTrialCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource AccentPillButton}">
+                                <Setter Property="Content" Value="Активировать"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TrialActivating}" Value="True">
+                                        <Setter Property="Content" Value="Активируем…"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </controls:GlassPanel>
+            <TextBlock Text="{Binding TrialNotice}" FontWeight="SemiBold" FontSize="{s:Fs 12}" TextWrapping="Wrap" TextAlignment="Center"
+                       HorizontalAlignment="Center" Margin="0,8,0,0"
+                       Visibility="{Binding TrialNotice, Converter={StaticResource NullToVisibilityConverter}}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding TrialFailed}" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
             <!-- Скорость сейчас: ↓ крупно, ↑ мелко и мини-график последних ~30 с. -->
             <controls:GlassPanel Style="{StaticResource GlassCard}" Padding="16,12" Margin="0,8,0,0">
                 <Grid>

@@ -309,13 +309,14 @@
         <Setter Property="CornerRadius" Value="16"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="{DynamicResource ChipBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+        <!-- Рамка — outline (M3): на стеклянной карточке тёмной темы поле с CardBorder сливалось с фоном. -->
+        <Setter Property="BorderBrush" Value="{DynamicResource OutlineBrush}"/>
         <Setter Property="BorderThickness" Value="1.5"/>
         <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
     </Style>
     <Style Selector="TextBox.glass:pointerover /template/ Border#PART_BorderElement">
         <Setter Property="Background" Value="{DynamicResource ChipBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource OutlineBrush}"/>
     </Style>
     <Style Selector="TextBox.glass:focus /template/ Border#PART_BorderElement">
         <Setter Property="Background" Value="{DynamicResource ChipBrush}"/>

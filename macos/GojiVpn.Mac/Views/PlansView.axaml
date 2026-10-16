@@ -33,7 +33,7 @@
         </Style>
     </UserControl.Styles>
     <!-- Без прокрутки: сверху шапка и карточка подписки, под ними переключатель разделов
-         (тарифы · устройства · друзья · новости); раздел занимает оставшееся место, длинные
+         (устройства · новости); раздел занимает оставшееся место, длинные
          списки листаются страницами (PagedItems). -->
     <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="16">
             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="4,0">
@@ -71,18 +71,12 @@
                                 </TextBlock>
                                 <TextBlock FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"
                                            Text="{Binding ExpiryLabel, StringFormat='До {0}'}"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,3,0,0"
-                                            IsVisible="{Binding PersonalDiscountPercent, Converter={x:Static conv:Conv.NonZero}}">
-                                    <Path Classes="icon teal" Data="{StaticResource IconTag}" Width="12" Height="12"/>
-                                    <TextBlock FontWeight="Bold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TealDeepBrush}" Margin="4,0,0,0"
-                                               Text="{Binding PersonalDiscountPercent, StringFormat='Персональная скидка: −{0}%'}"/>
-                                </StackPanel>
                             </StackPanel>
                             <c:ActiveBadge Grid.Column="2" Text="АКТИВНА" IsVisible="{Binding IsSubscriptionActive}"/>
                         </Grid>
-                        <Button Classes="accent" Margin="0,12,0,0" Command="{Binding OpenRenewCommand}">
+                        <Button Classes="accent" Margin="0,12,0,0" Command="{Binding OpenCabinetCommand}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Продлить" FontSize="{s:Fs 14}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Оплатить в личном кабинете" FontSize="{s:Fs 14}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}" VerticalAlignment="Center"/>
                                 <Path Classes="icon white" Data="{StaticResource IconNorthEast}" Width="13" Height="13" Margin="7,0,0,0"/>
                             </StackPanel>
                         </Button>
@@ -94,48 +88,6 @@
                             SelectedIndex="{Binding SectionIndex, Mode=TwoWay}" ItemHeight="34" LabelFontSize="12" Margin="0,12,0,0"/>
 
         <Panel Grid.Row="3">
-            <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsTariffsSection}">
-                <c:SegmentedControl Grid.Row="0" Track="Glass" ItemsSource="{Binding Periods}" DisplayMemberPath="Label" SelectedIndex="{Binding SelectedPeriodIndex}"
-                                    ItemHeight="38" LabelFontSize="12" Margin="0,12,0,0"
-                                    IsVisible="{Binding Periods.Count, Converter={x:Static conv:Conv.NonZero}}"/>
-                <c:GlassPanel Grid.Row="1" Classes="card" Margin="0,12,0,0" VerticalAlignment="Top" IsVisible="{Binding Plans.Count, Converter={x:Static conv:Conv.NonZero}}">
-                    <c:PagedItems ItemsSource="{Binding Plans}">
-                        <c:PagedItems.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel>
-                                    <Rectangle Classes="hair pagedSep"/>
-                                    <Grid Classes="planRow" Classes.current="{Binding IsCurrent}">
-                                        <Grid ColumnDefinitions="*,Auto" Margin="14">
-                                            <StackPanel Margin="0,0,12,0">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{s:Fs 14}" VerticalAlignment="Center"/>
-                                                    <c:HoloBadge Text="Текущий" Icon="★" Margin="7,0,0,0" IsVisible="{Binding IsCurrent}"/>
-                                                </StackPanel>
-                                                <TextBlock Classes="muted" Text="{Binding Description}" FontSize="{s:Fs 11.5}" LineHeight="{s:Fs 16.7}" Margin="0,3,0,0"/>
-                                                <Button Classes="link" HorizontalAlignment="Left" Padding="0" FontSize="{s:Fs 10.5}" FontWeight="Bold" Margin="0,3,0,0"
-                                                        Command="{Binding ToggleExpandedCommand}" Content="{Binding ToggleLabel}" IsVisible="{Binding ShowDescriptionToggle}"/>
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="1" Text="{Binding PriceLabel}" FontWeight="Bold" FontSize="{s:Fs 17}" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Grid>
-                                </StackPanel>
-                            </DataTemplate>
-                        </c:PagedItems.ItemTemplate>
-                    </c:PagedItems>
-                </c:GlassPanel>
-                <Button Grid.Row="2" Classes="bare" HorizontalAlignment="Stretch" Margin="0,12,0,4" Command="{Binding OpenSupportCommand}">
-                    <c:GlassPanel Classes="pill" CornerRadius="24" Tint="{DynamicResource TerracottaTintBrush}" Padding="14,13">
-                        <Grid ColumnDefinitions="Auto,*">
-                            <Border Width="34" Height="34" CornerRadius="17" Background="{DynamicResource TerracottaBrush}">
-                                <Path Classes="icon white" Data="{StaticResource IconChat}" Width="16" Height="16"/>
-                            </Border>
-                            <TextBlock Grid.Column="1" Text="Остались проблемы или что-то не работает? Напиши в поддержку."
-                                       FontWeight="SemiBold" FontSize="{s:Fs 12}" LineHeight="{s:Fs 16.8}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                        </Grid>
-                    </c:GlassPanel>
-                </Button>
-            </Grid>
-
             <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsDevicesSection}">
                 <TextBlock Grid.Row="0" IsVisible="{Binding HasDevices}" Classes="section" Text="{Binding DevicesSectionLabel}" Margin="8,14,8,0"/>
                 <TextBlock Grid.Row="1" Classes="muted" Text="Список устройств появится, когда подписка будет активна." FontSize="{s:Fs 12.5}" Margin="8,16,8,0" IsVisible="{Binding !HasDevices}"/>
@@ -183,90 +135,6 @@
                                 <TextBlock Classes="rowSub" Text="Вход без почты: покажи QR-код новому телефону"/>
                             </StackPanel>
                             <Path Grid.Column="2" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="16" Height="16"/>
-                        </Grid>
-                    </c:GlassPanel>
-                </Button>
-            </Grid>
-
-            <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsFriendsSection}">
-                <TextBlock Grid.Row="0" Classes="section" Text="ПРИГЛАСИ ДРУЗЕЙ" Margin="8,14,8,0" IsVisible="{Binding HasReferral}"/>
-                <TextBlock Classes="muted" Text="Программа приглашений пока недоступна." FontSize="{s:Fs 12.5}" Margin="8,16,8,0" IsVisible="{Binding !HasProgram}"/>
-                <c:GlassPanel Grid.Row="1" Classes="card" Padding="14" Margin="0,8,0,0" VerticalAlignment="Top" IsVisible="{Binding HasReferral}">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
-                        <Border Height="44" Padding="14,0,6,0" CornerRadius="22" Background="{DynamicResource ChipBrush}"
-                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
-                            <Grid ColumnDefinitions="*,Auto,Auto">
-                                <TextBlock Text="{Binding Referral.Link}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" TextTrimming="CharacterEllipsis"
-                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <Button Grid.Column="1" Classes="bare" Command="{Binding ShowReferralQrCommand}" VerticalAlignment="Center"
-                                        Width="32" Height="32" Margin="0,0,6,0" ToolTip.Tip="QR-код ссылки">
-                                    <Border CornerRadius="16" Background="{DynamicResource ThumbBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
-                                        <Path Classes="icon teal" Data="{StaticResource IconQr}" Width="15" Height="15"/>
-                                    </Border>
-                                </Button>
-                                <Button Grid.Column="2" Classes="bare" Command="{Binding CopyReferralLinkCommand}" VerticalAlignment="Center">
-                                    <Border Height="32" Padding="12,0" CornerRadius="16" Background="{DynamicResource AccentGradientBrush}">
-                                        <TextBlock Text="Копировать" FontWeight="Bold" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource SurfaceBrush}" VerticalAlignment="Center"/>
-                                    </Border>
-                                </Button>
-                            </Grid>
-                        </Border>
-                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*,Auto,*" Margin="0,12,0,0">
-                            <StackPanel HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding Referral.TotalReferrals}" FontWeight="Bold" FontSize="{s:Fs 20}" HorizontalAlignment="Center"/>
-                                <TextBlock Classes="muted" Text="Приглашено" FontWeight="SemiBold" FontSize="{s:Fs 10.5}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                            <Rectangle Grid.Column="1" Classes="vhair"/>
-                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding Referral.ActiveReferrals}" FontWeight="Bold" FontSize="{s:Fs 20}" HorizontalAlignment="Center"/>
-                                <TextBlock Classes="muted" Text="Активных" FontWeight="SemiBold" FontSize="{s:Fs 10.5}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                            <Rectangle Grid.Column="3" Classes="vhair"/>
-                            <StackPanel Grid.Column="4" HorizontalAlignment="Center">
-                                <TextBlock FontWeight="Bold" FontSize="{s:Fs 20}" Foreground="{DynamicResource TealDeepBrush}" HorizontalAlignment="Center"
-                                           Text="{Binding Referral.TotalBonusDays, StringFormat='+{0}'}"/>
-                                <TextBlock Classes="muted" Text="Бонус дней" FontWeight="SemiBold" FontSize="{s:Fs 10.5}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
-                        <Rectangle Grid.Row="2" Classes="hair" Margin="0,12,0,4"/>
-                        <TextBlock Grid.Row="3" Classes="muted" Text="У вас пока нет приглашённых пользователей" Margin="0,7" IsVisible="{Binding !Referral.HasEntries}"/>
-                        <c:PagedItems Grid.Row="4" ItemsSource="{Binding Referral.Entries}">
-                            <c:PagedItems.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,7">
-                                        <Border Width="28" Height="28" CornerRadius="14" Background="{DynamicResource ChipBrush}"
-                                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
-                                            <TextBlock Text="{Binding Initial}" FontWeight="Bold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}"
-                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="10,0"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding BonusLabel}" FontWeight="Bold" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TealDeepBrush}"
-                                                   VerticalAlignment="Center" Margin="0,0,10,0" IsVisible="{Binding HasBonusLabel}"/>
-                                        <Border Grid.Column="3" Classes="refStatus" Classes.active="{Binding IsActive}" Height="22" CornerRadius="11"
-                                                BorderThickness="1" VerticalAlignment="Center">
-                                            <StackPanel Orientation="Horizontal" Margin="7,0,9,0" VerticalAlignment="Center">
-                                                <Ellipse Width="6" Height="6" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding StatusBadge}" FontWeight="ExtraBold" FontSize="{s:Fs 10}" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </Grid>
-                                </DataTemplate>
-                            </c:PagedItems.ItemTemplate>
-                        </c:PagedItems>
-                    </Grid>
-                </c:GlassPanel>
-                <Button Grid.Row="2" Classes="bare" HorizontalAlignment="Stretch" Margin="0,12,0,0" Command="{Binding OpenPartnerDashboardCommand}" IsVisible="{Binding HasPartner}">
-                    <c:GlassPanel Classes="card" CornerRadius="24" Padding="14">
-                        <Grid ColumnDefinitions="Auto,*,Auto">
-                            <Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource TealTintBrush}">
-                                <Path Classes="icon teal" Data="{StaticResource IconPeople}" Width="17" Height="17"/>
-                            </Border>
-                            <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                                <TextBlock Text="Партнёрская программа" FontWeight="Bold" FontSize="{s:Fs 13.5}"/>
-                                <TextBlock Classes="rowSub" Text="Процент с каждой оплаты твоих клиентов. Заявка и вывод — на сайте."/>
-                            </StackPanel>
-                            <Path Grid.Column="2" Classes="icon secondary" Data="{StaticResource IconNorthEast}" Width="14" Height="14"/>
                         </Grid>
                     </c:GlassPanel>
                 </Button>
