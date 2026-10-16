@@ -73,6 +73,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(UpdateIdleText))]
     private string appVersion = "—";
     [ObservableProperty] private string hwid = "—";
+    /// <summary>ID подписки (UUID клиента) — нужен поддержке; раньше висел на экране «Подписка».</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSubscriptionId))]
+    private string? subscriptionId;
+    public bool HasSubscriptionId => !string.IsNullOrEmpty(SubscriptionId);
+    /// <summary>Откуда взять ID подписки — задаёт App (SubscriptionRepository.SelectedNode).</summary>
+    public Func<string?>? SubscriptionIdSource { get; set; }
     [ObservableProperty] private string deviceInfo = "—";
     public string XrayVersion => BundledXrayVersion;
     [ObservableProperty] private LogFileItem selectedLogFile;
@@ -368,7 +375,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void OpenUpdates() => Page = SettingsPage.Updates;
 
     [RelayCommand]
-    private void OpenAbout() => Page = SettingsPage.About;
+    private void OpenAbout()
+    {
+        SubscriptionId = SubscriptionIdSource?.Invoke();
+        Page = SettingsPage.About;
+    }
 
     // ── Сайты мимо VPN (порт 6803326) ──
     public ObservableCollection<BypassDomainItem> BypassDomains { get; } = new();

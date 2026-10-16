@@ -99,26 +99,6 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(Loc.s.plansTitle, color = GodjiColors.TextPrimary, fontFamily = SpaceGroteskFamily, fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 28.sp, letterSpacing = (-0.6).sp)
                 Text(Loc.s.plansSubtitle, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 12.sp)
-                state.customerId?.let { id ->
-                    Row(
-                        Modifier
-                            .padding(top = 5.dp)
-                            .height(26.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(GodjiColors.Chip)
-                            .border(1.dp, GodjiColors.CardBorder, RoundedCornerShape(50))
-                            .clickable(onClickLabel = Loc.f.a11yCopyId) { clipboard.setText(AnnotatedString(id)) }
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            "${Loc.s.plansIdPrefix}$id", color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 11.sp,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
-                        )
-                        Icon(Icons.Filled.ContentCopy, contentDescription = null, tint = GodjiColors.TextSecondary, modifier = Modifier.size(12.dp))
-                    }
-                }
             }
             Spacer(Modifier.width(10.dp))
             Box(

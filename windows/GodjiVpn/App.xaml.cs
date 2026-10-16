@@ -100,6 +100,7 @@ public partial class App : Application
         var serversViewModel = new ServersViewModel(subscriptionRepository, pingService, customNodeStore, favoriteServersStore, appSettings);
         var plansViewModel = new PlansViewModel(apiClient, subscriptionRepository, tokenStore);
         var settingsViewModel = new SettingsViewModel(tokenStore, vpnEngine, hwidProvider, pingSettings, themeService, updateService, apiClient, appSettings, networkRules);
+        settingsViewModel.SubscriptionIdSource = () => subscriptionRepository.SelectedNode?.Uuid;
         var shellViewModel = new ShellViewModel(connectViewModel, serversViewModel, plansViewModel, settingsViewModel);
         var mainViewModel = new MainViewModel(tokenStore, loginViewModel, shellViewModel);
         // Выход из аккаунта или истёкшая сессия — забыть подписку, новости и серверы прежнего

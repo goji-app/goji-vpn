@@ -57,6 +57,8 @@ data class SettingsUiState(
     val appVersion: String = BuildConfig.VERSION_NAME,
     val xrayVersion: String = SettingsViewModel.BUNDLED_XRAY_VERSION,
     val hwid: String = "",
+    /** ID подписки (UUID клиента) — нужен поддержке; раньше висел на экране «Подписка». */
+    val subscriptionId: String? = null,
     val deviceInfo: String = "${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE}",
     val leakChecking: Boolean = false,
     val leakReport: NetworkDiagnostics.Report? = null,
@@ -90,7 +92,8 @@ class SettingsViewModel @Inject constructor(
                 killSwitch = settingsRepository.killSwitchEnabled.first(),
                 haptics = settingsRepository.hapticsEnabled.first(),
                 logLevel = settingsRepository.logLevelNow(),
-                hwid = subscriptionRepository.hwidNow()
+                hwid = subscriptionRepository.hwidNow(),
+                subscriptionId = subscriptionRepository.clientUuid()
             )
         }
     }

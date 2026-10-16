@@ -70,19 +70,6 @@ struct SubscriptionView: View {
             }
             .padding(14)
             .background(GlassSurface())
-            if let uuid = store.clientUUID {
-                Button {
-                    UIPasteboard.general.string = uuid
-                    model.toast = L("common.copied")
-                } label: {
-                    Text("ID: \(uuid)")
-                        .font(GojiFont.manrope(11, .medium, relativeTo: .caption2).monospaced())
-                        .foregroundStyle(GojiColor.textMuted)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint(L("common.tap_to_copy"))
-            }
         }
         .refreshable {
             await store.refresh()

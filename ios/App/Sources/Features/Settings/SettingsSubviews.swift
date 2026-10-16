@@ -324,6 +324,7 @@ struct LogsView: View {
 
 struct AboutView: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var store: SubscriptionStore
     @State private var xrayVersion = "…"
 
     var body: some View {
@@ -332,7 +333,9 @@ struct AboutView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     item(L("about.version"), "\(AppConstants.appVersion) (\(AppConstants.buildNumber))")
                     item(L("about.xray"), xrayVersion)
-                    item("HWID", DeviceID.hwid)
+                    // ID подписки нужен поддержке — раньше висел внизу экрана «Подписка».
+                    if let uuid = store.clientUUID { item(L("about.subscription_id"), uuid) }
+                    item(L("about.device_code"), DeviceID.hwid)
                     item(L("about.device"), "\(DeviceModel.identifier) · iOS \(UIDevice.current.systemVersion)")
                 }
             }

@@ -126,7 +126,6 @@ public sealed partial class PlansViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(DevicesCountLabel))]
     [NotifyPropertyChangedFor(nameof(DevicesSectionLabel))]
     private int deviceLimit;
-    [ObservableProperty] private string? customerId;
     [ObservableProperty] private bool refreshing;
     [ObservableProperty] private bool isNewsExpanded;
     [ObservableProperty] private int newsPageIndex;
@@ -256,8 +255,6 @@ public sealed partial class PlansViewModel : ObservableObject
         {
             case nameof(SubscriptionRepository.Subscription): RunOnUi(ApplySubscription); break;
             case nameof(SubscriptionRepository.Broadcasts): RunOnUi(ApplyNews); break;
-            case nameof(SubscriptionRepository.SelectedId):
-            case nameof(SubscriptionRepository.Nodes): RunOnUi(() => CustomerId = _subscription.SelectedNode?.Uuid); break;
         }
     }
 
@@ -286,7 +283,6 @@ public sealed partial class PlansViewModel : ObservableObject
         DaysLeft = sub?.DaysLeft ?? 0;
         DaysTotal = sub is { } s0 ? SubscriptionPeriod.TotalDays(s0.Id, s0.DaysLeft) : 30;
         DeviceLimit = sub?.DeviceLimit ?? 0;
-        CustomerId = _subscription.SelectedNode?.Uuid;
         _subscriptionId = sub?.Id;
         DevicesDeleteSupportOnly = sub?.Kind == "trial" || sub?.Kind == "free";
         OnPropertyChanged(nameof(HasDevices));
@@ -372,6 +368,25 @@ public sealed partial class PlansViewModel : ObservableObject
         };
     }
 
+    private const int Windows11FirstBuild = 22000;
+
+    /// <summary>«Windows 11» вместо «Windows · 11_10.0.26200», «Android 16» вместо «Android · 16»
+    /// (как на Android, PlansViewModel.osLabel).</summary>
+    private static string? OsLabel(string? platform, string? osVersion)
+    {
+        var name = platform?.Trim() ?? "";
+        // Happ присылает «11_10.0.26200»: до «_» — маркетинговая версия, дальше — сборка.
+        var version = (osVersion?.Trim() ?? "").Split('_')[0];
+        if (name.Equals("Windows", StringComparison.OrdinalIgnoreCase) && version.StartsWith("10.0."))
+        {
+            var parts = version.Split('.');
+            version = parts.Length > 2 && int.TryParse(parts[2], out var build) && build >= Windows11FirstBuild ? "11" : "10";
+        }
+        if (name.Length == 0) return version.Length > 0 ? version : null;
+        if (version.Length == 0) return name;
+        return version.StartsWith(name, StringComparison.OrdinalIgnoreCase) ? version : $"{name} {version}";
+    }
+
     private static DeviceItem ToDeviceItem(DeviceDto d) => new()
     {
         Hwid = d.Hwid,
@@ -379,7 +394,7 @@ public sealed partial class PlansViewModel : ObservableObject
         // и клиент (User-Agent до первого «/»).
         Name = new[] { d.ReadableName, d.DeviceModel, d.Platform }.Select(x => x?.Trim()).FirstOrDefault(x => !string.IsNullOrEmpty(x))
              ?? d.Hwid[..Math.Min(8, d.Hwid.Length)],
-        Details = string.Join(" · ", new[] { d.Platform, d.OsVersion, d.UserAgent?.Split('/')[0] }
+        Details = string.Join(" · ", new[] { OsLabel(d.Platform, d.OsVersion), d.UserAgent?.Split('/')[0] }
             .Select(x => x?.Trim()).Where(x => !string.IsNullOrEmpty(x))),
         CreatedAtLabel = d.CreatedAt is { } ca ? DateFormat.FormatDate(ca) : null
     };
@@ -576,12 +591,6 @@ public sealed partial class PlansViewModel : ObservableObject
         OnPropertyChanged(nameof(HasNews));
         NewsPrevPageCommand.NotifyCanExecuteChanged();
         NewsNextPageCommand.NotifyCanExecuteChanged();
-    }
-
-    [RelayCommand]
-    private void CopyCustomerId()
-    {
-        if (!string.IsNullOrEmpty(CustomerId)) Clipboard.SetText(CustomerId);
     }
 
     private static void OpenUrl(string url) => UrlLauncher.TryOpen(url);

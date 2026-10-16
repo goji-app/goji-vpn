@@ -102,7 +102,7 @@
                         <Button Style="{StaticResource LinkRowButton}" Content="Обновления" Tag="Версия программы и новые выпуски"
                                 Command="{Binding OpenUpdatesCommand}"/>
                         <Rectangle Style="{StaticResource Hair}"/>
-                        <Button Style="{StaticResource LinkRowButton}" Content="О программе" Tag="Версии, HWID, журналы"
+                        <Button Style="{StaticResource LinkRowButton}" Content="О программе" Tag="Версии, ID подписки, код устройства, журналы"
                                 Command="{Binding OpenAboutCommand}"/>
                 </StackPanel>
             </controls:GlassPanel>
@@ -326,7 +326,11 @@
                     <Rectangle Style="{StaticResource Hair}"/>
                     <Button Style="{StaticResource AboutRowButton}" Content="Версия XRAY" Tag="{Binding XrayVersion}"/>
                     <Rectangle Style="{StaticResource Hair}"/>
-                    <Button Style="{StaticResource AboutRowButton}" Content="HWID" Tag="{Binding Hwid}"/>
+                    <StackPanel Visibility="{Binding HasSubscriptionId, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Button Style="{StaticResource AboutRowButton}" Content="ID подписки" Tag="{Binding SubscriptionId}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                    </StackPanel>
+                    <Button Style="{StaticResource AboutRowButton}" Content="Код устройства" Tag="{Binding Hwid}"/>
                     <Rectangle Style="{StaticResource Hair}"/>
                     <Button Style="{StaticResource AboutRowButton}" Content="Об устройстве" Tag="{Binding DeviceInfo}"/>
                 </StackPanel>

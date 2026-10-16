@@ -274,6 +274,8 @@
 "about.version" = "Версия";
 "about.xray" = "Ядро";
 "about.device" = "Устройство";
+"about.subscription_id" = "ID подписки";
+"about.device_code" = "Код устройства";
 "about.copy_hint" = "Нажмите на строку, чтобы скопировать — пригодится поддержке.";
 "about.licenses" = "Открытые компоненты";
 "about.licenses.text" = "Xray-core и libXray (MPL-2.0 / MIT, Project X), шрифты Manrope и Instrument Serif (SIL Open Font License 1.1), геоданные runetfreedom/russia-v2ray-rules-dat и hxehex/russia-mobile-internet-whitelist.";

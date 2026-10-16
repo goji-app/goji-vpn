@@ -53,7 +53,6 @@ data class PlansUiState(
     /** Длина оплаченного периода (см. util/SubscriptionPeriod) — кольцо = daysLeft / daysTotal. */
     val daysTotal: Int = 30,
     val refreshing: Boolean = false,
-    val customerId: String? = null,
     val news: List<NewsUi> = emptyList(),
     val newsExpanded: Boolean = false,
     val newsPage: Int = 0,
@@ -83,16 +82,35 @@ private fun maskEmail(email: String): String {
 }
 
 // Так же, как на сайте (ClientDashboard): название — своё имя устройства, иначе модель,
-// иначе платформа; под ним — платформа, версия ОС и клиент (User-Agent до первого «/»).
+// иначе платформа; под ним — система с версией по-человечески и клиент (User-Agent до «/»).
 private fun DeviceDto.toUi(): DeviceUi = DeviceUi(
     hwid = hwid,
     name = listOf(readableName, deviceModel, platform).firstNotNullOfOrNull { it?.trim()?.takeIf(String::isNotEmpty) }
         ?: hwid.take(8),
-    details = listOf(platform, osVersion, userAgent?.trim()?.substringBefore('/'))
+    details = listOf(osLabel(platform, osVersion), userAgent?.trim()?.substringBefore('/'))
         .mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
         .joinToString(" · "),
     createdAtLabel = createdAt?.let(::formatDate)
 )
+
+/** «Windows 11» вместо «Windows · 11_10.0.26200», «Android 16» вместо «Android · 16». */
+internal fun osLabel(platform: String?, osVersion: String?): String? {
+    val name = platform?.trim().orEmpty()
+    // Happ присылает «11_10.0.26200»: до «_» — маркетинговая версия, дальше — сборка.
+    var version = osVersion?.trim()?.substringBefore('_').orEmpty()
+    if (name.equals("Windows", ignoreCase = true) && version.startsWith("10.0.")) {
+        val build = version.split('.').getOrNull(2)?.toIntOrNull()
+        version = if (build != null && build >= WINDOWS_11_FIRST_BUILD) "11" else "10"
+    }
+    return when {
+        name.isEmpty() -> version.ifEmpty { null }
+        version.isEmpty() -> name
+        version.startsWith(name, ignoreCase = true) -> version
+        else -> "$name $version"
+    }
+}
+
+private const val WINDOWS_11_FIRST_BUILD = 22000
 
 private fun displayNameFor(e: ReferralEntry): String {
     e.tgUsername?.takeIf { it.isNotBlank() }?.let { return "@" + maskHalf(it) }
@@ -174,7 +192,6 @@ class PlansViewModel @Inject constructor(
             // что зашит в конфиг узлов, реальный Remnawave-идентификатор, в отличие от
             // customer_id (UUID шоп-бэкенда) и subscription.id (внутренний ID шоп-бэкенда) —
             // ни один из них не находится в панели Remnawave по словам пользователя.
-            customerId = subscriptionRepository.clientUuid(),
             subscriptionId = sub.id,
             devicesDeleteSupportOnly = sub.kind == "trial" || sub.kind == "free",
             deviceLimit = sub.deviceLimit

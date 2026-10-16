@@ -40,17 +40,6 @@
                 <StackPanel>
                     <TextBlock Classes="title" Text="Твоя подписка"/>
                     <TextBlock Classes="muted" Text="Продлевается вручную — списаний врасплох не будет" Margin="0,3,0,0"/>
-                    <Button Classes="bare" HorizontalAlignment="Left" Margin="0,8,0,0" Command="{Binding CopyCustomerIdCommand}"
-                            IsVisible="{Binding CustomerId, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <Border Height="26" Padding="10,0" CornerRadius="13" Background="{DynamicResource ChipBrush}"
-                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock FontWeight="SemiBold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
-                                           Text="{Binding CustomerId, StringFormat='ID: {0}'}"/>
-                                <Path Classes="icon secondary" Data="{StaticResource IconCopy}" Width="12" Height="12" Margin="6,0,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </Button>
                 </StackPanel>
                 <Button Grid.Column="1" Classes="circle" VerticalAlignment="Top" Margin="10,0,0,0" Command="{Binding RefreshCommand}">
                     <Panel>

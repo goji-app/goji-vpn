@@ -27,20 +27,6 @@
                     <TextBlock Text="Твоя подписка" Style="{StaticResource ScreenTitle}"/>
                     <TextBlock Text="Продлевается вручную — списаний врасплох не будет" FontWeight="Medium" FontSize="{s:Fs 12}"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap"/>
-                    <Button Style="{StaticResource BareButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
-                            Command="{Binding CopyCustomerIdCommand}"
-                            Visibility="{Binding CustomerId, Converter={StaticResource NullToVisibilityConverter}}">
-                        <controls:PillBorder Height="26" Padding="10,0" Background="{DynamicResource ChipBrush}"
-                                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock FontWeight="SemiBold" FontSize="{s:Fs 11}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center">
-                                    <Run Text="ID: "/><Run Text="{Binding CustomerId, Mode=OneWay}"/>
-                                </TextBlock>
-                                <Path Data="{StaticResource IconCopy}" Style="{StaticResource Icon}" Width="12" Height="12"
-                                      Fill="{DynamicResource TextSecondaryBrush}" Margin="6,0,0,0"/>
-                            </StackPanel>
-                        </controls:PillBorder>
-                    </Button>
                 </StackPanel>
                 <Button Grid.Column="1" Style="{StaticResource GlassCircleButton}" VerticalAlignment="Top" Margin="10,0,0,0"
                         Command="{Binding RefreshCommand}">

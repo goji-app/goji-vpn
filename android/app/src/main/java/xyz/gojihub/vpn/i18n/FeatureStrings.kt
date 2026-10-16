@@ -171,12 +171,12 @@ data class FeatureStrings(
     val a11yStateConnecting: String,
     val a11yRenameDevice: (name: String) -> String,
     val a11yDeleteDevice: (name: String) -> String,
-    val a11yCopyId: String,
     val logoutConfirmTitle: String,
     val logoutConfirmText: String,
     val logoutConfirm: String,
     val a11yFavorite: String,
     val a11yPingOne: String,
+    val aboutSubscriptionId: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -330,7 +330,7 @@ data class FeatureStrings(
             setSecurityDesc = "Проверка утечек IP и DNS",
             setNotificationsDesc = "Закреплённое уведомление и вибрация",
             setUpdatesDesc = "Версия приложения и новые выпуски",
-            setAboutDesc = "Версии, HWID, журналы",
+            setAboutDesc = "Версии, ID подписки, код устройства, журналы",
             deleteAccount = "Удалить аккаунт",
             deleteAccountTitle = "Удалить аккаунт?",
             deleteAccountText = "Заявка уйдёт в поддержку. Аккаунт Goji VPN удаляется после того, как поддержка её обработает, — вместе со связанными данными: подпиской, устройствами, обращениями в поддержку. Активная подписка аннулируется, отменить удаление нельзя. После отправки заявки вы выйдете из аккаунта.",
@@ -357,12 +357,12 @@ data class FeatureStrings(
             a11yStateConnecting = "Подключение",
             a11yRenameDevice = { "Переименовать «$it»" },
             a11yDeleteDevice = { "Удалить «$it»" },
-            a11yCopyId = "Скопировать ID",
             logoutConfirmTitle = "Выйти из аккаунта?",
             logoutConfirmText = "VPN отключится. Чтобы войти снова, понадобится код из письма.",
             logoutConfirm = "Выйти",
             a11yFavorite = "Избранное",
             a11yPingOne = "Проверить пинг",
+            aboutSubscriptionId = "ID подписки",
         )
 
         private val EN = FeatureStrings(
@@ -510,7 +510,7 @@ data class FeatureStrings(
             setSecurityDesc = "IP and DNS leak test",
             setNotificationsDesc = "Pinned notification and vibration",
             setUpdatesDesc = "App version and new releases",
-            setAboutDesc = "Versions, HWID, logs",
+            setAboutDesc = "Versions, subscription ID, device code, logs",
             deleteAccount = "Delete account",
             deleteAccountTitle = "Delete account?",
             deleteAccountText = "The request goes to support. Your Goji VPN account is deleted once support processes it, together with its data: subscription, devices, support tickets. An active subscription is cancelled, deletion cannot be undone. You will be signed out after sending the request.",
@@ -537,12 +537,12 @@ data class FeatureStrings(
             a11yStateConnecting = "Connecting",
             a11yRenameDevice = { "Rename “$it”" },
             a11yDeleteDevice = { "Remove “$it”" },
-            a11yCopyId = "Copy ID",
             logoutConfirmTitle = "Log out?",
             logoutConfirmText = "VPN will be disconnected. To sign in again you will need a code from your email.",
             logoutConfirm = "Log out",
             a11yFavorite = "Favorite",
             a11yPingOne = "Check ping",
+            aboutSubscriptionId = "Subscription ID",
         )
 
         private val ZH = FeatureStrings(
@@ -690,7 +690,7 @@ data class FeatureStrings(
             setSecurityDesc = "IP 和 DNS 泄漏检测",
             setNotificationsDesc = "常驻通知和振动",
             setUpdatesDesc = "应用版本和新版本",
-            setAboutDesc = "版本、HWID、日志",
+            setAboutDesc = "版本、订阅 ID、设备识别码、日志",
             deleteAccount = "删除账户",
             deleteAccountTitle = "删除账户？",
             deleteAccountText = "请求将发送给客服。客服处理后，您的 Goji VPN 账户及相关数据（订阅、设备、客服工单）将被删除。有效订阅将被取消，删除无法撤销。发送请求后您将退出登录。",
@@ -717,12 +717,12 @@ data class FeatureStrings(
             a11yStateConnecting = "正在连接",
             a11yRenameDevice = { "重命名“$it”" },
             a11yDeleteDevice = { "删除“$it”" },
-            a11yCopyId = "复制 ID",
             logoutConfirmTitle = "退出登录？",
             logoutConfirmText = "VPN 将断开。再次登录需要邮件中的验证码。",
             logoutConfirm = "退出",
             a11yFavorite = "收藏",
             a11yPingOne = "检测延迟",
+            aboutSubscriptionId = "订阅 ID",
         )
     }
 }

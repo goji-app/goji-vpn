@@ -302,6 +302,10 @@ fun SettingsScreen(
                     Hair()
                     AboutRow(Loc.s.settingsXrayVersion, state.xrayVersion)
                     Hair()
+                    state.subscriptionId?.let {
+                        AboutRow(Loc.f.aboutSubscriptionId, it)
+                        Hair()
+                    }
                     AboutRow(Loc.s.settingsHwid, state.hwid)
                     Hair()
                     AboutRow(Loc.s.settingsDeviceInfo, state.deviceInfo)

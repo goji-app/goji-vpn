@@ -199,10 +199,29 @@ struct DeviceInfo: Decodable, Identifiable, Equatable {
 
     /// Строка под названием, как на сайте: платформа · версия ОС · клиент (User-Agent до «/»).
     var details: String {
-        [platform, osVersion, userAgent?.split(separator: "/").first.map(String.init)]
+        [Self.osLabel(platform: platform, osVersion: osVersion), userAgent?.split(separator: "/").first.map(String.init)]
             .compactMap { $0?.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
             .joined(separator: " · ")
+    }
+
+    private static let windows11FirstBuild = 22000
+
+    /// «Windows 11» вместо «Windows · 11_10.0.26200», «Android 16» вместо «Android · 16»
+    /// (как на Android, PlansViewModel.osLabel).
+    static func osLabel(platform: String?, osVersion: String?) -> String? {
+        let name = platform?.trimmingCharacters(in: .whitespaces) ?? ""
+        // Happ присылает «11_10.0.26200»: до «_» — маркетинговая версия, дальше — сборка.
+        var version = (osVersion?.trimmingCharacters(in: .whitespaces) ?? "")
+            .split(separator: "_", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? ""
+        if name.caseInsensitiveCompare("Windows") == .orderedSame, version.hasPrefix("10.0.") {
+            let parts = version.split(separator: ".")
+            let build = parts.count > 2 ? Int(parts[2]) : nil
+            version = (build ?? 0) >= windows11FirstBuild ? "11" : "10"
+        }
+        if name.isEmpty { return version.isEmpty ? nil : version }
+        if version.isEmpty { return name }
+        return version.lowercased().hasPrefix(name.lowercased()) ? version : "\(name) \(version)"
     }
 
     enum CodingKeys: String, CodingKey {

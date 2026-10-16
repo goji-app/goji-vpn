@@ -94,7 +94,7 @@
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel>
                                 <TextBlock Classes="rowTitle" Text="О программе"/>
-                                <TextBlock Classes="rowSub" Text="Версии, HWID, журналы"/>
+                                <TextBlock Classes="rowSub" Text="Версии, ID подписки, код устройства, журналы"/>
                             </StackPanel>
                             <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
                         </Grid>
@@ -306,9 +306,18 @@
                         </Grid>
                     </Button>
                     <Rectangle Classes="hair"/>
+                    <StackPanel IsVisible="{Binding HasSubscriptionId}">
+                        <Button Classes="row" Padding="14,12" Command="{Binding CopyAboutCommand}" CommandParameter="{Binding SubscriptionId}">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <TextBlock Classes="muted" Text="ID подписки" FontSize="{s:Fs 13}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SubscriptionId}" FontWeight="SemiBold" FontSize="{s:Fs 13}" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+                            </Grid>
+                        </Button>
+                        <Rectangle Classes="hair"/>
+                    </StackPanel>
                     <Button Classes="row" Padding="14,12" Command="{Binding CopyAboutCommand}" CommandParameter="{Binding Hwid}">
                         <Grid ColumnDefinitions="Auto,*">
-                            <TextBlock Classes="muted" Text="HWID" FontSize="{s:Fs 13}"/>
+                            <TextBlock Classes="muted" Text="Код устройства" FontSize="{s:Fs 13}"/>
                             <TextBlock Grid.Column="1" Text="{Binding Hwid}" FontWeight="SemiBold" FontSize="{s:Fs 13}" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
                         </Grid>
                     </Button>
