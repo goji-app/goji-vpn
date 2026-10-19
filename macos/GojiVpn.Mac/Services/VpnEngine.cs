@@ -462,6 +462,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
     private async Task<string> WriteXrayConfigAsync(VlessNode node)
     {
         var config = JsonNode.Parse(node.ConnectPayloadJson)!.AsObject();
+        XrayQuietDefaults.Apply(config);
         config["inbounds"] = new JsonArray(new JsonObject
         {
             ["tag"] = "socks-in",

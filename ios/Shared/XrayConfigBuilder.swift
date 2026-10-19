@@ -272,7 +272,15 @@ enum XrayConfigBuilder {
         }
 
         var log = root["log"] as? [String: Any] ?? [:]
-        if log["loglevel"] == nil { log["loglevel"] = options.logLevel == .debug ? "info" : "warning" }
+        // Батарея и память (2026-10-19, порт Android): бэкенд присылает loglevel "debug" с
+        // dnsLog — ядро писало строку на каждое соединение и DNS-запрос. Без режима отладки в
+        // приложении оставляем одни предупреждения, даже если профиль просит больше.
+        if options.logLevel == .debug {
+            if log["loglevel"] == nil { log["loglevel"] = "info" }
+        } else {
+            log["loglevel"] = "warning"
+            log["dnsLog"] = false
+        }
         if let error = options.errorLogPath { log["error"] = error }
         if options.logLevel == .debug, let access = options.accessLogPath {
             log["access"] = access
@@ -280,6 +288,51 @@ enum XrayConfigBuilder {
             log["access"] = "none"
         }
         root["log"] = log
+        relaxObservatory(&root)
+    }
+
+    /// Батарея (2026-10-19, порт Android): burstObservatory из профиля опрашивал все узлы раз в
+    /// минуту — круглосуточно, при погашенном экране тоже. Балансировщику для выбора живого
+    /// узла достаточно раза в 5 минут; реже, чем задал бэкенд, не делаем.
+    static let observatoryMinIntervalSeconds: Double = 5 * 60
+
+    static func relaxObservatory(_ root: inout [String: Any]) {
+        if var burst = root["burstObservatory"] as? [String: Any] {
+            var ping = burst["pingConfig"] as? [String: Any] ?? [:]
+            raiseInterval(&ping, field: "interval")
+            burst["pingConfig"] = ping
+            root["burstObservatory"] = burst
+        }
+        if var observatory = root["observatory"] as? [String: Any] {
+            raiseInterval(&observatory, field: "probeInterval")
+            root["observatory"] = observatory
+        }
+    }
+
+    static func raiseInterval(_ holder: inout [String: Any], field: String) {
+        let seconds = parseDurationSeconds(holder[field] as? String)
+        // Без значения у Xray действует дефолт (1 минута у burstObservatory) — тоже поднимаем.
+        if seconds == nil || seconds! < observatoryMinIntervalSeconds {
+            holder[field] = "\(Int(observatoryMinIntervalSeconds / 60))m"
+        }
+    }
+
+    /// "1m", "30s", "1m30s", "500ms", "2h" → секунды; nil, если строка пустая или непонятная.
+    static func parseDurationSeconds(_ value: String?) -> Double? {
+        guard let text = value?.trimmingCharacters(in: .whitespaces), !text.isEmpty,
+              let regex = try? NSRegularExpression(pattern: "(\\d+(?:\\.\\d+)?)(ms|s|m|h)") else { return nil }
+        let ns = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        guard !matches.isEmpty, matches.map({ ns.substring(with: $0.range) }).joined() == text else { return nil }
+        return matches.reduce(0.0) { total, m in
+            let n = Double(ns.substring(with: m.range(at: 1))) ?? 0
+            switch ns.substring(with: m.range(at: 2)) {
+            case "ms": return total + n / 1000
+            case "s": return total + n
+            case "m": return total + n * 60
+            default: return total + n * 3600
+            }
+        }
     }
 
     /// TCP keepalive 30с (NAT/мобильные сети рвут простаивающие соединения раньше дефолтных
