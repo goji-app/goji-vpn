@@ -71,7 +71,11 @@ final class SubscriptionStore: ObservableObject {
         do {
             let response: SubscriptionsResponse = try await api.get("api/subscriptions")
             let list = response.subscriptions ?? []
-            active = list.first { $0.isPrimary == true } ?? list.first
+            // Основная — но только среди подписок со ссылкой на серверы: с 2026-10-19 в списке
+            // бывает подписка без тарифа и ссылки, она не должна вытеснить рабочую.
+            let withLink = list.filter { !($0.subscriptionLink ?? "").isEmpty }
+            active = withLink.first { $0.isPrimary == true } ?? withLink.first { $0.isActive == true }
+                ?? withLink.first ?? list.first
             subscriptionLoaded = true
             // С бэкенда 7.1.0 список не отдаёт traffic — дозапрашиваем подробную запись.
             if let current = active, current.traffic == nil {

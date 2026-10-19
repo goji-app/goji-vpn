@@ -237,7 +237,14 @@ class SubscriptionRepository @Inject constructor(
             }
             .getOrNull()
         var active = response?.subscriptions
-            ?.let { list -> list.firstOrNull { it.isPrimary } ?: list.firstOrNull() }
+            // Основная — но только среди подписок со ссылкой на серверы: с 2026-10-19 в списке
+            // бывает подписка без тарифа и ссылки, она не должна вытеснить рабочую.
+            ?.let { list ->
+                list.firstOrNull { it.isPrimary && it.hasLink }
+                    ?: list.firstOrNull { it.isActive && it.hasLink }
+                    ?: list.firstOrNull { it.hasLink }
+                    ?: list.firstOrNull()
+            }
 
         // С бэкенда 7.1.0 список выше больше не содержит traffic (подтверждено живым
         // запросом) — дозапрашиваем полную запись по id, чтобы на экранах "Защита"/"Подписка"

@@ -232,8 +232,14 @@ public sealed class SubscriptionRepository : INotifyPropertyChanged
         }
         catch { /* новости не критичны для основного функционала */ }
 
-        var active = subsResponse.Subscriptions.FirstOrDefault(s => s.IsPrimary)
-            ?? subsResponse.Subscriptions.FirstOrDefault();
+        // Основная — но только среди подписок со ссылкой на серверы: с 2026-10-19 в списке бывает
+        // подписка без тарифа и ссылки (plan_name: null), она не должна вытеснить рабочую.
+        var subs = subsResponse.Subscriptions;
+        static bool HasLink(Models.SubscriptionInfo s) => !string.IsNullOrWhiteSpace(s.SubscriptionLink);
+        var active = subs.FirstOrDefault(s => s.IsPrimary && HasLink(s))
+            ?? subs.FirstOrDefault(s => s.IsActive && HasLink(s))
+            ?? subs.FirstOrDefault(HasLink)
+            ?? subs.FirstOrDefault();
 
         // С бэкенда 7.1.0 traffic не приходит в списке (см. SubscriptionInfo.Traffic) — если
         // его нет, дозапрашиваем одиночным эндпоинтом. Сбой дозапроса не должен откатывать уже

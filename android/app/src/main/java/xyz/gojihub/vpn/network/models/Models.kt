@@ -82,17 +82,23 @@ data class SubscriptionsResponse(
     val subscriptions: List<SubscriptionInfo>
 )
 
+/**
+ * 2026-10-19 в ответе появилась вторая подписка без тарифа: "plan_name": null. Обязательное
+ * поле роняло разбор ВСЕГО списка — на «Подписке» стало «0 дней», хотя основная подписка жива.
+ * Поэтому все поля из ответа необязательные (как в iOS), а экраны читают безопасные значения
+ * через свойства ниже. Имена в JSON прежние — сохранённый кэш (AccountCache) читается как раньше.
+ */
 @JsonClass(generateAdapter = true)
 data class SubscriptionInfo(
     val id: Long,
-    val name: String,
-    @Json(name = "is_primary") val isPrimary: Boolean,
-    @Json(name = "is_active") val isActive: Boolean,
-    @Json(name = "plan_name") val planName: String,
-    @Json(name = "expire_at") val expireAt: String, // ISO-8601
-    @Json(name = "days_left") val daysLeft: Int,
-    @Json(name = "subscription_link") val subscriptionLink: String,
-    @Json(name = "device_limit") val deviceLimit: Int,
+    @Json(name = "name") val nameOrNull: String? = null,
+    @Json(name = "is_primary") val isPrimaryOrNull: Boolean? = null,
+    @Json(name = "is_active") val isActiveOrNull: Boolean? = null,
+    @Json(name = "plan_name") val planNameOrNull: String? = null,
+    @Json(name = "expire_at") val expireAtOrNull: String? = null, // ISO-8601
+    @Json(name = "days_left") val daysLeftOrNull: Int? = null,
+    @Json(name = "subscription_link") val subscriptionLinkOrNull: String? = null,
+    @Json(name = "device_limit") val deviceLimitOrNull: Int? = null,
     // Начиная с бэкенда 7.1.0 список /api/subscriptions больше не отдаёт traffic вообще
     // (подтверждено живым запросом) — переехал в отдельный GET /api/subscriptions/{id}.
     // null здесь — обычное дело, а не ошибка; SubscriptionRepository.refresh() отдельно
@@ -104,7 +110,18 @@ data class SubscriptionInfo(
     // Используется для разного порога уведомления об окончании (12ч для триала, 3 дня для
     // платных). Не приходит в старых ответах — по умолчанию null, тогда считаем "не триал".
     val kind: String? = null
-)
+) {
+    val name: String get() = nameOrNull.orEmpty()
+    val isPrimary: Boolean get() = isPrimaryOrNull == true
+    val isActive: Boolean get() = isActiveOrNull == true
+    val planName: String get() = planNameOrNull.orEmpty()
+    val expireAt: String get() = expireAtOrNull.orEmpty()
+    val daysLeft: Int get() = daysLeftOrNull ?: 0
+    val subscriptionLink: String get() = subscriptionLinkOrNull.orEmpty()
+    val deviceLimit: Int get() = deviceLimitOrNull ?: 0
+    /** Подписка, через которую реально можно подключиться (есть ссылка на список серверов). */
+    val hasLink: Boolean get() = subscriptionLink.isNotBlank()
+}
 
 @JsonClass(generateAdapter = true)
 data class TrafficInfo(
