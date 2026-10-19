@@ -144,7 +144,7 @@ struct SubscriptionView: View {
                             .font(GojiFont.caption())
                             .foregroundStyle(GojiColor.textSecondary)
                     }
-                    if let limit = sub.deviceLimit {
+                    if let limit = sub.effectiveDeviceLimit {
                         Label(L("sub.devices_limit", limit), systemImage: "iphone.gen3")
                             .font(GojiFont.caption())
                             .foregroundStyle(GojiColor.textSecondary)
@@ -166,7 +166,7 @@ struct SubscriptionView: View {
     private func devicesSection(_ sub: SubscriptionInfo) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: L("devices.title"), trailing: AnyView(
-                Text(L("devices.count", account.devices.count, sub.deviceLimit ?? 0))
+                Text(L("devices.count", account.devices.count, sub.effectiveDeviceLimit ?? 0))
                     .font(GojiFont.caption())
                     .foregroundStyle(GojiColor.textSecondary)
             ))

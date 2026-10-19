@@ -138,8 +138,23 @@ public sealed class SubscriptionInfo
     [JsonPropertyName("subscription_link")]
     public string SubscriptionLink { get; set; } = "";
 
+    /// <summary>Базовый лимит тарифа — без докупленных устройств; показывать DeviceLimit.</summary>
     [JsonPropertyName("device_limit")]
-    public int DeviceLimit { get; set; }
+    public int BaseDeviceLimit { get; set; }
+
+    [JsonPropertyName("applied_device_limit")]
+    public int? AppliedDeviceLimit { get; set; }
+
+    [JsonPropertyName("total_device_limit")]
+    public int? TotalDeviceLimit { get; set; }
+
+    [JsonPropertyName("extra_devices")]
+    public int? ExtraDevices { get; set; }
+
+    /// <summary>Сколько устройств можно подключить — как на сайте кабинета: applied_device_limit, иначе total_device_limit, иначе базовый лимит тарифа плюс докупленные устройства (device_limit + extra_devices). Базовый device_limit у тарифа с
+    /// докупленными устройствами меньше реального (было «6 из 2» при лимите 10).</summary>
+    [JsonIgnore]
+    public int DeviceLimit => AppliedDeviceLimit ?? TotalDeviceLimit ?? BaseDeviceLimit + (ExtraDevices ?? 0);
 
     /// <summary>"trial" на пробном тарифе, иначе null — не приходит в старых ответах бэкенда,
     /// см. Models.kt (Android): по умолчанию считаем "не триал".</summary>

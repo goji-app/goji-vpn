@@ -77,6 +77,9 @@ struct SubscriptionInfo: Codable, Equatable, Identifiable {
     let deviceLimit: Int?
     let traffic: TrafficInfo?
     let kind: String?
+    var appliedDeviceLimit: Int? = nil
+    var totalDeviceLimit: Int? = nil
+    var extraDevices: Int? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, traffic, kind
@@ -87,6 +90,18 @@ struct SubscriptionInfo: Codable, Equatable, Identifiable {
         case daysLeft = "days_left"
         case subscriptionLink = "subscription_link"
         case deviceLimit = "device_limit"
+        case appliedDeviceLimit = "applied_device_limit"
+        case totalDeviceLimit = "total_device_limit"
+        case extraDevices = "extra_devices"
+    }
+
+    /// Сколько устройств можно подключить — как на сайте кабинета: applied_device_limit, иначе total_device_limit, иначе базовый лимит тарифа плюс докупленные устройства (device_limit + extra_devices). Базовый device_limit у тарифа с докупленными
+    /// устройствами меньше реального (было «6 из 2» при лимите 10).
+    var effectiveDeviceLimit: Int? {
+        if let applied = appliedDeviceLimit { return applied }
+        if let total = totalDeviceLimit { return total }
+        guard let base = deviceLimit else { return extraDevices }
+        return base + (extraDevices ?? 0)
     }
 
     var isTrialOrFree: Bool { kind == "trial" || kind == "free" }

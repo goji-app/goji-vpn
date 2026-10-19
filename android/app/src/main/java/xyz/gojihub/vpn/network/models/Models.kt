@@ -99,6 +99,9 @@ data class SubscriptionInfo(
     @Json(name = "days_left") val daysLeftOrNull: Int? = null,
     @Json(name = "subscription_link") val subscriptionLinkOrNull: String? = null,
     @Json(name = "device_limit") val deviceLimitOrNull: Int? = null,
+    @Json(name = "applied_device_limit") val appliedDeviceLimit: Int? = null,
+    @Json(name = "total_device_limit") val totalDeviceLimit: Int? = null,
+    @Json(name = "extra_devices") val extraDevices: Int? = null,
     // Начиная с бэкенда 7.1.0 список /api/subscriptions больше не отдаёт traffic вообще
     // (подтверждено живым запросом) — переехал в отдельный GET /api/subscriptions/{id}.
     // null здесь — обычное дело, а не ошибка; SubscriptionRepository.refresh() отдельно
@@ -118,7 +121,9 @@ data class SubscriptionInfo(
     val expireAt: String get() = expireAtOrNull.orEmpty()
     val daysLeft: Int get() = daysLeftOrNull ?: 0
     val subscriptionLink: String get() = subscriptionLinkOrNull.orEmpty()
-    val deviceLimit: Int get() = deviceLimitOrNull ?: 0
+    /** Сколько устройств можно подключить — как на сайте кабинета: applied_device_limit, иначе total_device_limit, иначе базовый лимит тарифа плюс докупленные устройства (device_limit + extra_devices). Базовый device_limit у тарифа с докупленными
+     *  устройствами меньше реального (было «6 из 2» при лимите 10). */
+    val deviceLimit: Int get() = appliedDeviceLimit ?: totalDeviceLimit ?: ((deviceLimitOrNull ?: 0) + (extraDevices ?: 0))
     /** Подписка, через которую реально можно подключиться (есть ссылка на список серверов). */
     val hasLink: Boolean get() = subscriptionLink.isNotBlank()
 }
