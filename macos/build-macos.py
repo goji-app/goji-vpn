@@ -192,6 +192,11 @@ def macho_min_os(path):
     return result
 
 
+# Свежий официальный xray (Go 1.27) требует macOS 13 — приложение запускает его только там,
+# а на macOS 10.15–12 берёт Runtime/xray-legacy (см. VpnEngine.XrayExe).
+MODERN_ONLY = {os.path.join("Runtime", "xray"): (13, 0)}
+
+
 def check_min_os(app, arch):
     """Сборка не должна требовать macOS новее MIN_OS[arch] — иначе на старых системах не запустится."""
     limit = tuple(int(x) for x in MIN_OS[arch].split("."))
@@ -200,8 +205,10 @@ def check_min_os(app, arch):
         for name in filenames:
             full = os.path.join(dirpath, name)
             if is_macho(full):
+                rel = os.path.relpath(full, app)
+                allowed = next((v for k, v in MODERN_ONLY.items() if rel.endswith(k)), limit)
                 for a, v in macho_min_os(full):
-                    if a == arch and v > limit:
+                    if a == arch and v > allowed:
                         bad.append(f"{os.path.relpath(full, app)}: {v[0]}.{v[1]}")
     if bad:
         sys.exit(f"Требуют macOS новее {MIN_OS[arch]}:\n  " + "\n  ".join(bad))
@@ -332,7 +339,7 @@ def build(arch, ver):
     runtime_src = os.path.join(ROOT, "Runtime", arch)
     runtime_dst = os.path.join(app_dir, "Runtime")
     os.makedirs(runtime_dst)
-    for name in ("xray", "sing-box", "geoip.dat", "geosite.dat"):
+    for name in ("xray", "xray-legacy", "sing-box", "geoip.dat", "geosite.dat"):
         src = os.path.join(runtime_src, name)
         if not os.path.exists(src):
             sys.exit(f"Нет {src} — см. Runtime/README.md")

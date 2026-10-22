@@ -31,15 +31,15 @@ jobs:
       - name: Pillow
         run: pip install pillow
 
-      # xray и arm64/sing-box для macOS 10.15+/11+ собираются Go 1.26 с патчами;
+      # xray-legacy (для macOS 10.15–12) и arm64/sing-box собираются Go 1.26 с патчами;
       # результат кэшируется до изменения скрипта (версий ядра, Go, патчей).
       - name: Кэш ядра для старых macOS
         id: cores
         uses: actions/cache@v4
         with:
           path: |
-            macos/Runtime/x64/xray
-            macos/Runtime/arm64/xray
+            macos/Runtime/x64/xray-legacy
+            macos/Runtime/arm64/xray-legacy
             macos/Runtime/arm64/sing-box
           key: legacy-cores-${{ hashFiles('macos/Runtime/build-legacy-cores.sh') }}
 

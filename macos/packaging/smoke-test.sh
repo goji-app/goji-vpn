@@ -63,11 +63,13 @@ echo "== Ядро и TLS: проверка сертификатов систем
 for arch in arm64 x64; do
   rt="$APP/Contents/Resources/app-$arch/Runtime"
   run=""; [ $arch = x64 ] && run="/usr/bin/arch -x86_64"
-  for f in xray sing-box; do
+  for f in xray xray-legacy sing-box; do
     printf '%s %s: ' "$arch" "$f"; vtool -show-build "$rt/$f" | awk '/minos|^ *version/{print $1 " " $2; exit}'
     $run "$rt/$f" version | head -1 || status=1
   done
-  if $run "$rt/xray" tls ping www.apple.com 2>&1 | grep -qi "succeeded"; then echo "OK: $arch xray TLS"; else echo "FAIL: $arch xray TLS"; $run "$rt/xray" tls ping www.apple.com 2>&1 | tail -5; status=1; fi
+  for x in xray xray-legacy; do
+    if $run "$rt/$x" tls ping www.apple.com 2>&1 | grep -qi "succeeded"; then echo "OK: $arch $x TLS"; else echo "FAIL: $arch $x TLS"; $run "$rt/$x" tls ping www.apple.com 2>&1 | tail -5; status=1; fi
+  done
   if $run "$rt/sing-box" tools fetch https://www.apple.com/ > /dev/null 2>smoke/sb-fetch.err; then echo "OK: $arch sing-box TLS"; else echo "FAIL: $arch sing-box TLS"; cat smoke/sb-fetch.err; status=1; fi
 done
 

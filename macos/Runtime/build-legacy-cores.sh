@@ -1,8 +1,11 @@
 #!/bin/bash
 # Собирает ядро для старых macOS (запускать на Mac, в CI — шаг workflow macos.yml):
-#   x64/xray        — Intel, macOS 10.13+
-#   arm64/xray      — Apple Silicon, macOS 11+
-#   arm64/sing-box  — Apple Silicon, macOS 11+
+#   x64/xray-legacy   — Intel, macOS 10.13+ (приложение берёт его на macOS 10.15–12)
+#   arm64/xray-legacy — Apple Silicon, macOS 11+ (на macOS 11–12)
+#   arm64/sing-box    — Apple Silicon, macOS 11+
+# На macOS 13+ работает свежий официальный xray (fetch.sh): Xray-core с v26.10.x требует Go 1.27,
+# а Go 1.27 официально поддерживает только macOS 13+ и патчей SagerNet для него нет. Поэтому
+# xray-legacy остаётся на последней версии, собираемой Go 1.26 (v26.3.27).
 # (x64/sing-box берётся готовым: официальный sing-box-…-darwin-amd64-legacy-macos-10.13.)
 #
 # Официальные сборки Go 1.26 требуют macOS 12+. Как и sing-box для своих legacy-сборок, берём
@@ -15,10 +18,10 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-GO_VERSION=1.26.7
-GO_SHA256=020a1e8224811be75163e920bc77e0926a1390a6aeea19bdcf23f74b9d749f6d
+GO_VERSION=1.26.8
+GO_SHA256=a012b25b571bd0138a03dcd25375ceba866fe5ca822f426d2c66a4de56fd3f4b
 XRAY_TAG=v26.3.27
-SINGBOX_TAG=v1.14.0
+SINGBOX_TAG=v1.14.3
 SINGBOX_TAGS=with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_tailscale,with_ccm,with_ocm,with_cloudflared,with_openvpn,with_openconnect,badlinkname,tfogo_checklinkname0
 SINGBOX_LDFLAGS="-X runtime.godebugDefault=multipathtcp=0,tlssha1=1 -checklinkname=0"
 PATCHES=(
@@ -53,7 +56,7 @@ for arch in amd64 arm64; do
   (cd "$work/xray" && GOARCH=$arch MACOSX_DEPLOYMENT_TARGET=$target \
     go build -o "$work/xray-$arch" -trimpath -buildvcs=false \
       -ldflags "-linkmode=external -X github.com/xtls/xray-core/core.build=$commit -s -w -buildid=" ./main)
-  cp "$work/xray-$arch" "$dir/xray"
+  cp "$work/xray-$arch" "$dir/xray-legacy"
 done
 
 echo "== sing-box $SINGBOX_TAG (arm64)"
@@ -64,12 +67,12 @@ git clone -q --depth 1 --branch "$SINGBOX_TAG" https://github.com/SagerNet/sing-
     ./cmd/sing-box)
 mkdir -p arm64
 cp "$work/sing-box-arm64" arm64/sing-box
-chmod 755 x64/xray arm64/xray arm64/sing-box
+chmod 755 x64/xray-legacy arm64/xray-legacy arm64/sing-box
 
 echo "== Проверка"
-arm64/xray version | head -1
+arm64/xray-legacy version | head -1
 arm64/sing-box version | head -1
-for f in x64/xray arm64/xray arm64/sing-box; do
+for f in x64/xray-legacy arm64/xray-legacy arm64/sing-box; do
   # Для целей до 10.14 линкер пишет LC_VERSION_MIN_MACOSX (поле version), позже — LC_BUILD_VERSION (minos).
   printf '%s: ' "$f"; vtool -show-build "$f" | grep -E "minos|^ *version" | head -1 || true
 done

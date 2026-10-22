@@ -4,8 +4,8 @@
 # (версия + хэш из https://api.github.com/repos/XTLS/libXray/releases/tags/<версия>, поле digest).
 set -euo pipefail
 
-LIBXRAY_VERSION="v26.9.30"
-LIBXRAY_SHA256="91343cd7542f85dffb17c9e273f0afde207b0004aa49848949e69e4c12450f80"
+LIBXRAY_VERSION="v26.10.21"
+LIBXRAY_SHA256="f318d216bb3b16b18d7b04c54789d1feaa6b7571433ed5582c1fe776e3776ef1"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="${ROOT}/Frameworks"

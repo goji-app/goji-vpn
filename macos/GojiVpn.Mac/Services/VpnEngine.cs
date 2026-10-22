@@ -42,6 +42,22 @@ public sealed class VpnEngine : INotifyPropertyChanged
     public static VpnEngine? Current { get; private set; }
 
     public static string RuntimeDir => Path.Combine(AppContext.BaseDirectory, "Runtime");
+
+    /// <summary>Свежий xray (Go 1.27) работает только на macOS 13+; на 10.15–12 — xray-legacy,
+    /// последняя версия, которую ещё можно собрать под старые macOS (Runtime/build-legacy-cores.sh).</summary>
+    public static string XrayExe
+    {
+        get
+        {
+            var modern = Path.Combine(RuntimeDir, "xray");
+            var legacy = Path.Combine(RuntimeDir, "xray-legacy");
+            if (OperatingSystem.IsMacOSVersionAtLeast(13) || !File.Exists(legacy)) return modern;
+            return legacy;
+        }
+    }
+
+    /// <summary>Имена процессов ядра — оба варианта.</summary>
+    public static readonly string[] XrayProcessNames = { "xray", "xray-legacy" };
     private static string StateDir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GodjiVpn");
     private static string LogsDir => Path.Combine(StateDir, "logs");
@@ -377,7 +393,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
 
     private static Process StartXray(string configPath, StreamWriter log)
     {
-        var exe = Path.Combine(RuntimeDir, "xray");
+        var exe = XrayExe;
         if (!File.Exists(exe)) throw new FileNotFoundException("Не найден xray в Runtime внутри приложения.", exe);
         var psi = new ProcessStartInfo(exe)
         {
@@ -402,7 +418,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
 
     private static void KillStrayXray()
     {
-        foreach (var p in Process.GetProcessesByName("xray"))
+        foreach (var p in XrayProcessNames.SelectMany(Process.GetProcessesByName))
         {
             try
             {
@@ -591,7 +607,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
                     new JsonObject { ["action"] = "sniff" },
                     // Сначала свои процессы: иначе DNS-запросы самого xray перехватывались бы
                     // и уходили обратно в xray по кругу.
-                    new JsonObject { ["process_name"] = new JsonArray("xray", "GojiVpn"), ["outbound"] = "direct" },
+                    new JsonObject { ["process_name"] = new JsonArray("xray", "xray-legacy", "GojiVpn"), ["outbound"] = "direct" },
                     new JsonObject { ["protocol"] = "dns", ["action"] = "hijack-dns" },
                     new JsonObject { ["ip_cidr"] = new JsonArray("169.254.0.0/16"), ["action"] = "reject" }),
                 ["final"] = "socks-out"

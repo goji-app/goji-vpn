@@ -93,7 +93,7 @@ public sealed class PingService
         {
             File.WriteAllText(configPath, await BuildConfigAsync(node, port).ConfigureAwait(false));
 
-            var exePath = Path.Combine(RuntimeDir, "xray");
+            var exePath = VpnEngine.XrayExe;
             if (!File.Exists(exePath)) return -1;
 
             var psi = new ProcessStartInfo(exePath, $"run -c \"{configPath}\"")

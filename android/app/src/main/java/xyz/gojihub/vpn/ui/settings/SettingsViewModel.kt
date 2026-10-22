@@ -128,7 +128,7 @@ class SettingsViewModel @Inject constructor(
         // источник версии теперь — только release notes XTLS/libXray на момент замены AAR.
         // При следующем обновлении libs/libXray.aar сверяться с https://github.com/XTLS/libXray/releases
         // и обновлять эту константу вручную.
-        const val BUNDLED_XRAY_VERSION = "v26.9.9"
+        const val BUNDLED_XRAY_VERSION = "v26.10.21"
     }
 
     fun setPinNotification(pinned: Boolean) {
