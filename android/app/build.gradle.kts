@@ -1,3 +1,4 @@
+import java.security.MessageDigest
 import java.util.Properties
 
 plugins {
@@ -27,6 +28,18 @@ fun gojiHost(name: String): String =
     (System.getenv(name) ?: gojiHosts.getProperty(name))?.trim()?.trimEnd('/')?.takeIf { it.startsWith("https://") }
         ?: throw GradleException("Не задан $name: положите goji-hosts.properties в корень репозитория (образец — goji-hosts.example.properties) или задайте переменную окружения")
 
+// Ядро libXray.aar в git не хранится. libs/libXray.version («<версия> <sha256>») — единственный
+// источник версии для «О программе», и сборка падает, если рядом лежит другой AAR: 1.0.125
+// ушла со старым ядром из папки сборки, а экран показывал новую версию.
+val xrayVersion: String = run {
+    val (version, sha) = file("libs/libXray.version").readText().trim().split(Regex("\\s+"))
+    val aar = file("libs/libXray.aar")
+    val actual = MessageDigest.getInstance("SHA-256").digest(aar.readBytes())
+        .joinToString("") { "%02x".format(it) }
+    if (actual != sha) throw GradleException("libs/libXray.aar не совпадает с libs/libXray.version ($version): $actual")
+    version
+}
+
 android {
     namespace = "xyz.gojihub.vpn"
     compileSdk = 37
@@ -35,11 +48,12 @@ android {
         applicationId = "xyz.gojihub.vpn"
         minSdk = 24 // VpnService + Reality нормально живут с 24+, но проверьте охват вашей аудитории
         targetSdk = 37
-        versionCode = 107
-        versionName = "1.0.125"
+        versionCode = 108
+        versionName = "1.0.126"
 
         buildConfigField("String", "SITE_URL", "\"${gojiHost("GOJI_SITE_URL")}\"")
         buildConfigField("String", "DOWNLOAD_URL", "\"${gojiHost("GOJI_DOWNLOAD_URL")}\"")
+        buildConfigField("String", "XRAY_VERSION", "\"$xrayVersion\"")
 
         // libXray.aar тянет нативные .so сразу под 4 ABI — реальные телефоны это почти
         // всегда arm64-v8a (и изредка armeabi-v7a на старых). x86/x86_64 нужны только

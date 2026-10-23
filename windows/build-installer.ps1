@@ -25,6 +25,15 @@ function Find-Iscc {
     throw "ISCC.exe не найден. Установите Inno Setup: winget install --id JRSoftware.InnoSetup -e"
 }
 
+Write-Host "== Проверка ядра (Runtime\SHA256SUMS) ==" -ForegroundColor Cyan
+# xray.exe и sing-box.exe в git не хранятся — сверяем, что в установщик уйдут именно те версии.
+$runtimeDir = Join-Path $root "GodjiVpn\Runtime"
+foreach ($line in Get-Content (Join-Path $runtimeDir "SHA256SUMS")) {
+    $expected, $name = $line -split '\s+', 2
+    $actual = (Get-FileHash (Join-Path $runtimeDir $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $expected) { throw "Runtime\$name не совпадает с Runtime\SHA256SUMS: $actual" }
+}
+
 Write-Host "== Очистка старых артефактов сборки ==" -ForegroundColor Cyan
 Remove-Item -Recurse -Force (Join-Path $root "GodjiVpn\bin"), (Join-Path $root "GodjiVpn\obj"), $publishDir -ErrorAction SilentlyContinue
 
@@ -39,7 +48,7 @@ Remove-Item -Force (Join-Path $publishDir "GodjiVpn.pdb"), `
     (Join-Path $publishDir "Microsoft.Web.WebView2.Core.xml"), `
     (Join-Path $publishDir "Microsoft.Web.WebView2.WinForms.xml"), `
     (Join-Path $publishDir "Microsoft.Web.WebView2.Wpf.xml") -ErrorAction SilentlyContinue
-Remove-Item -Force (Join-Path $publishDir "Runtime\README.txt") -ErrorAction SilentlyContinue
+Remove-Item -Force (Join-Path $publishDir "Runtime\README.txt"), (Join-Path $publishDir "Runtime\SHA256SUMS") -ErrorAction SilentlyContinue
 $satelliteLocales = "cs","de","es","fr","it","ja","ko","pl","pt-BR","ru","tr","zh-Hans","zh-Hant"
 foreach ($loc in $satelliteLocales) {
     Remove-Item -Recurse -Force (Join-Path $publishDir $loc) -ErrorAction SilentlyContinue

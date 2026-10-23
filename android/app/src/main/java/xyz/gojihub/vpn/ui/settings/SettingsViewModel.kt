@@ -55,7 +55,9 @@ data class SettingsUiState(
     val pingTestUrl: String = SettingsRepository.DEFAULT_PING_URL,
     val logLevel: LogLevel = LogLevel.DEFAULT,
     val appVersion: String = BuildConfig.VERSION_NAME,
-    val xrayVersion: String = SettingsViewModel.BUNDLED_XRAY_VERSION,
+    // libXray.invoke() не умеет отдавать версию ядра — она из libs/libXray.version, который
+    // сборка сверяет с самим AAR (см. build.gradle.kts).
+    val xrayVersion: String = BuildConfig.XRAY_VERSION,
     val hwid: String = "",
     /** ID подписки (UUID клиента) — нужен поддержке; раньше висел на экране «Подписка». */
     val subscriptionId: String? = null,
@@ -116,20 +118,6 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.setLogLevel(level) }
     }
 
-    companion object {
-        // libXray.invoke() в этой сборке AAR поддерживает только 8 методов (runXray, testXray,
-        // pingBatch, getFreePorts, countGeoData, generateAgeKeyPair, convertShareLinksToXrayJson,
-        // convertXrayJsonToShareLinks) — метода "версия ядра" среди них нет, поэтому его нельзя
-        // спросить в рантайме. До v26.9.9 версию можно было вытащить строкой из самого нативного
-        // .so ("REALITY: the default minimal client version is Xray-core vX.Y.Z", которую
-        // xray-core формировал из своей же core.Version()) — начиная с этого AAR (обновление
-        // XTLS/libXray "Updated Xray-core to v26.9.9 and refreshed dependencies") эта строка из
-        // бинарника пропала (grep по libgojni.so на "Xray-core" не находит ничего), так что
-        // источник версии теперь — только release notes XTLS/libXray на момент замены AAR.
-        // При следующем обновлении libs/libXray.aar сверяться с https://github.com/XTLS/libXray/releases
-        // и обновлять эту константу вручную.
-        const val BUNDLED_XRAY_VERSION = "v26.10.21"
-    }
 
     fun setPinNotification(pinned: Boolean) {
         _state.value = _state.value.copy(pinNotification = pinned)
