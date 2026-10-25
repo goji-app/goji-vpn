@@ -1,5 +1,5 @@
 // Версия приложения — единый источник для приложения и расширения туннеля.
 // Версия общая с Android, Windows и macOS (решение 2026-10-16).
 // App Store требует, чтобы CURRENT_PROJECT_VERSION (номер сборки) рос с каждой загрузкой.
-MARKETING_VERSION = 1.0.125
-CURRENT_PROJECT_VERSION = 3
+MARKETING_VERSION = 1.0.126
+CURRENT_PROJECT_VERSION = 4
