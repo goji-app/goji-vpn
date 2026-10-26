@@ -649,12 +649,24 @@ public sealed class VpnEngine : INotifyPropertyChanged
 
         var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var localLog = log;
-        process.OutputDataReceived += (_, e) => { if (e.Data != null) localLog.WriteLine(e.Data); };
-        process.ErrorDataReceived += (_, e) => { if (e.Data != null) localLog.WriteLine(e.Data); };
+        process.OutputDataReceived += (_, e) => AppendCoreLog(localLog, e.Data);
+        process.ErrorDataReceived += (_, e) => AppendCoreLog(localLog, e.Data);
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         return process;
+    }
+
+    /// <summary>Вывод ядра приходит из двух фоновых потоков и может прийти уже после закрытия
+    /// журнала (KillProcess) — исключение в таком потоке завершило бы весь процесс без сообщения.</summary>
+    private static void AppendCoreLog(StreamWriter log, string? line)
+    {
+        if (line == null) return;
+        lock (log)
+        {
+            try { log.WriteLine(line); }
+            catch (ObjectDisposedException) { }
+        }
     }
 
     private void KillProcess(ref Process? process, ref StreamWriter? log, string label)
@@ -671,7 +683,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
             process.Dispose();
             process = null;
         }
-        log?.Dispose();
+        if (log != null) lock (log) log.Dispose();
         log = null;
     }
 

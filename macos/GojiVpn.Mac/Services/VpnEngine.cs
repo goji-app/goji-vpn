@@ -369,7 +369,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
         try { if (_xrayProcess is { HasExited: false }) _xrayProcess.Kill(entireProcessTree: true); } catch { }
         _xrayProcess?.Dispose();
         _xrayProcess = null;
-        _xrayLog?.Dispose();
+        if (_xrayLog != null) lock (_xrayLog) _xrayLog.Dispose();
         _xrayLog = null;
         _tunInterface = null;
         IsRunning = false;
@@ -391,6 +391,18 @@ public sealed class VpnEngine : INotifyPropertyChanged
         catch { return null; }
     }
 
+    /// <summary>Вывод ядра приходит из двух фоновых потоков и может прийти уже после закрытия
+    /// журнала (KillProcess) — исключение в таком потоке завершило бы весь процесс без сообщения.</summary>
+    private static void AppendCoreLog(StreamWriter log, string? line)
+    {
+        if (line == null) return;
+        lock (log)
+        {
+            try { log.WriteLine(line); }
+            catch (ObjectDisposedException) { }
+        }
+    }
+
     private static Process StartXray(string configPath, StreamWriter log)
     {
         var exe = XrayExe;
@@ -408,8 +420,8 @@ public sealed class VpnEngine : INotifyPropertyChanged
         psi.ArgumentList.Add(configPath);
         psi.Environment["XRAY_LOCATION_ASSET"] = RuntimeDir;
         var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
-        process.OutputDataReceived += (_, e) => { if (e.Data != null) lock (log) log.WriteLine(e.Data); };
-        process.ErrorDataReceived += (_, e) => { if (e.Data != null) lock (log) log.WriteLine(e.Data); };
+        process.OutputDataReceived += (_, e) => AppendCoreLog(log, e.Data);
+        process.ErrorDataReceived += (_, e) => AppendCoreLog(log, e.Data);
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();

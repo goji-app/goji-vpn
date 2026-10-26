@@ -44,6 +44,12 @@ public partial class App : Application
             LogUnhandledException(args.Exception);
             args.SetObserved();
         };
+        // Исключение в фоновом потоке завершает процесс без сообщения — успеваем записать
+        // причину, её подхватит CrashReporter при следующем запуске.
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex) LogUnhandledException(ex);
+        };
 
         var activationUrl = e.Args.FirstOrDefault(a => a.StartsWith("godjivpn://", StringComparison.OrdinalIgnoreCase));
 
@@ -132,6 +138,10 @@ public partial class App : Application
             window.Hide();
         };
 
+        // До показа окна: если прошлый запуск упал при открытии главного экрана, этот упадёт там же.
+        if (!uiPreview && CrashReporter.TakePendingReport() is { } crashReport && tokenStore.IsLoggedIn)
+            OfferCrashReport(apiClient, crashReport);
+
         window.Show();
 
         // Входы через сайт, сделанные до исправления, сохранены без refresh-токена — разово
@@ -165,6 +175,25 @@ public partial class App : Application
         _updateCheckTimer.Start();
 
         await mainViewModel.InitializeAsync();
+    }
+
+    /// <summary>Прошлый запуск закрылся из-за сбоя (см. CrashReporter) — одним нажатием отправляем
+    /// описание в поддержку как обычное обращение.</summary>
+    private static void OfferCrashReport(ApiClient api, string report)
+    {
+        var dialog = new Views.PromptDialog
+        {
+            PromptTitle = "Goji VPN в прошлый раз неожиданно закрылся",
+            Message = "Отправить отчёт об ошибке в поддержку? В нём только техническое описание сбоя — так мы быстрее его исправим.",
+            ShowInput = false,
+            PrimaryText = "Отправить",
+            WindowStartupLocation = WindowStartupLocation.CenterScreen
+        };
+        if (dialog.ShowDialog() != true) return;
+        var version = UpdateService.CurrentVersion.ToString(3);
+        _ = api.CreateSupportTicketAsync($"Отчёт о сбое: Windows {version}",
+                $"Goji VPN {version}, {Environment.OSVersion.VersionString}\n\n{report}", queueId: null)
+            .ContinueWith(t => LogUnhandledException(t.Exception!), TaskContinuationOptions.OnlyOnFaulted);
     }
 
     /// <summary>Второй экземпляр процесса (случайный повторный запуск .exe) передаёт нам эстафету
