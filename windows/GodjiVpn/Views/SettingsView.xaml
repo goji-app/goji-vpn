@@ -288,9 +288,7 @@
                         <Border Background="{DynamicResource ChipBrush}" CornerRadius="16" Padding="12,10" Margin="0,10,0,0" MaxHeight="430"
                                 Visibility="{Binding HasUpdateChangelog, Converter={StaticResource BoolToVisibilityConverter}}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <RichTextBox utils:RichTextBoxBehavior.AttachedDocument="{Binding UpdateChangelogDocument}"
-                                             IsReadOnly="True" IsDocumentEnabled="True" Focusable="False" BorderThickness="0" Background="Transparent"
-                                             Padding="0" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled"/>
+                                <controls:RichTextView Document="{Binding UpdateChangelogDocument}" Focusable="False"/>
                             </ScrollViewer>
                         </Border>
                         <Button Style="{StaticResource AccentPillButton}" Height="44" FontSize="{s:Fs 13.5}" Margin="0,10,0,0"

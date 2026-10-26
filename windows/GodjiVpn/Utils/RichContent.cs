@@ -54,6 +54,7 @@ public static class RichContent
                 var p = NewParagraph();
                 p.FontSize = FontScale.Of(10);
                 p.SetResourceReference(TextElement.ForegroundProperty, "TextMutedBrush");
+                p.Tag = "TextMutedBrush"; // цвет абзаца для Controls/RichTextView
                 p.Inlines.Add(new Run($"[{id}] {text}"));
                 doc.Blocks.Add(p);
             }
@@ -183,6 +184,7 @@ public static class RichContent
                 p.FontStyle = FontStyles.Italic;
                 p.Margin = new Thickness(10, 2, 0, 6);
                 p.SetResourceReference(TextElement.ForegroundProperty, "TextMutedBrush");
+                p.Tag = "TextMutedBrush"; // цвет абзаца для Controls/RichTextView
                 AddInlines(trimmed.TrimStart('>').Trim(), p.Inlines);
                 blocks.Add(p);
                 i++; continue;
@@ -333,13 +335,7 @@ public static class RichContent
 
         var innerDoc = new FlowDocument { PagePadding = new Thickness(0), FontSize = FontScale.Of(12.5) };
         foreach (var block in ParsePlainBlocks(bodyRaw)) innerDoc.Blocks.Add(block);
-        var innerBox = new RichTextBox
-        {
-            IsReadOnly = true, IsDocumentEnabled = true, BorderThickness = new Thickness(0),
-            Background = Brushes.Transparent, Padding = new Thickness(14, 4, 0, 0),
-            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-        };
-        RichTextBoxBehavior.SetAttachedDocument(innerBox, innerDoc);
+        var innerBox = new ContentControl { Content = Controls.RichTextView.Render(innerDoc), Margin = new Thickness(14, 4, 0, 0) };
 
         var expander = new Expander { Header = header, Content = innerBox, Margin = new Thickness(0, 2, 0, 6) };
         return new BlockUIContainer(expander) { Margin = new Thickness(0) };
