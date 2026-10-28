@@ -7,7 +7,7 @@ Android-клиент Goji VPN: Kotlin, Jetpack Compose (Material 3 Expressive), 
 | Пакет | `xyz.gojihub.vpn` |
 | Android | 7.0+ (minSdk 24), targetSdk 37 |
 | Процессоры | arm64-v8a, armeabi-v7a — одна универсальная сборка |
-| Скачать | [последний релиз](https://github.com/goji-app/goji-vpn/releases/latest) → `Goji-<версия>.apk` |
+| Скачать | [get.gojihub.xyz/android](https://get.gojihub.xyz/android) или [последний релиз](https://github.com/goji-app/goji-vpn/releases/latest) → `Goji-<версия>.apk` |
 
 ## Возможности
 
@@ -21,6 +21,8 @@ Android-клиент Goji VPN: Kotlin, Jetpack Compose (Material 3 Expressive), 
 **Главная** — компактная кнопка, глобус и плитки без прокрутки: скорость с графиком, качество канала (задержка и потери), подписка; карточка пробного периода для аккаунта без подписки.
 
 **Аккаунт** — вход по коду на email или QR-кодом с другого устройства; подписка с кольцом оставшихся дней; устройства с названиями как на сайте (модель, система, версия, клиент); приглашения друзей; новости; удаление аккаунта. Данные кабинета хранятся на телефоне в зашифрованном виде и показываются сразу, обновление в фоне — не чаще раза в час.
+
+**Новое в 1.0.128** — раздельные кнопки «Пинг» и «Обновить» и быстрый пинг; QR-перенос входа только с почтой (дальше код из письма); понятные ошибки с кнопкой следующего шага; отчёт о сбое одним нажатием (в том числе падения ядра и зависания на Android 11+); три экрана знакомства.
 
 **Прочее** — поддержка в приложении (обращения, чат, вложения, FAQ), журнал сети, проверка утечек IP/DNS, журналы по категориям, виджеты (основной 2×1–3×3, «Статус», «Подписка»), языки RU/EN/ZH, светлая и тёмная тема, размер шрифта.
 
@@ -41,7 +43,7 @@ Android-клиент Goji VPN: Kotlin, Jetpack Compose (Material 3 Expressive), 
 
 Android Studio (JDK 17), Android SDK 37. Перед первой сборкой положите:
 
-- `app/libs/libXray.aar` — собирается по инструкции [XTLS/libXray](https://github.com/XTLS/libXray) (`python build/main.py android`);
+- `app/libs/libXray.aar` — `libxray-android.zip` из [релизов XTLS/libXray](https://github.com/XTLS/libXray/releases). Его версия и SHA-256 записаны в `app/libs/libXray.version`: другой файл Gradle не примет, а «О программе» показывает версию оттуда;
 - `app/keystore.properties` и keystore — только для подписанного релиза (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`).
 
 Реализация подъёма туннеля (`GodjiVpnService`) в репозитории не публикуется — в коде оставлена только форма класса, нужная для сборки остального приложения.
@@ -62,7 +64,7 @@ app/src/main/java/xyz/gojihub/vpn/
 ├─ settings/      настройки (DataStore)
 ├─ subscription/  подписка, серверы, пинг, кэш кабинета, уведомления
 ├─ update/        самообновление (сборка site) и зеркала загрузки
-├─ util/          журналы, даты, длина оплаченного периода и т.п.
+├─ util/          журналы, отчёты о сбоях (CrashReporter), даты, длина оплаченного периода
 ├─ vpn/           служба VPN (форма класса), плитка, ярлык
 ├─ widget/        виджеты
 └─ ui/            экраны: connect, servers, plans, settings, login, support, theme
