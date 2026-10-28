@@ -88,8 +88,22 @@ final class APIClient {
         var (data, response) = try await perform(method: method, path: path, query: query, body: body, contentType: contentType, token: token)
 
         if response.statusCode == 401, token != nil, !isAuthPath, overrideToken == nil {
-            if let fresh = await refresher.refresh(using: self) {
+            // Пока ждали ответа, параллельный запрос мог уже продлить сессию — тогда просто повтор.
+            let outcome: RefreshOutcome
+            if let current = tokens.accessToken, current != token {
+                outcome = .refreshed(current)
+            } else {
+                outcome = await refresher.refresh(using: self)
+            }
+            switch outcome {
+            case .refreshed(let fresh):
                 (data, response) = try await perform(method: method, path: path, query: query, body: body, contentType: contentType, token: fresh)
+            case .temporary:
+                // Нет сети, таймаут, 5xx, ошибка CDN — не повод стирать вход (как Android 955fd69):
+                // запрос падает как обычная сетевая ошибка, сессия продлится при следующем.
+                throw APIError.network(L("error.network"))
+            case .rejected:
+                break
             }
             if response.statusCode == 401 {
                 AppLog.w(.main, "сессия отвергнута бэкендом (\(path)) — выход")
@@ -163,24 +177,29 @@ final class APIClient {
         return cookies.first { $0.name == name }?.value
     }
 
-    /// POST /api/auth/refresh с кукой rw_refresh_token → новый rw_session_token.
-    fileprivate func performRefresh() async -> String? {
-        guard let refresh = tokens.refreshToken else { return nil }
+    /// POST /api/auth/refresh с кукой rw_refresh_token → новый rw_session_token. Отказ — только
+    /// 400/401 (refresh-токен отвергнут); 409 с новой сессией — успех (сайт считает его «уже
+    /// продлено параллельно»); всё остальное временное — вход не стирается.
+    fileprivate func performRefresh() async -> RefreshOutcome {
+        guard let refresh = tokens.refreshToken else { return .rejected }
         var request = URLRequest(url: AppConstants.apiBaseURL.appendingPathComponent("api/auth/refresh"))
         request.httpMethod = "POST"
         request.setValue("rw_refresh_token=\(refresh)", forHTTPHeaderField: "Cookie")
         request.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
         request.setValue(AppConstants.apiUserAgent, forHTTPHeaderField: "User-Agent")
-        guard let result = try? await session.data(for: request),
-              let http = result.1 as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-              let fresh = Self.cookie("rw_session_token", in: http) else {
-            AppLog.w(.main, "обновление сессии не удалось")
-            return nil
+        guard let result = try? await session.data(for: request), let http = result.1 as? HTTPURLResponse else {
+            AppLog.w(.main, "обновление сессии: нет связи — попробуем позже")
+            return .temporary
         }
-        if let rotated = Self.cookie("rw_refresh_token", in: http) { tokens.refreshToken = rotated }
-        tokens.accessToken = fresh
-        AppLog.i(.main, "сессия продлена")
-        return fresh
+        if (200..<300).contains(http.statusCode) || http.statusCode == 409,
+           let fresh = Self.cookie("rw_session_token", in: http) {
+            if let rotated = Self.cookie("rw_refresh_token", in: http) { tokens.refreshToken = rotated }
+            tokens.accessToken = fresh
+            AppLog.i(.main, "сессия продлена")
+            return .refreshed(fresh)
+        }
+        AppLog.w(.main, "обновление сессии: HTTP \(http.statusCode)")
+        return http.statusCode == 400 || http.statusCode == 401 ? .rejected : .temporary
     }
 
     // MARK: - Multipart (вложения в поддержку)
@@ -213,11 +232,19 @@ final class APIClient {
     }
 }
 
+enum RefreshOutcome {
+    case refreshed(String)
+    /// Refresh-токена нет или сервер его отверг — сессия мертва, нужен вход.
+    case rejected
+    /// Сеть, таймаут, 5xx, 429 — вход сохраняем.
+    case temporary
+}
+
 /// Одновременные 401 от нескольких запросов должны вызвать ровно одно обновление сессии.
 private actor RefreshCoordinator {
-    private var inFlight: Task<String?, Never>?
+    private var inFlight: Task<RefreshOutcome, Never>?
 
-    func refresh(using client: APIClient) async -> String? {
+    func refresh(using client: APIClient) async -> RefreshOutcome {
         if let inFlight { return await inFlight.value }
         let task = Task { await client.performRefresh() }
         inFlight = task
