@@ -19,15 +19,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Подписанная кнопка «Обновить» в шапке «Серверов» и «Подписки» (2026-10-16) — одна вместо
- *  круглых значков без подписи; такая же на Windows и macOS. */
+/** Подписанная кнопка в шапке «Серверов» («Пинг», «Обновить») и «Подписки» («Обновить») —
+ *  вместо круглых значков без подписи; такие же на Windows и macOS. */
 @Composable
-fun RefreshPill(label: String, busy: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun RefreshPill(
+    label: String,
+    busy: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Filled.Refresh
+) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     Row(
@@ -41,7 +48,7 @@ fun RefreshPill(label: String, busy: Boolean, onClick: () -> Unit, modifier: Mod
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         if (busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = GodjiColors.TealDeep, trackColor = GodjiColors.TrackBg)
-        else Icon(Icons.Filled.Refresh, contentDescription = null, tint = GodjiColors.TealDeep, modifier = Modifier.size(16.dp))
+        else Icon(icon, contentDescription = null, tint = GodjiColors.TealDeep, modifier = Modifier.size(16.dp))
         Text(label, color = GodjiColors.TealDeep, fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
 }

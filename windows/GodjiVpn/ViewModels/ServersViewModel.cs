@@ -125,14 +125,14 @@ public sealed partial class ServersViewModel : ObservableObject
         // RefreshAsync внутри меняет Subscription/Nodes, что уже придёт через PropertyChanged,
         // но подписка регистрируется до первого узла — на всякий случай синхронизируем и тут.
         SyncFromRepository();
-        // Одна кнопка «Обновить»: за свежим списком сразу проверяем пинг (как Android).
-        if (ok) await PingAllCommand.ExecuteAsync(null);
         IsRefreshing = false;
 
         RefreshResultIsError = !ok || _subscription.LastError != null;
         ShowRefreshMessage(RefreshResultIsError
             ? _subscription.LastError ?? "Не удалось обновить подписку — проверьте соединение"
             : "Подписка обновлена");
+        // Новый список сразу перепроверяем — уже под индикатором кнопки «Пинг» (как Android).
+        if (ok) await PingAllCommand.ExecuteAsync(null);
     }
 
     /// <summary>Баннер-результат прячется сам через 4.5 с (как в Android), либо по крестику.</summary>

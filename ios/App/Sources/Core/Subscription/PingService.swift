@@ -44,6 +44,17 @@ final class PingService: ObservableObject {
             return
         }
 
+        // Как в Happ (порт Android, 2026-10-28): сначала за доли секунды — TCP-соединение со всеми
+        // узлами параллельно, и цифры видны сразу; затем их уточняет замер через сам прокси.
+        // Неудачный TCP не показываем: балансировщик может ответить через резервный аутбаунд.
+        await withTaskGroup(of: (String, Int).self) { group in
+            for node in nodes {
+                group.addTask { (node.id, await Self.tcpPing(host: node.host, port: node.port)) }
+            }
+            for await (id, ms) in group where ms >= 0 { results[id] = ms }
+        }
+        pings = results
+
         let jsonNodes = nodes.filter(\.isJSONProfile)
         let legacyNodes = nodes.filter { !$0.isJSONProfile }
         // Узлы-балансировщики («Автовыбор LTE/EU») — несколько резервных аутбаундов. Сначала

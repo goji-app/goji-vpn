@@ -26,23 +26,38 @@
                         <Run Text="{Binding Nodes.Count, Mode=OneWay}"/><Run Text=" узлов в подписке"/>
                     </TextBlock>
                 </StackPanel>
-                <!-- Одна кнопка вместо «Обновить» + «Пинг» (2026-10-16): RefreshCommand скачивает свежий
-                     список и сразу проверяет пинг; при открытии вкладки пинг идёт и сам. -->
-                <Button Grid.Column="1" Style="{StaticResource BareButton}" Command="{Binding RefreshCommand}" VerticalAlignment="Bottom"
-                        Margin="10,0,0,0" AutomationProperties.Name="Обновить список серверов и пинг">
-                    <Border Background="{DynamicResource SurfaceContainerHighBrush}" CornerRadius="20" Height="40" Padding="14,0">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Grid Width="16" Height="16" VerticalAlignment="Center">
-                                <Path Data="{StaticResource IconRefresh}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource TealDeepBrush}"
-                                      Visibility="{Binding IsRefreshing, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
-                                <controls:Spinner Foreground="{DynamicResource TealDeepBrush}"
-                                                  Visibility="{Binding IsRefreshing, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                            </Grid>
-                            <TextBlock Text="Обновить" FontWeight="Bold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TealDeepBrush}"
-                                       VerticalAlignment="Center" Margin="6,0,0,0"/>
-                        </StackPanel>
-                    </Border>
-                </Button>
+                <!-- Две кнопки, у каждой свой индикатор (2026-10-28): с одной общей он крутился и во
+                     время автоматической проверки пинга — выглядело как «постоянное обновление». -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0">
+                    <Button Style="{StaticResource BareButton}" Command="{Binding PingAllCommand}" AutomationProperties.Name="Проверить пинг всех серверов">
+                        <Border Background="{DynamicResource SurfaceContainerHighBrush}" CornerRadius="20" Height="40" Padding="14,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Grid Width="16" Height="16" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconBolt}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource TealDeepBrush}"
+                                          Visibility="{Binding IsCheckingAll, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                    <controls:Spinner Foreground="{DynamicResource TealDeepBrush}"
+                                                      Visibility="{Binding IsCheckingAll, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                </Grid>
+                                <TextBlock Text="Пинг" FontWeight="Bold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TealDeepBrush}"
+                                           VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+                    <Button Style="{StaticResource BareButton}" Command="{Binding RefreshCommand}" Margin="8,0,0,0" AutomationProperties.Name="Обновить список серверов">
+                        <Border Background="{DynamicResource SurfaceContainerHighBrush}" CornerRadius="20" Height="40" Padding="14,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Grid Width="16" Height="16" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconRefresh}" Style="{StaticResource Icon}" Width="16" Height="16" Fill="{DynamicResource TealDeepBrush}"
+                                          Visibility="{Binding IsRefreshing, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                    <controls:Spinner Foreground="{DynamicResource TealDeepBrush}"
+                                                      Visibility="{Binding IsRefreshing, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                </Grid>
+                                <TextBlock Text="Обновить" FontWeight="Bold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TealDeepBrush}"
+                                           VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <!-- Сортировка (Android 64aa106): тот же сегмент-контрол, что "Язык" в Настройках, ниже — 32. -->

@@ -137,9 +137,10 @@ class ServersViewModel @Inject constructor(
         viewModelScope.launch {
             _refreshingSubscription.value = true
             val ok = subscriptionRepository.refresh()
-            if (ok) pingRepository.pingAllInternal()
             _refreshingSubscription.value = false
             showRefreshMessage(RefreshMessage(isError = !ok))
+            // Новый список сразу перепроверяем — уже под индикатором кнопки «Пинг».
+            if (ok) pingRepository.pingAll()
         }
     }
 

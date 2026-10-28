@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -85,12 +86,18 @@ fun ServersScreen(viewModel: ServersViewModel = hiltViewModel(), onServerPicked:
                 Text(Loc.s.serversCount(state.servers.size), color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 12.sp)
             }
             Spacer(Modifier.width(10.dp))
-            // Одна кнопка вместо «Обновить» + «Пинг»: refreshSubscription() скачивает свежий список
-            // и сразу проверяет пинг всех узлов (а при открытии вкладки пинг запускается и сам).
-            RefreshPill(
-                label = Loc.s.serversRefresh, busy = refreshingSubscription || state.checkingAll,
-                onClick = viewModel::refreshSubscription
-            )
+            // Две кнопки, у каждой свой индикатор: с одной общей он крутился и во время
+            // автоматической проверки пинга — выглядело как «постоянное обновление».
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                RefreshPill(
+                    label = Loc.s.serversPing, busy = state.checkingAll,
+                    onClick = viewModel::pingAll, icon = Icons.Filled.Bolt
+                )
+                RefreshPill(
+                    label = Loc.s.serversRefresh, busy = refreshingSubscription,
+                    onClick = viewModel::refreshSubscription
+                )
+            }
         }
 
         SortSegments(state.sort, onSelect = viewModel::setSort)

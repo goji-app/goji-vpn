@@ -37,20 +37,32 @@
                     <TextBlock Classes="title" Text="Где выйти в сеть" TextWrapping="Wrap"/>
                     <TextBlock Classes="muted" Margin="0,3,0,0" Text="{Binding Nodes.Count, StringFormat='{}{0} узлов в подписке'}"/>
                 </StackPanel>
-                <!-- Одна кнопка вместо «Обновить» + «Пинг» (2026-10-16): RefreshCommand скачивает свежий
-                     список и сразу проверяет пинг; при открытии вкладки пинг идёт и сам. -->
-                <Button Grid.Column="1" Classes="bare" Command="{Binding RefreshCommand}" VerticalAlignment="Bottom" Margin="10,0,0,0"
-                        AutomationProperties.Name="Обновить список серверов и пинг">
-                    <Border Background="{DynamicResource SurfaceContainerHighBrush}" CornerRadius="20" Height="40" Padding="14,0">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
-                            <Panel Width="16" Height="16" VerticalAlignment="Center">
-                                <Path Classes="icon teal" Data="{StaticResource IconRefresh}" Width="16" Height="16" IsVisible="{Binding !IsRefreshing}"/>
-                                <c:Spinner Foreground="{DynamicResource TealDeepBrush}" IsVisible="{Binding IsRefreshing}"/>
-                            </Panel>
-                            <TextBlock Text="Обновить" FontWeight="Bold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TealDeepBrush}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-                </Button>
+                <!-- Две кнопки, у каждой свой индикатор (2026-10-28): с одной общей он крутился и во
+                     время автоматической проверки пинга — выглядело как «постоянное обновление». -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom" Margin="10,0,0,0">
+                    <Button Classes="bare" Command="{Binding PingAllCommand}" AutomationProperties.Name="Проверить пинг всех серверов">
+                        <Border Background="{DynamicResource SurfaceContainerHighBrush}" CornerRadius="20" Height="40" Padding="14,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                <Panel Width="16" Height="16" VerticalAlignment="Center">
+                                    <Path Classes="icon teal" Data="{StaticResource IconBolt}" Width="16" Height="16" IsVisible="{Binding !IsCheckingAll}"/>
+                                    <c:Spinner Foreground="{DynamicResource TealDeepBrush}" IsVisible="{Binding IsCheckingAll}"/>
+                                </Panel>
+                                <TextBlock Text="Пинг" FontWeight="Bold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TealDeepBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+                    <Button Classes="bare" Command="{Binding RefreshCommand}" AutomationProperties.Name="Обновить список серверов">
+                        <Border Background="{DynamicResource SurfaceContainerHighBrush}" CornerRadius="20" Height="40" Padding="14,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                <Panel Width="16" Height="16" VerticalAlignment="Center">
+                                    <Path Classes="icon teal" Data="{StaticResource IconRefresh}" Width="16" Height="16" IsVisible="{Binding !IsRefreshing}"/>
+                                    <c:Spinner Foreground="{DynamicResource TealDeepBrush}" IsVisible="{Binding IsRefreshing}"/>
+                                </Panel>
+                                <TextBlock Text="Обновить" FontWeight="Bold" FontSize="{s:Fs 13}" Foreground="{DynamicResource TealDeepBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <c:SegmentedControl Grid.Row="1" ItemsSource="{Binding SortOptions}" SelectedIndex="{Binding SortIndex}" ItemHeight="32" LabelFontSize="12" Margin="0,12,0,0"/>

@@ -50,27 +50,39 @@ struct ServersView: View {
         .task { if pings.pings.isEmpty { await pings.pingAll() } }
     }
 
+    /// Две кнопки, у каждой свой индикатор: с одной общей он крутился и во время автоматической
+    /// проверки пинга — выглядело как «постоянное обновление» (как Android, 2026-10-28).
     private var toolbarButtons: some View {
-        Button {
-            Task {
-                await store.refresh()
+        HStack(spacing: 8) {
+            toolbarButton(icon: "bolt.fill", busy: pings.checkingAll, label: L("servers.ping")) {
                 await pings.pingAll()
-                model.toast = store.lastRefreshFailed ? L("servers.refresh_fail") : L("servers.refresh_ok")
             }
+            toolbarButton(icon: "arrow.clockwise", busy: store.isRefreshing, label: L("servers.refresh")) {
+                await store.refresh()
+                model.toast = store.lastRefreshFailed ? L("servers.refresh_fail") : L("servers.refresh_ok")
+                if !store.lastRefreshFailed { await pings.pingAll() }
+            }
+        }
+    }
+
+    private func toolbarButton(icon: String, busy: Bool, label: String, action: @escaping () async -> Void) -> some View {
+        Button {
+            Task { await action() }
         } label: {
             Group {
-                if pings.checkingAll || store.isRefreshing {
+                if busy {
                     ProgressView()
                 } else {
-                    Image(systemName: "arrow.clockwise")
+                    Image(systemName: icon)
                         .font(.system(size: 16, weight: .semibold))
                 }
             }
-            .frame(width: 40, height: 40)
-            .background(GlassSurface(radius: 20))
+            .frame(width: 44, height: 44)
+            .background(GlassSurface(radius: 22))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(L("servers.refresh"))
+        .disabled(busy)
+        .accessibilityLabel(label)
     }
 
     private var sortedNodes: [VPNNode] {

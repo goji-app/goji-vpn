@@ -3,6 +3,9 @@ package xyz.gojihub.vpn.subscription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -102,6 +105,16 @@ class PingRepository @Inject constructor(
         if (_checkingAll.value) return
         _checkingAll.value = true
         lastFullPingAt = System.currentTimeMillis()
+        // finally: прерванная проверка (ушли с экрана — отменилась корутина) раньше оставляла
+        // флаг поднятым — индикатор крутился без конца, а новые проверки не запускались.
+        try {
+            pingAllNodes()
+        } finally {
+            _checkingAll.value = false
+        }
+    }
+
+    private suspend fun pingAllNodes() {
         val method = settingsRepository.pingMethodNow()
         val url = settingsRepository.pingTestUrlNow()
         val nodes = subscriptionRepository.nodes.value
@@ -111,11 +124,18 @@ class PingRepository @Inject constructor(
             // TCP/ICMP не смотрят на JSON-конфиг узла вообще — только host, без прокси и без
             // балансировщика резервных outbound'ов (тот вопрос имеет смысл только для методов
             // "через прокси", где реально поднимается временный Xray-инстанс на этот outbound).
-            nodes.forEach { node -> results[node.id] = measureDirect(node, method) }
+            // Все узлы сразу, параллельно: общее время — как у самого медленного узла.
+            results.putAll(coroutineScope { nodes.map { node -> async { node.id to measureDirect(node, method) } }.awaitAll() })
             _pings.value = results
-            _checkingAll.value = false
             return
         }
+
+        // Как в Happ: сначала за доли секунды — TCP-соединение со всеми узлами параллельно, и
+        // цифры видны сразу; затем их уточняет замер через сам прокси (пачками, медленнее).
+        // Неудачный TCP не показываем: узел-балансировщик может ответить через резервный аутбаунд.
+        coroutineScope { nodes.map { node -> async { node.id to measureTcpRtt(node.host, node.port) } }.awaitAll() }
+            .forEach { (id, ms) -> if (ms >= 0) results[id] = ms }
+        _pings.value = HashMap(results)
 
         val (jsonNodes, legacyNodes) = nodes.partition { it.connectPayload.trimStart().startsWith("{") }
 
@@ -134,6 +154,9 @@ class PingRepository @Inject constructor(
         }
         firstPass.chunked(MAX_BATCH_SIZE).forEach { chunk ->
             measureTargetsViaProxy(chunk, method, url).forEach { (nodeId, delay) -> perNodeBest[nodeId] = mergeBest(perNodeBest[nodeId], delay) }
+            // Каждую готовую пачку показываем сразу, не дожидаясь остальных.
+            chunk.forEach { target -> perNodeBest[target.nodeId]?.takeIf { it >= 0 }?.let { results[target.nodeId] = it } }
+            _pings.value = HashMap(results)
         }
 
         val secondPass = jsonNodes
@@ -148,7 +171,6 @@ class PingRepository @Inject constructor(
         jsonNodes.forEach { node -> results[node.id] = perNodeBest[node.id] ?: -1 }
         legacyNodes.forEach { node -> results[node.id] = measureTcpRtt(node.host, node.port) }
         _pings.value = results
-        _checkingAll.value = false
     }
 
     private suspend fun measureOne(node: VlessNode, method: PingMethod, url: String): Int {
