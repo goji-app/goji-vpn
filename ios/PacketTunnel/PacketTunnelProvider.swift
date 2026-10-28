@@ -14,7 +14,10 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private var metricsPort: Int?
     private var watchdog: DispatchSourceTimer?
     private var consecutiveFailures = 0
+    private var lastTrafficBytes: Int64 = 0
     private var stopping = false
+    /// Столько трафика за тик сторожа достаточно, чтобы считать туннель живым без проверки.
+    private static let aliveTrafficBytes: Int64 = 32 * 1024
 
     // MARK: - Жизненный цикл
 
@@ -74,12 +77,22 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     override func sleep(completionHandler: @escaping () -> Void) {
-        completionHandler()
+        // Батарея (2026-10-28, как Android): во сне устройства сторож не будит радиомодуль
+        // проверочными запросами каждые 30 с.
+        queue.async {
+            self.watchdog?.cancel()
+            self.watchdog = nil
+            completionHandler()
+        }
     }
 
     override func wake() {
-        // После сна устройства соединения прокси часто уже мертвы — сторож проверит сразу.
-        queue.async { self.consecutiveFailures = 0 }
+        // После сна соединения прокси часто уже мертвы — сторож снова следит и проверит сразу.
+        queue.async {
+            guard !self.stopping, self.socksPort != nil else { return }
+            self.startWatchdog()
+            self.watchdogTick()
+        }
     }
 
     // MARK: - Сообщения от приложения
@@ -241,6 +254,23 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func watchdogTick() {
+        guard !stopping, socksPort != nil else { return }
+        // Через туннель и так идёт заметный трафик — он жив, проверочный запрос не нужен (как
+        // Android). Если связь уже под подозрением, проверяем на каждом тике.
+        guard consecutiveFailures == 0 else { return probe() }
+        fetchStats { [weak self] stats in
+            guard let self else { return }
+            self.queue.async {
+                let total = ((stats["up"] as? Int64) ?? 0) + ((stats["down"] as? Int64) ?? 0)
+                let received = total - self.lastTrafficBytes
+                self.lastTrafficBytes = total
+                if received >= Self.aliveTrafficBytes { return }
+                self.probe()
+            }
+        }
+    }
+
+    private func probe() {
         guard !stopping, let port = socksPort else { return }
         probeThroughProxy(port: port) { [weak self] alive in
             guard let self else { return }

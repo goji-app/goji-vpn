@@ -96,6 +96,12 @@ public partial class App : Application
             args.Cancel = true;
             window.Hide();
         };
+        // Свёрнутое или убранное в строку меню окно — без замеров скорости и качества связи (батарея).
+        window.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Visual.IsVisibleProperty || e.Property == Window.WindowStateProperty)
+                connectViewModel.IsWindowVisible = window.IsVisible && window.WindowState != WindowState.Minimized;
+        };
         // Клик по значку в Dock при спрятанном окне — показать его снова.
         if (TryGetFeature(typeof(IActivatableLifetime)) is IActivatableLifetime activatable)
             activatable.Activated += (_, _) => tray?.ShowWindow();

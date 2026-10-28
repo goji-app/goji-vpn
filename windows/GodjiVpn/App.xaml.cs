@@ -142,6 +142,11 @@ public partial class App : Application
         if (!uiPreview && CrashReporter.TakePendingReport() is { } crashReport && tokenStore.IsLoggedIn)
             OfferCrashReport(apiClient, crashReport);
 
+        // Свёрнутое или убранное в трей окно — без замеров скорости и качества связи (батарея).
+        void SyncWindowVisible() => connectViewModel.IsWindowVisible = window.IsVisible && window.WindowState != WindowState.Minimized;
+        window.IsVisibleChanged += (_, _) => SyncWindowVisible();
+        window.StateChanged += (_, _) => SyncWindowVisible();
+
         window.Show();
 
         // Входы через сайт, сделанные до исправления, сохранены без refresh-токена — разово

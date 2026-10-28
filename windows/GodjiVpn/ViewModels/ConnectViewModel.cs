@@ -295,6 +295,22 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         RunOnUiThread(RefreshFromState);
     }
 
+    private bool _isWindowVisible = true;
+
+    /// <summary>Окно на экране. Пока оно свёрнуто или убрано в трей, замеры скорости (раз в 1 с) и
+    /// качества связи (запрос через туннель раз в 10 с) не идут: их никто не видит, а батарею
+    /// ноутбука они тратят (как Android, где замеры идут только при открытом экране).</summary>
+    public bool IsWindowVisible
+    {
+        get => _isWindowVisible;
+        set
+        {
+            if (_isWindowVisible == value) return;
+            _isWindowVisible = value;
+            RefreshFromState();
+        }
+    }
+
     private void RefreshFromState()
     {
         IsConnected = _vpnEngine.IsRunning;
@@ -348,7 +364,12 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         SubDetail = $"до {ExpiryLabel} · {TrafficValueLabel}";
         RefreshJournalLine();
 
-        if (IsConnected)
+        if (IsConnected && !IsWindowVisible)
+        {
+            _speedTimer.Stop();
+            _qualityTimer.Stop();
+        }
+        else if (IsConnected)
         {
             var counters = _vpnEngine.ReadAdapterCounters();
             _lastRx = counters?.RxBytes ?? 0;
