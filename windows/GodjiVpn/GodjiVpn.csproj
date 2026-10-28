@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -18,7 +18,7 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
-    <Version>1.0.127</Version>
+    <Version>1.0.128</Version>
     <ApplicationIcon>Assets\Images\app.ico</ApplicationIcon>
     <!-- Экономия памяти: без фонового (конкурентного) GC — нет лишнего потока и резерва под
          него; ConserveMemory — сборщик охотнее уплотняет кучу вместо того, чтобы её растить.
