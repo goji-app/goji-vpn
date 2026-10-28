@@ -315,11 +315,53 @@ public sealed class VpnEngine : INotifyPropertyChanged
             if (!IsRunning) return; // отключение уже началось, пока ждали лок — не дублируем
             var exitCode = -1;
             try { exitCode = process.ExitCode; } catch { /* процесс мог быть уже уничтожен к этому моменту */ }
+            // Kill switch: упал только xray — sing-box с strict_route держит весь трафик в туннеле,
+            // поэтому мимо VPN ничего не уходит; перезапускаем одно ядро, не разрывая туннель.
+            if (label == "xray.exe" && new AppSettings().KillSwitch)
+            {
+                if (await TryRestartXrayAsync().ConfigureAwait(false))
+                {
+                    LogEngine("kill switch: xray перезапущен, туннель не разрывали");
+                    return;
+                }
+                LastError = "Ядро VPN не перезапускается — интернет закрыт (kill switch). Смените сервер или отключите VPN, чтобы вернуть интернет без защиты.";
+                LogEngine("kill switch: xray не поднялся, туннель оставлен закрытым");
+                return;
+            }
             LastError = $"{label} неожиданно завершился (код {exitCode}) — туннель разорван. См. Runtime/logs/.";
             LogEngine($"{label}: triggering teardown, exitCode={exitCode}");
             Teardown();
         }
         finally { _lifecycleLock.Release(); }
+    }
+
+    private const int KillSwitchRestartAttempts = 3;
+
+    /// <summary>Kill switch: новый xray.exe с тем же конфигом (StateDir/xray-config.json), пока
+    /// sing-box держит туннель закрытым. Вызывается под _lifecycleLock.</summary>
+    private async Task<bool> TryRestartXrayAsync()
+    {
+        var configPath = Path.Combine(StateDir, "xray-config.json");
+        for (var attempt = 1; attempt <= KillSwitchRestartAttempts; attempt++)
+        {
+            try
+            {
+                KillProcess(ref _xrayProcess, ref _xrayLog, "xray.exe");
+                _xrayProcess = StartProcess(
+                    Path.Combine(RuntimeDir, "xray.exe"), $"run -c \"{configPath}\"",
+                    RuntimeDir, out _xrayLog, "xray.log",
+                    env => env["XRAY_LOCATION_ASSET"] = RuntimeDir);
+                AttachExitWatch(_xrayProcess, "xray.exe");
+                await WaitForSocksReadyAsync(_xrayProcess, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogEngine($"kill switch: перезапуск xray, попытка {attempt}/{KillSwitchRestartAttempts} — {ex.Message}");
+                await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            }
+        }
+        return false;
     }
 
     /// <summary>xray занят только протоколом (VLESS+XHTTP к бэкенду) — системный захват
@@ -615,6 +657,18 @@ public sealed class VpnEngine : INotifyPropertyChanged
                 ["final"] = "socks-out"
             }
         };
+
+        // «Приложения мимо VPN» (Настройки → Подключение): их соединения sing-box отдаёт напрямую.
+        var bypassApps = new AppSettings().BypassApps;
+        if (bypassApps.Count > 0)
+        {
+            config["outbounds"]!.AsArray().Add(new JsonObject { ["type"] = "direct", ["tag"] = "direct" });
+            config["route"]!["rules"]!.AsArray().Insert(0, new JsonObject
+            {
+                ["process_name"] = new JsonArray(bypassApps.Select(name => (JsonNode)JsonValue.Create(name)!).ToArray()),
+                ["outbound"] = "direct"
+            });
+        }
 
         var path = Path.Combine(StateDir, "sing-box-config.json");
         File.WriteAllText(path, config.ToJsonString());

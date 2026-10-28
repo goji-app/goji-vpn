@@ -31,6 +31,11 @@ public sealed class AppSettings
         public bool WifiAutoConnect { get; set; }
         public bool WifiDisconnectTrusted { get; set; }
         public List<string> TrustedSsids { get; set; } = new();
+        /// <summary>Kill switch: при сбое ядра туннель не снимается — интернет закрыт, пока
+        /// ядро перезапускается (порт Android-настройки «Kill switch»).</summary>
+        public bool KillSwitch { get; set; }
+        /// <summary>«Приложения мимо VPN» — имена исполняемых файлов (chrome.exe, Safari).</summary>
+        public List<string> BypassApps { get; set; } = new();
     }
 
     private readonly State _state;
@@ -66,6 +71,27 @@ public sealed class AppSettings
     }
 
     public IReadOnlyList<string> TrustedSsids => _state.TrustedSsids;
+
+    public bool KillSwitch
+    {
+        get => _state.KillSwitch;
+        set { if (_state.KillSwitch == value) return; _state.KillSwitch = value; Save(); }
+    }
+
+    public IReadOnlyList<string> BypassApps => _state.BypassApps;
+
+    public void AddBypassApp(string processName)
+    {
+        if (string.IsNullOrWhiteSpace(processName) || _state.BypassApps.Contains(processName, StringComparer.OrdinalIgnoreCase)) return;
+        _state.BypassApps.Add(processName);
+        _state.BypassApps.Sort(StringComparer.OrdinalIgnoreCase);
+        Save();
+    }
+
+    public void RemoveBypassApp(string processName)
+    {
+        if (_state.BypassApps.Remove(processName)) Save();
+    }
 
     public void AddTrustedSsid(string ssid)
     {

@@ -338,18 +338,58 @@ public sealed class VpnEngine : INotifyPropertyChanged
                 if (_xrayProcess is { HasExited: true }) dead = "xray";
                 else if (!File.Exists(PidFile)) dead = "sing-box";
                 if (dead == null) continue;
+                var keepWatching = false;
                 await _lifecycleLock.WaitAsync().ConfigureAwait(false);
                 try
                 {
                     if (!IsRunning || token.IsCancellationRequested) return;
-                    LastError = $"{dead} неожиданно завершился — туннель разорван. См. журналы в Настройках.";
-                    LogEngine($"watch: {dead} died");
-                    await TeardownAsync().ConfigureAwait(false);
+                    // Kill switch: упал только xray — sing-box с strict_route держит весь трафик в
+                    // туннеле, мимо VPN ничего не уходит; перезапускаем одно ядро, туннель не трогаем.
+                    if (dead == "xray" && new AppSettings().KillSwitch)
+                    {
+                        keepWatching = true;
+                        if (await TryRestartXrayAsync().ConfigureAwait(false))
+                        {
+                            LastError = null;
+                            LogEngine("kill switch: xray перезапущен, туннель не разрывали");
+                        }
+                        else
+                        {
+                            LastError = "Ядро VPN не перезапускается — интернет закрыт (kill switch). Смените сервер или отключите VPN, чтобы вернуть интернет без защиты.";
+                        }
+                    }
+                    else
+                    {
+                        LastError = $"{dead} неожиданно завершился — туннель разорван. См. журналы в Настройках.";
+                        LogEngine($"watch: {dead} died");
+                        await TeardownAsync().ConfigureAwait(false);
+                    }
                 }
                 finally { _lifecycleLock.Release(); }
-                return;
+                if (!keepWatching) return;
             }
         });
+    }
+
+    /// <summary>Kill switch: новый xray с тем же конфигом, пока sing-box держит туннель закрытым.
+    /// Не вышло — сторож попробует снова на следующем круге. Вызывается под _lifecycleLock.</summary>
+    private async Task<bool> TryRestartXrayAsync()
+    {
+        try
+        {
+            _xrayProcess?.Dispose();
+            if (_xrayLog != null) lock (_xrayLog) _xrayLog.Dispose();
+            _xrayLog = new StreamWriter(Path.Combine(LogsDir, "xray.log"), append: true) { AutoFlush = true };
+            _xrayLog.WriteLine($"===== kill switch restart {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} =====");
+            _xrayProcess = StartXray(Path.Combine(StateDir, "xray-config.json"), _xrayLog);
+            await WaitForSocksReadyAsync(_xrayProcess, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LogEngine($"kill switch: перезапуск xray не удался — {ex.Message}");
+            return false;
+        }
     }
 
     private async Task TeardownAsync()
@@ -619,7 +659,13 @@ public sealed class VpnEngine : INotifyPropertyChanged
                     new JsonObject { ["action"] = "sniff" },
                     // Сначала свои процессы: иначе DNS-запросы самого xray перехватывались бы
                     // и уходили обратно в xray по кругу.
-                    new JsonObject { ["process_name"] = new JsonArray("xray", "xray-legacy", "GojiVpn"), ["outbound"] = "direct" },
+                    // Плюс «Приложения мимо VPN» (Настройки → Подключение) — имена их процессов.
+                    new JsonObject
+                    {
+                        ["process_name"] = new JsonArray(new[] { "xray", "xray-legacy", "GojiVpn" }.Concat(new AppSettings().BypassApps)
+                            .Select(name => (JsonNode)JsonValue.Create(name)!).ToArray()),
+                        ["outbound"] = "direct"
+                    },
                     new JsonObject { ["protocol"] = "dns", ["action"] = "hijack-dns" },
                     new JsonObject { ["ip_cidr"] = new JsonArray("169.254.0.0/16"), ["action"] = "reject" }),
                 ["final"] = "socks-out"

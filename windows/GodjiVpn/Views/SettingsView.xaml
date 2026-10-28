@@ -142,6 +142,20 @@
             </StackPanel>
             <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,16,0,0">
                 <StackPanel>
+                        <Grid Margin="14,13">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Kill switch" Style="{StaticResource RowTitle}"/>
+                                <TextBlock Text="Если VPN оборвётся, интернет закроется, пока VPN не восстановится — без защиты ничего не уйдёт" Style="{StaticResource RowSubtitle}"/>
+                            </StackPanel>
+                            <ToggleButton Grid.Column="1" Style="{StaticResource GlassSwitch}" Margin="12,0,0,0"
+                                          AutomationProperties.Name="Kill switch"
+                                          IsChecked="{Binding KillSwitch, Mode=TwoWay}"/>
+                        </Grid>
+                        <Rectangle Style="{StaticResource Hair}"/>
                         <Button Style="{StaticResource LinkRowButton}" Content="Журнал сети" Tag="Когда VPN работал, смены сети и сбои"
                                 Command="{Binding OpenJournalCommand}"/>
                         <Rectangle Style="{StaticResource Hair}"/>
@@ -153,6 +167,9 @@
                         <Rectangle Style="{StaticResource Hair}"/>
                         <Button Style="{StaticResource LinkRowButton}" Content="Сайты мимо VPN" Tag="Домены, которые открываются напрямую"
                                 Command="{Binding OpenBypassCommand}"/>
+                        <Rectangle Style="{StaticResource Hair}"/>
+                        <Button Style="{StaticResource LinkRowButton}" Content="Приложения мимо VPN" Tag="Программы, которые работают напрямую"
+                                Command="{Binding OpenBypassAppsCommand}"/>
                 </StackPanel>
             </controls:GlassPanel>
         </StackPanel>
@@ -690,6 +707,74 @@
         </Grid>
 
         <!-- ═══ Подэкран: Сайты мимо VPN (домены — постранично) ═══ -->
+        <Grid Margin="16,16,16,12" Visibility="{Binding IsBypassAppsPage, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource BackButton}"/>
+                    <TextBlock Text="Приложения мимо VPN" Style="{StaticResource SubTitle}"/>
+                </StackPanel>
+                <TextBlock Text="Эти программы будут работать напрямую через твоего провайдера, остальное — через VPN. Удобно для банковских клиентов, игр и программ, которые не любят VPN."
+                           FontWeight="Medium" FontSize="{s:Fs 12}" LineHeight="{s:Fs 17}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="8,10,8,10"/>
+                <Button Style="{StaticResource AccentPillButton}" Height="44" FontSize="{s:Fs 13}" HorizontalAlignment="Left"
+                        Content="Добавить приложение" Command="{Binding AddBypassAppCommand}"/>
+                <Border CornerRadius="20" Background="{DynamicResource TealTintBrush}" Padding="14,8,8,8" Margin="0,10,0,0"
+                        Visibility="{Binding ShowBypassApply, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Изменения применятся после переподключения VPN" FontWeight="SemiBold" FontSize="{s:Fs 12}" LineHeight="{s:Fs 16}"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Style="{StaticResource ChipButton}" Content="Применить" Margin="10,0,0,0"
+                                Command="{Binding ApplyBypassCommand}"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+            <TextBlock Grid.Row="1" Text="{Binding BypassAppsListLabel}" Style="{StaticResource SectionLabel}" Margin="8,16,8,0"/>
+            <Grid Grid.Row="2">
+                <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Margin="0,8,0,0" VerticalAlignment="Top">
+                    <Grid>
+                        <TextBlock Text="Список пуст — все программы работают через VPN." FontWeight="Medium" FontSize="{s:Fs 12}" LineHeight="{s:Fs 17}" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="14,13"
+                                   Visibility="{Binding BypassAppsEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <controls:PagedItems ItemsSource="{Binding BypassApps}">
+                            <controls:PagedItems.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <Rectangle Style="{StaticResource PagedSep}"/>
+                                        <Grid Margin="14,10,10,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding}" FontWeight="SemiBold" FontSize="{s:Fs 14}" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1" Style="{StaticResource BareButton}" Width="28" Height="28" Margin="12,0,0,0"
+                                                    AutomationProperties.Name="Удалить"
+                                                    Command="{Binding DataContext.RemoveBypassAppCommand, RelativeSource={RelativeSource AncestorType=controls:PagedItems}}"
+                                                    CommandParameter="{Binding}">
+                                                <Border CornerRadius="14" Background="{DynamicResource HairBrush}">
+                                                    <Path Data="{StaticResource IconClose}" Style="{StaticResource Icon}" Width="12" Height="12"
+                                                          Fill="{DynamicResource TextPrimaryBrush}"/>
+                                                </Border>
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </controls:PagedItems.ItemTemplate>
+                        </controls:PagedItems>
+                    </Grid>
+                </controls:GlassPanel>
+            </Grid>
+        </Grid>
+
         <Grid Margin="16,16,16,12" Visibility="{Binding IsBypassPage, Converter={StaticResource BoolToVisibilityConverter}}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>

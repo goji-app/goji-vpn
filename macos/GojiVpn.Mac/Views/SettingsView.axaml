@@ -148,6 +148,13 @@
             </StackPanel>
             <c:GlassPanel Classes="card" CornerRadius="24" Margin="0,16,0,0">
                 <StackPanel>
+                    <StackPanel Margin="14,13">
+                        <TextBlock Classes="rowTitle" Text="Kill switch"/>
+                        <TextBlock Classes="rowSub" Text="Если VPN оборвётся, интернет закроется, пока VPN не восстановится — без защиты ничего не уйдёт"/>
+                        <c:SegmentedControl ItemsSource="{Binding OnOffOptions}" DisplayMemberPath="Label"
+                                            SelectedIndex="{Binding KillSwitchIndex, Mode=TwoWay}" Margin="0,9,0,0"/>
+                    </StackPanel>
+                    <Rectangle Classes="hair"/>
                     <Button Classes="row" AutomationProperties.Name="Журнал сети" Command="{Binding OpenJournalCommand}">
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel>
@@ -173,6 +180,16 @@
                             <StackPanel>
                                 <TextBlock Classes="rowTitle" Text="Сайты мимо VPN"/>
                                 <TextBlock Classes="rowSub" Text="Домены, которые открываются напрямую"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+                    <Rectangle Classes="hair"/>
+                    <Button Classes="row" AutomationProperties.Name="Приложения мимо VPN" Command="{Binding OpenBypassAppsCommand}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="rowTitle" Text="Приложения мимо VPN"/>
+                                <TextBlock Classes="rowSub" Text="Программы, которые работают напрямую"/>
                             </StackPanel>
                             <Path Grid.Column="1" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="15" Height="15" Margin="12,0,0,0"/>
                         </Grid>
@@ -490,6 +507,54 @@
         </Panel>
 
         <!-- ═══ Подэкран: Сайты мимо VPN (домены — постранично) ═══ -->
+        <Grid RowDefinitions="Auto,Auto,*" Margin="16,16,16,12" IsVisible="{Binding IsBypassAppsPage}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Classes="bare back" Command="{Binding BackCommand}">
+                        <Path Classes="icon" Data="{StaticResource IconArrowBack}" Width="22" Height="22"/>
+                    </Button>
+                    <TextBlock Classes="subTitle" Text="Приложения мимо VPN" FontSize="{s:Fs 24}"/>
+                </StackPanel>
+                <TextBlock Classes="muted" LineHeight="{s:Fs 17}" Margin="8,10,8,10"
+                           Text="Эти программы будут работать напрямую через твоего провайдера, остальное — через VPN. Удобно для банковских клиентов, игр и программ, которые не любят VPN."/>
+                <Button Classes="accent" Height="44" FontSize="{s:Fs 13}" HorizontalAlignment="Left" Content="Добавить приложение"
+                        Command="{Binding AddBypassAppCommand}"/>
+                <Border CornerRadius="20" Background="{DynamicResource TealTintBrush}" Padding="14,8,8,8" Margin="0,10,0,0" IsVisible="{Binding ShowBypassApply}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Изменения применятся после переподключения VPN" FontWeight="SemiBold" FontSize="{s:Fs 12}" LineHeight="{s:Fs 16}"
+                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="chip" Content="Применить" Margin="10,0,0,0" Command="{Binding ApplyBypassCommand}"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+            <TextBlock Grid.Row="1" Classes="section" Text="{Binding BypassAppsListLabel}"/>
+            <Panel Grid.Row="2">
+                <c:GlassPanel Classes="card" CornerRadius="24" VerticalAlignment="Top">
+                    <Panel>
+                        <TextBlock Classes="muted" Text="Список пуст — все программы работают через VPN." LineHeight="{s:Fs 17}" Margin="14,13" IsVisible="{Binding BypassAppsEmpty}"/>
+                        <c:PagedItems ItemsSource="{Binding BypassApps}">
+                            <c:PagedItems.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <Rectangle Classes="hair pagedSep"/>
+                                        <Grid ColumnDefinitions="*,Auto" Margin="14,10,10,10">
+                                            <TextBlock Text="{Binding}" FontWeight="SemiBold" FontSize="{s:Fs 14}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1" Classes="bare" Width="28" Height="28" Margin="12,0,0,0"
+                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveBypassAppCommand}" CommandParameter="{Binding}">
+                                                <Border CornerRadius="14" Background="{DynamicResource HairBrush}">
+                                                    <Path Classes="icon" Data="{StaticResource IconClose}" Width="12" Height="12"/>
+                                                </Border>
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </c:PagedItems.ItemTemplate>
+                        </c:PagedItems>
+                    </Panel>
+                </c:GlassPanel>
+            </Panel>
+        </Grid>
+
         <Grid RowDefinitions="Auto,Auto,*" Margin="16,16,16,12" IsVisible="{Binding IsBypassPage}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">

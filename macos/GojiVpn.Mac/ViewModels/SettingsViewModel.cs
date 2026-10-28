@@ -44,7 +44,9 @@ public sealed class BypassDomainItem
 
 /// <summary>Подэкраны Настроек — в Android это отдельные маршруты навигации
 /// (PingSettingsScreen, LogViewerDialog); здесь — подмена содержимого вкладки.</summary>
-public enum SettingsPage { Main, Appearance, Connection, Security, Updates, About, Ping, Log, Bypass, Journal }
+public enum SettingsPage { Main, Appearance, Connection, Security, Updates, About, Ping, Log, Bypass, BypassApps, Journal }
+
+public sealed record OptionItem(string Label);
 
 /// <summary>Аналог SettingsScreen.kt — версия/HWID (About), просмотр логов вместо отдельного
 /// LogViewerDialog.kt (здесь один экран проще нескольких диалогов на маленьком приложении),
@@ -152,13 +154,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsMainPage), nameof(IsPingPage), nameof(IsLogPage), nameof(IsBypassPage), nameof(IsAppearancePage), nameof(IsConnectionPage), nameof(IsSecurityPage), nameof(IsUpdatesPage), nameof(IsAboutPage), nameof(IsJournalPage))]
+    [NotifyPropertyChangedFor(nameof(IsMainPage), nameof(IsPingPage), nameof(IsLogPage), nameof(IsBypassPage), nameof(IsBypassAppsPage), nameof(IsAppearancePage), nameof(IsConnectionPage), nameof(IsSecurityPage), nameof(IsUpdatesPage), nameof(IsAboutPage), nameof(IsJournalPage))]
     private SettingsPage page = SettingsPage.Main;
 
     public bool IsMainPage => Page == SettingsPage.Main;
     public bool IsPingPage => Page == SettingsPage.Ping;
     public bool IsLogPage => Page == SettingsPage.Log;
     public bool IsBypassPage => Page == SettingsPage.Bypass;
+    public bool IsBypassAppsPage => Page == SettingsPage.BypassApps;
     public bool IsAppearancePage => Page == SettingsPage.Appearance;
     public bool IsConnectionPage => Page == SettingsPage.Connection;
     public bool IsSecurityPage => Page == SettingsPage.Security;
@@ -357,7 +360,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void Back() => Page = Page switch
     {
         // Без прокрутки настройки разложены по разделам: «назад» — на уровень выше.
-        SettingsPage.Ping or SettingsPage.Bypass or SettingsPage.Journal => SettingsPage.Connection,
+        SettingsPage.Ping or SettingsPage.Bypass or SettingsPage.BypassApps or SettingsPage.Journal => SettingsPage.Connection,
         SettingsPage.Log => SettingsPage.About,
         _ => SettingsPage.Main
     };
@@ -379,6 +382,73 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         SubscriptionId = SubscriptionIdSource?.Invoke();
         Page = SettingsPage.About;
+    }
+
+    /// <summary>Kill switch (порт Android): при сбое ядра туннель не снимается — без защиты
+    /// трафик не уходит. Читается движком при каждом сбое, переподключение не нужно.</summary>
+    public IReadOnlyList<OptionItem> OnOffOptions { get; } = new[] { new OptionItem("Выкл"), new OptionItem("Вкл") };
+
+    public int KillSwitchIndex
+    {
+        get => _appSettings.KillSwitch ? 1 : 0;
+        set { _appSettings.KillSwitch = value == 1; OnPropertyChanged(); }
+    }
+
+    // ── Приложения мимо VPN (порт Android «Раздельное туннелирование») ──
+    public ObservableCollection<string> BypassApps { get; } = new();
+    public string BypassAppsListLabel => $"ПРИЛОЖЕНИЯ · {BypassApps.Count}";
+    public bool BypassAppsEmpty => BypassApps.Count == 0;
+
+    [RelayCommand]
+    private void OpenBypassApps()
+    {
+        RefreshBypassApps();
+        BypassDirty = false;
+        Page = SettingsPage.BypassApps;
+    }
+
+    /// <summary>Выбор программы (.app): sing-box узнаёт её соединения по имени процесса — файлу
+    /// в Contents/MacOS (обычно совпадает с названием приложения).</summary>
+    [RelayCommand]
+    private async Task AddBypassAppAsync()
+    {
+        var picked = await Ui.PickFilesAsync("Приложение мимо VPN", "Программы", "*.app");
+        foreach (var app in picked)
+        {
+            var name = ProcessNameOf(app);
+            if (name != null) _appSettings.AddBypassApp(name);
+        }
+        if (picked.Count == 0) return;
+        BypassDirty = true;
+        RefreshBypassApps();
+    }
+
+    private static string? ProcessNameOf(string appPath)
+    {
+        var bundleName = Path.GetFileNameWithoutExtension(appPath.TrimEnd('/'));
+        try
+        {
+            var executables = Directory.GetFiles(Path.Combine(appPath, "Contents", "MacOS"));
+            var exact = executables.FirstOrDefault(f => Path.GetFileName(f) == bundleName);
+            return Path.GetFileName(exact ?? executables.FirstOrDefault()) ?? bundleName;
+        }
+        catch { return string.IsNullOrEmpty(bundleName) ? null : bundleName; }
+    }
+
+    [RelayCommand]
+    private void RemoveBypassApp(string processName)
+    {
+        _appSettings.RemoveBypassApp(processName);
+        BypassDirty = true;
+        RefreshBypassApps();
+    }
+
+    private void RefreshBypassApps()
+    {
+        BypassApps.Clear();
+        foreach (var app in _appSettings.BypassApps) BypassApps.Add(app);
+        OnPropertyChanged(nameof(BypassAppsListLabel));
+        OnPropertyChanged(nameof(BypassAppsEmpty));
     }
 
     // ── Сайты мимо VPN (порт 6803326) ──
