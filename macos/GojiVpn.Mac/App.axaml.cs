@@ -108,6 +108,11 @@ public partial class App : Application
 
         window.Show();
 
+        // Прошлый запуск закрылся из-за сбоя (см. CrashReporter) — предложить отправить отчёт.
+        if (Environment.GetEnvironmentVariable("GODJI_UI_PREVIEW") != "1" &&
+            CrashReporter.TakePendingReport() is { } crashReport && tokenStore.IsLoggedIn)
+            _ = OfferCrashReportAsync(apiClient, crashReport);
+
         _hourlyRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(1) };
         _hourlyRefreshTimer.Tick += async (_, _) => await subscriptionRepository.RefreshAsync();
         _hourlyRefreshTimer.Start();
@@ -135,5 +140,25 @@ public partial class App : Application
             tray?.Dispose();
             desktop.Shutdown();
         }
+    }
+
+    /// <summary>Одним нажатием — описание сбоя в поддержку обычным обращением (как Windows).</summary>
+    private static async Task OfferCrashReportAsync(ApiClient api, string report)
+    {
+        var send = await Utils.Ui.ShowDialogAsync<bool>(new PromptDialog
+        {
+            PromptTitle = "Goji VPN в прошлый раз неожиданно закрылся",
+            Message = "Отправить отчёт об ошибке в поддержку? В нём только техническое описание сбоя — так мы быстрее его исправим.",
+            ShowInput = false,
+            PrimaryText = "Отправить"
+        });
+        if (send != true) return;
+        var version = UpdateService.CurrentVersion.ToString(3);
+        try
+        {
+            await api.CreateSupportTicketAsync($"Отчёт о сбое: macOS {version}",
+                $"Goji VPN {version}, {Environment.OSVersion.VersionString}\n\n{report}", queueId: null);
+        }
+        catch (Exception ex) { Program.LogCrash(ex); }
     }
 }

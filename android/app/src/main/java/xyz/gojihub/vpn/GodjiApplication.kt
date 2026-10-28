@@ -91,6 +91,8 @@ class GodjiApplication : Application(), Configuration.Provider, ImageLoaderFacto
 
     override fun onCreate() {
         super.onCreate()
+        // Первым делом: падение в любом процессе приложения попадёт в отчёт (см. CrashReporter).
+        xyz.gojihub.vpn.util.CrashReporter.install(this)
         // Заведомо раньше первого обращения к libXray где-либо в приложении — см. GeoAssets.
         GeoAssets.applyEnv(this)
         // Процесс ":ping" (PingProcessService) — только исполнитель pingBatch: ни темы, ни

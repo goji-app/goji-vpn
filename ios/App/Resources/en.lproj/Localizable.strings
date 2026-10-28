@@ -395,3 +395,9 @@
 "journal.ev.leak_ok.text" = "IP and DNS go through the tunnel";
 "journal.ev.leak_fail" = "Leak found";
 "journal.ev.leak_fail.text" = "Some requests bypass the tunnel";
+
+/* Отчёт о сбое (CrashReporter) */
+"crash.title" = "Goji VPN closed unexpectedly last time";
+"crash.text" = "Send an error report to support? It only contains a technical description of the crash — it helps us fix it faster.";
+"crash.send" = "Send";
+"crash.later" = "Not now";

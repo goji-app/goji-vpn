@@ -31,6 +31,7 @@ struct GojiVPNApp: App {
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         BackgroundTasks.register()
+        CrashReporter.shared.start()
         // Журнал сети: подключения, смена сети, ошибки (см. NetworkJournal).
         Task { @MainActor in
             NetworkJournal.shared.attach(vpn: .shared, network: .shared, store: .shared)
@@ -60,6 +61,8 @@ final class AppModel: ObservableObject {
     @Published var pendingTransfer: String?
     /// Почта из QR-кода переноса — экран входа отправит на неё код и откроет его ввод.
     @Published var transferEmail: String?
+    /// Описание прошлого сбоя (CrashReporter) — RootView предлагает отправить его в поддержку.
+    @Published var crashReport: String?
     @Published var toast: String?
 
     private var sessionObserver: NSObjectProtocol?
@@ -85,8 +88,29 @@ final class AppModel: ObservableObject {
         NetworkMonitor.shared.start()
     }
 
+    /// Прошлые сбои (CrashReporter) — предложить отправить, только когда вход выполнен.
+    func offerCrashReportIfPending() {
+        guard route == .main, !DemoMode.isEnabled, crashReport == nil,
+              let report = CrashReporter.shared.takePendingReport() else { return }
+        crashReport = report
+    }
+
+    /// Одним нажатием — описание сбоя в поддержку обычным обращением (как Windows, macOS, Android).
+    func sendCrashReport() async {
+        guard let report = crashReport else { return }
+        crashReport = nil
+        let header = "Goji VPN \(AppConstants.appVersion) (\(AppConstants.buildNumber)), iOS \(UIDevice.current.systemVersion), \(DeviceModel.identifier)"
+        let request = CreateTicketRequest(subject: "Отчёт о сбое: iOS \(AppConstants.appVersion)", message: header + "\n\n" + report, queueId: nil)
+        do {
+            let _: CreateTicketResponse = try await APIClient.shared.post("api/support/tickets", body: request)
+        } catch {
+            AppLog.w(.main, "отчёт о сбое не отправлен: \(error.localizedDescription)")
+        }
+    }
+
     func didBecomeActive() {
         guard !DemoMode.isEnabled else { return }
+        offerCrashReportIfPending()
         Task {
             await VPNController.shared.load()
             guard route == .main else { return }

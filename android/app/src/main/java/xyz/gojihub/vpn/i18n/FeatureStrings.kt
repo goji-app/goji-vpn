@@ -176,6 +176,10 @@ data class FeatureStrings(
     val a11yFavorite: String,
     val a11yPingOne: String,
     val aboutSubscriptionId: String,
+    val crashReportTitle: String,
+    val crashReportText: String,
+    val crashReportSend: String,
+    val crashReportLater: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -361,6 +365,10 @@ data class FeatureStrings(
             a11yFavorite = "Избранное",
             a11yPingOne = "Проверить пинг",
             aboutSubscriptionId = "ID подписки",
+            crashReportTitle = "Goji в прошлый раз неожиданно закрылся",
+            crashReportText = "Отправить отчёт об ошибке в поддержку? В нём только техническое описание сбоя — так мы быстрее его исправим.",
+            crashReportSend = "Отправить",
+            crashReportLater = "Не сейчас",
         )
 
         private val EN = FeatureStrings(
@@ -540,6 +548,10 @@ data class FeatureStrings(
             a11yFavorite = "Favorite",
             a11yPingOne = "Check ping",
             aboutSubscriptionId = "Subscription ID",
+            crashReportTitle = "Goji closed unexpectedly last time",
+            crashReportText = "Send an error report to support? It only contains a technical description of the crash — it helps us fix it faster.",
+            crashReportSend = "Send",
+            crashReportLater = "Not now",
         )
 
         private val ZH = FeatureStrings(
@@ -719,6 +731,10 @@ data class FeatureStrings(
             a11yFavorite = "收藏",
             a11yPingOne = "检测延迟",
             aboutSubscriptionId = "订阅 ID",
+            crashReportTitle = "Goji 上次意外关闭",
+            crashReportText = "要向客服发送错误报告吗？报告中只有崩溃的技术描述，可帮助我们更快修复。",
+            crashReportSend = "发送",
+            crashReportLater = "暂不",
         )
     }
 }

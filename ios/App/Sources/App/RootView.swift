@@ -18,6 +18,16 @@ struct RootView: View {
                     .transition(.opacity)
             }
         }
+        // На ZStack, а не рядом с alert переноса входа: два alert на одном view конфликтуют.
+        .alert(L("crash.title"), isPresented: Binding(
+            get: { model.crashReport != nil },
+            set: { if !$0 { model.crashReport = nil } }
+        )) {
+            Button(L("crash.send")) { Task { await model.sendCrashReport() } }
+            Button(L("crash.later"), role: .cancel) { model.crashReport = nil }
+        } message: {
+            Text(L("crash.text"))
+        }
         .animation(.easeInOut(duration: 0.25), value: model.route)
         .overlay(alignment: .top) { ToastView() }
         .alert(L("transfer.confirm.title"), isPresented: Binding(

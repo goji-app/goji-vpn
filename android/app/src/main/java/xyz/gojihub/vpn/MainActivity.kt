@@ -9,6 +9,8 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,16 +58,49 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var api: xyz.gojihub.vpn.network.RemnawaveApi
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val verifyEmail = intent?.getStringExtra(EXTRA_VERIFY_EMAIL)?.takeIf { !authRepository.isLoggedIn() }
+        // Новое окно после сбоя (savedInstanceState == null) — не поворот экрана и т.п.
+        val crashReport = if (savedInstanceState == null) xyz.gojihub.vpn.util.CrashReporter.takePendingReport(this) else null
         setContent {
             GodjiVpnTheme {
                 GodjiApp(startLoggedIn = authRepository.isLoggedIn(), authRepository = authRepository, verifyEmail = verifyEmail)
+                if (crashReport != null && authRepository.isLoggedIn()) CrashReportDialog(crashReport)
             }
         }
+    }
+
+    /** Прошлый запуск закрылся из-за сбоя — одним нажатием описание уходит в поддержку
+     *  обычным обращением (как Windows и macOS). */
+    @Composable
+    private fun CrashReportDialog(report: String) {
+        var visible by remember { mutableStateOf(true) }
+        if (!visible) return
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { visible = false },
+            title = { androidx.compose.material3.Text(Loc.f.crashReportTitle) },
+            text = { androidx.compose.material3.Text(Loc.f.crashReportText) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    visible = false
+                    lifecycleScope.launch {
+                        runCatching {
+                            api.createSupportTicket(xyz.gojihub.vpn.network.models.CreateSupportTicketRequest(
+                                subject = "Отчёт о сбое: Android ${BuildConfig.VERSION_NAME}", message = report))
+                        }.onFailure {
+                            xyz.gojihub.vpn.util.AppLogger.e(this@MainActivity, xyz.gojihub.vpn.util.LogCategory.MAIN, "GodjiCrash", "отчёт о сбое не отправлен", it)
+                        }
+                    }
+                }) { androidx.compose.material3.Text(Loc.f.crashReportSend) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { visible = false }) { androidx.compose.material3.Text(Loc.f.crashReportLater) }
+            }
+        )
     }
 
     companion object {
