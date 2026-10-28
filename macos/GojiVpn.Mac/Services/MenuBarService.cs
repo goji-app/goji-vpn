@@ -19,6 +19,19 @@ public sealed class MenuBarService : IDisposable
     private readonly ConnectViewModel _connect;
     private readonly Window _window;
 
+    // Значок показывает состояние без открытия окна: серый — отключено, жёлтая точка —
+    // подключаемся, зелёная — подключено (Assets/Images/tray-*.png, из logo.png).
+    private readonly WindowIcon _iconOff = MenuBarImage("tray-off.png");
+    private readonly WindowIcon _iconConnecting = MenuBarImage("tray-connecting.png");
+    private readonly WindowIcon _iconOn = MenuBarImage("tray-on.png");
+    private WindowIcon? _shownIcon;
+
+    private static WindowIcon MenuBarImage(string name)
+    {
+        using var stream = AssetLoader.Open(new Uri($"avares://GojiVpn/Assets/Images/{name}"));
+        return new WindowIcon(new Bitmap(stream));
+    }
+
     public MenuBarService(VpnEngine engine, ConnectViewModel connect, Window window, Action exit)
     {
         _engine = engine;
@@ -35,10 +48,9 @@ public sealed class MenuBarService : IDisposable
         var exitItem = new NativeMenuItem("Выход");
         exitItem.Click += (_, _) => exit();
 
-        using var stream = AssetLoader.Open(new Uri("avares://GojiVpn/Assets/Images/logo.png"));
         _icon = new TrayIcon
         {
-            Icon = new WindowIcon(new Bitmap(stream)),
+            Icon = _iconOff,
             ToolTipText = "Goji VPN — отключено",
             Menu = new NativeMenu { openItem, _toggleItem, new NativeMenuItemSeparator(), exitItem },
             IsVisible = true
@@ -64,6 +76,8 @@ public sealed class MenuBarService : IDisposable
     private void UpdateStatus()
     {
         var node = _connect.CurrentNodeName;
+        var icon = _engine.IsRunning ? _iconOn : _engine.IsConnecting ? _iconConnecting : _iconOff;
+        if (!ReferenceEquals(_shownIcon, icon)) _icon.Icon = _shownIcon = icon;
         _icon.ToolTipText = _engine.IsRunning ? $"Goji VPN — подключено: {node}"
             : _engine.IsConnecting ? $"Goji VPN — подключаемся: {node}"
             : "Goji VPN — отключено";

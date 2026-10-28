@@ -19,6 +19,14 @@ public sealed class TrayIconService : IDisposable
     private readonly MenuItem _toggleItem;
     private readonly ConnectViewModel _connect;
 
+    // Значок показывает состояние без открытия окна: серый — отключено, жёлтая точка —
+    // подключаемся, зелёная — подключено (Assets/Images/tray-*.png, из logo.png).
+    private static readonly BitmapImage IconOff = TrayImage("tray-off.png");
+    private static readonly BitmapImage IconConnecting = TrayImage("tray-connecting.png");
+    private static readonly BitmapImage IconOn = TrayImage("tray-on.png");
+
+    private static BitmapImage TrayImage(string name) => new(new Uri($"pack://application:,,,/Assets/Images/{name}"));
+
     public bool IsExiting { get; private set; }
 
     public TrayIconService(VpnEngine vpnEngine, ConnectViewModel connect, Window window, Action exit)
@@ -28,7 +36,7 @@ public sealed class TrayIconService : IDisposable
 
         _icon = new TaskbarIcon
         {
-            IconSource = new BitmapImage(new Uri("pack://application:,,,/Assets/Images/logo.png")),
+            IconSource = IconOff,
             ToolTipText = "Goji VPN — отключено"
         };
 
@@ -80,6 +88,8 @@ public sealed class TrayIconService : IDisposable
         // Аналог ярлыка "Подключиться: <последний узел>" на иконке Android (59e214b): из трея
         // VPN поднимается на выбранном узле без открытия окна — и видно, на каком именно.
         var node = _connect.CurrentNodeName;
+        var icon = _vpnEngine.IsRunning ? IconOn : _vpnEngine.IsConnecting ? IconConnecting : IconOff;
+        if (!ReferenceEquals(_icon.IconSource, icon)) _icon.IconSource = icon;
         _icon.ToolTipText = _vpnEngine.IsRunning ? $"Goji VPN — подключено: {node}"
             : _vpnEngine.IsConnecting ? $"Goji VPN — подключаемся: {node}"
             : "Goji VPN — отключено";
