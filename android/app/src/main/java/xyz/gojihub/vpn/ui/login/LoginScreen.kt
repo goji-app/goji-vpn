@@ -60,13 +60,7 @@ fun LoginScreen(
 
     val qrScanner = rememberLauncherForActivityResult(ScanContract()) { result ->
         val text = result.contents ?: return@rememberLauncherForActivityResult
-        viewModel.loginWithTransfer(text) {
-            // Как после OAuth/WebView-входа: новый onCreate() MainActivity с актуальным isLoggedIn().
-            context.startActivity(
-                Intent(context, xyz.gojihub.vpn.MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            )
-        }
+        viewModel.loginWithTransfer(text, onCodeSent)
     }
 
     GlassBackdrop {

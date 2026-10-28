@@ -75,6 +75,8 @@ struct LoginView: View {
         .navigationDestination(isPresented: $showVerify) {
             VerifyCodeView(email: codeSentTo)
         }
+        .onAppear { takeTransferEmail() }
+        .onChange(of: model.transferEmail) { _ in takeTransferEmail() }
         .sheet(isPresented: $showScanner) {
             QRScannerSheet { code in
                 showScanner = false
@@ -85,6 +87,14 @@ struct LoginView: View {
                 }
             }
         }
+    }
+
+    /// Почта из QR-кода переноса (AppModel.confirmTransfer): подставить и сразу отправить код.
+    private func takeTransferEmail() {
+        guard let transfer = model.transferEmail else { return }
+        model.transferEmail = nil
+        email = transfer
+        Task { await send() }
     }
 
     /// Ссылки на документы до регистрации (аккаунт создаётся при первом входе по коду).

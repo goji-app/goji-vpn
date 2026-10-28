@@ -104,7 +104,7 @@ public partial class App : Application
         var connectViewModel = new ConnectViewModel(vpnEngine, subscriptionRepository, pingSettings);
         var pingService = new PingService(pingSettings);
         var serversViewModel = new ServersViewModel(subscriptionRepository, pingService, customNodeStore, favoriteServersStore, appSettings);
-        var plansViewModel = new PlansViewModel(apiClient, subscriptionRepository, tokenStore);
+        var plansViewModel = new PlansViewModel(apiClient, subscriptionRepository);
         var settingsViewModel = new SettingsViewModel(tokenStore, vpnEngine, hwidProvider, pingSettings, themeService, updateService, apiClient, appSettings, networkRules);
         settingsViewModel.SubscriptionIdSource = () => subscriptionRepository.SelectedNode?.Uuid;
         var shellViewModel = new ShellViewModel(connectViewModel, serversViewModel, plansViewModel, settingsViewModel);

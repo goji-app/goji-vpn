@@ -134,7 +134,7 @@ class PlansViewModel @Inject constructor(
 ) : ViewModel() {
 
     /** Код переноса входа на другое устройство (см. AuthRepository.transferUri). */
-    fun transferUri(): String? = authRepository.transferUri()
+    suspend fun transferUri(): String? = authRepository.transferUri()
 
     private val _state = MutableStateFlow(PlansUiState())
     val state: StateFlow<PlansUiState> = _state

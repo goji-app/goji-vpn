@@ -14,10 +14,9 @@ import xyz.gojihub.vpn.ui.login.transferErrorText
 import javax.inject.Inject
 
 /**
- * Ловит godjivpn://transfer?... — QR-код переноса входа, отсканированный СИСТЕМНОЙ камерой (не
- * встроенным сканером на экране входа). Раз ссылка может прийти откуда угодно, вход не
- * выполняется молча: сначала явное подтверждение пользователя — иначе чужая ссылка могла бы
- * тихо переключить приложение на чужой аккаунт.
+ * Ловит godjivpn://transfer?e=<почта> — QR-код переноса входа, отсканированный СИСТЕМНОЙ камерой
+ * (не встроенным сканером на экране входа). После подтверждения отправляет код на эту почту и
+ * открывает экран ввода кода — дальше обычный вход по почте (см. AuthRepository.transferUri).
  */
 @AndroidEntryPoint
 class TransferLoginActivity : ComponentActivity() {
@@ -45,17 +44,25 @@ class TransferLoginActivity : ComponentActivity() {
     }
 
     private fun login(raw: String) {
+        val (email, error) = authRepository.parseTransfer(raw)
+        if (email == null) {
+            Toast.makeText(this, transferErrorText(error ?: AuthRepository.TransferError.INVALID), Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
         lifecycleScope.launch {
-            val error = authRepository.loginWithTransfer(raw)
-            if (error != null) {
-                Toast.makeText(this@TransferLoginActivity, transferErrorText(error), Toast.LENGTH_LONG).show()
+            if (authRepository.isLoggedIn()) authRepository.logout()
+            val sent = authRepository.sendOtp(email)
+            if (sent is AuthResult.Error) {
+                Toast.makeText(this@TransferLoginActivity, sent.message, Toast.LENGTH_LONG).show()
                 finish()
                 return@launch
             }
-            // Как в OAuthCallbackActivity: новый onCreate() MainActivity с актуальным isLoggedIn().
+            // Новый onCreate() MainActivity с актуальным isLoggedIn() — сразу на ввод кода из письма.
             startActivity(
                 Intent(this@TransferLoginActivity, MainActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    .putExtra(MainActivity.EXTRA_VERIFY_EMAIL, email)
             )
             finish()
         }

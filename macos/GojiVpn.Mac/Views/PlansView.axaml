@@ -128,7 +128,7 @@
                             </Border>
                             <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
                                 <TextBlock Text="Перенести на другое устройство" FontWeight="Bold" FontSize="{s:Fs 13.5}"/>
-                                <TextBlock Classes="rowSub" Text="Вход без почты: покажи QR-код новому телефону"/>
+                                <TextBlock Classes="rowSub" Text="Покажи QR-код новому телефону — останется ввести код из письма"/>
                             </StackPanel>
                             <Path Grid.Column="2" Classes="icon secondary" Data="{StaticResource IconChevronRight}" Width="16" Height="16"/>
                         </Grid>

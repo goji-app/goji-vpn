@@ -59,19 +59,16 @@
 
 "transfer.title" = "Move sign-in";
 "transfer.subtitle" = "QR code to sign in on another device of yours";
-"transfer.sheet.text" = "Scan this code in Goji VPN on your other device (sign-in screen → \"Sign in with a QR code\"). It's valid for 10 minutes.";
-"transfer.warning" = "Don't show this code to anyone — it gives access to your account.";
-"transfer.expires_in" = "Valid for %ld:%02ld";
-"transfer.expired" = "This code has expired";
-"transfer.regenerate" = "Refresh code";
+"transfer.sheet.text" = "Scan this code in Goji VPN on your other device (sign-in screen → \"Sign in with a QR code\"). A code will arrive at your email — enter it there.";
+"transfer.warning" = "The code only holds your email address: it can't sign in without the code from the email.";
+"transfer.load_failed" = "Couldn't open the QR code — check the internet and try again";
 "transfer.qr.a11y" = "QR code to sign in on another device";
 "transfer.confirm.title" = "Sign in with this QR code?";
-"transfer.confirm.text" = "The app will sign in to the account that shows this code.";
-"transfer.confirm.replace" = "You are already signed in. Your current sign-in will be replaced by the account from the other device.";
+"transfer.confirm.text" = "The app will send a sign-in code to the email of the account that shows this code.";
+"transfer.confirm.replace" = "You are already signed in. The app will sign out and send a sign-in code to the email of the account from the other device.";
 "transfer.confirm.yes" = "Sign in";
 "transfer.error.invalid" = "This is not a Goji VPN sign-in code";
-"transfer.error.expired" = "The code has expired — show a new one on the other device";
-"transfer.error.rejected" = "The server didn't accept the code — sign in again on the other device and retry";
+"transfer.error.expired" = "This QR code is from an old Goji version — update the app on the other device or sign in with email";
 
 "connect.headline.on" = "You're in %@";
 "connect.headline.connecting" = "Finding the way…";

@@ -50,33 +50,32 @@ final class AuthService {
         try await api.get("api/auth/me")
     }
 
-    // MARK: - Перенос входа QR-кодом (совместим с Android/Windows)
+    // MARK: - Перенос входа QR-кодом (совместим с Android/Windows/macOS)
 
     enum TransferError: Error {
-        case invalid, expired, rejected
+        case invalid, outdated
 
         var message: String {
             switch self {
             case .invalid: return L("transfer.error.invalid")
-            case .expired: return L("transfer.error.expired")
-            case .rejected: return L("transfer.error.rejected")
+            case .outdated: return L("transfer.error.expired")
             }
         }
     }
 
-    /// Код живёт 10 минут: старый снимок экрана не должен давать вход спустя дни.
-    private let transferTTL: TimeInterval = 10 * 60
-
-    /// godjivpn://transfer?s=<jwt>&r=<refresh>&t=<unix> — текущая сессия для другого устройства.
-    func transferURI() -> String? {
-        guard let token = tokens.accessToken else { return nil }
+    /// godjivpn://transfer?e=<почта> — только адрес почты аккаунта: новое устройство подставляет
+    /// его и просит код из письма. Раньше в код клали саму сессию (JWT и refresh-токен): снимок
+    /// экрана давал вход навсегда, а два устройства с одним refresh-токеном выбивали друг друга.
+    func transferURI() async -> String? {
+        guard let email = try? await me().email, !email.isEmpty,
+              // «+» в адресе экранируем: иначе Android прочитает его как пробел.
+              let encoded = email.addingPercentEncoding(withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: "@._-"))) else {
+            return nil
+        }
         var components = URLComponents()
         components.scheme = AppConstants.transferScheme
         components.host = AppConstants.transferHost
-        var items = [URLQueryItem(name: "s", value: token)]
-        if let refresh = tokens.refreshToken { items.append(URLQueryItem(name: "r", value: refresh)) }
-        items.append(URLQueryItem(name: "t", value: String(Int(Date().timeIntervalSince1970))))
-        components.queryItems = items
+        components.percentEncodedQueryItems = [URLQueryItem(name: "e", value: encoded)]
         return components.string
     }
 
@@ -85,28 +84,19 @@ final class AuthService {
         return url.scheme == AppConstants.transferScheme && url.host == AppConstants.transferHost
     }
 
-    /// Проверяет формат и срок, затем — что бэкенд принимает присланную сессию; только после
-    /// этого заменяет текущую. При любой ошибке текущий вход не трогается.
-    func login(transfer raw: String) async throws {
+    /// Почта из отсканированного кода переноса. Код старой версии приложения (с сессией внутри)
+    /// больше не принимаем.
+    static func transferEmail(_ raw: String) throws -> String {
         guard let components = URLComponents(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
               components.scheme == AppConstants.transferScheme, components.host == AppConstants.transferHost else {
             throw TransferError.invalid
         }
         let items = components.queryItems ?? []
-        func value(_ name: String) -> String? { items.first { $0.name == name }?.value.flatMap { $0.isEmpty ? nil : $0 } }
-        guard let session = value("s"), let created = value("t").flatMap(TimeInterval.init) else {
-            throw TransferError.invalid
+        if let email = items.first(where: { $0.name == "e" })?.value?.trimmingCharacters(in: .whitespaces),
+           email.range(of: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", options: .regularExpression) != nil {
+            return email
         }
-        let age = Date().timeIntervalSince1970 - created
-        guard age >= -300, age <= transferTTL else { throw TransferError.expired }
-        do {
-            _ = try await api.send(method: "GET", path: "api/auth/me", body: nil, bearer: session)
-        } catch {
-            throw TransferError.rejected
-        }
-        tokens.accessToken = session
-        tokens.refreshToken = value("r")
-        AppLog.i(.main, "вход по QR-переносу выполнен")
+        throw items.contains(where: { $0.name == "s" }) ? TransferError.outdated : TransferError.invalid
     }
 
     // MARK: - Выход и удаление аккаунта

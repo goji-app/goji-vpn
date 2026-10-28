@@ -58,6 +58,8 @@ final class AppModel: ObservableObject {
     @Published var tab: Tab = .home
     /// godjivpn://transfer?… из системной камеры — вход только после явного подтверждения.
     @Published var pendingTransfer: String?
+    /// Почта из QR-кода переноса — экран входа отправит на неё код и откроет его ввод.
+    @Published var transferEmail: String?
     @Published var toast: String?
 
     private var sessionObserver: NSObjectProtocol?
@@ -130,10 +132,9 @@ final class AppModel: ObservableObject {
         guard let raw = pendingTransfer else { return }
         pendingTransfer = nil
         do {
-            try await AuthService.shared.login(transfer: raw)
-            if !AppSettings.shared.privacyAccepted { AppSettings.shared.privacyAccepted = true }
-            SubscriptionStore.shared.clear()
-            didLogin()
+            let email = try AuthService.transferEmail(raw)
+            if AuthService.shared.isLoggedIn { await logout() }
+            transferEmail = email
         } catch let error as AuthService.TransferError {
             toast = error.message
         } catch {

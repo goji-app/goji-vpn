@@ -60,16 +60,22 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        val verifyEmail = intent?.getStringExtra(EXTRA_VERIFY_EMAIL)?.takeIf { !authRepository.isLoggedIn() }
         setContent {
             GodjiVpnTheme {
-                GodjiApp(startLoggedIn = authRepository.isLoggedIn(), authRepository = authRepository)
+                GodjiApp(startLoggedIn = authRepository.isLoggedIn(), authRepository = authRepository, verifyEmail = verifyEmail)
             }
         }
+    }
+
+    companion object {
+        /** Код уже отправлен на эту почту (вход по QR-коду системной камерой) — сразу ввод кода. */
+        const val EXTRA_VERIFY_EMAIL = "verify_email"
     }
 }
 
 @Composable
-fun GodjiApp(startLoggedIn: Boolean, authRepository: AuthRepository) {
+fun GodjiApp(startLoggedIn: Boolean, authRepository: AuthRepository, verifyEmail: String? = null) {
     val systemDark = isSystemInDarkTheme()
     val themeMode = GodjiColors.themeMode
     SideEffect {
@@ -104,6 +110,10 @@ fun GodjiApp(startLoggedIn: Boolean, authRepository: AuthRepository) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = currentRoute in tabs.map { it.route }
+
+    LaunchedEffect(verifyEmail) {
+        if (verifyEmail != null) navController.navigate(GodjiDestinations.verifyEmail(verifyEmail))
+    }
 
     val sessionExpired by authRepository.sessionExpired.collectAsState()
     LaunchedEffect(sessionExpired) {

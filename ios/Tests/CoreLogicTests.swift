@@ -186,5 +186,9 @@ final class UtilityTests: XCTestCase {
     func testTransferURIDetection() {
         XCTAssertTrue(AuthService.isTransferURI("godjivpn://transfer?s=abc&t=1"))
         XCTAssertFalse(AuthService.isTransferURI("https://\(AppConstants.siteHost)"))
+        // Код переноса — только почта; код старой версии с сессией внутри не принимается.
+        XCTAssertEqual(try AuthService.transferEmail("godjivpn://transfer?e=a%2Bb@mail.ru"), "a+b@mail.ru")
+        XCTAssertThrowsError(try AuthService.transferEmail("godjivpn://transfer?s=abc&t=1"))
+        XCTAssertThrowsError(try AuthService.transferEmail("godjivpn://transfer?e=not-an-email"))
     }
 }

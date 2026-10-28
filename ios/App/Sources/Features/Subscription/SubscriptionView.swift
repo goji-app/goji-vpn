@@ -373,11 +373,11 @@ enum LinkPolicy {
     }
 }
 
-/// QR-код текущей сессии для входа на другом своём устройстве (живёт 10 минут).
+/// QR-код с почтой аккаунта для входа на другом своём устройстве (дальше — код из письма).
 struct TransferQRSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var uri = AuthService.shared.transferURI()
-    @State private var generatedAt = Date()
+    @State private var uri: String?
+    @State private var loading = true
 
     var body: some View {
         NavigationStack {
@@ -395,19 +395,10 @@ struct TransferQRSheet: View {
                         .padding(16)
                         .background(RoundedRectangle(cornerRadius: 20).fill(.white))
                         .accessibilityLabel(L("transfer.qr.a11y"))
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let left = max(0, 600 - Int(context.date.timeIntervalSince(generatedAt)))
-                        Text(left > 0 ? L("transfer.expires_in", left / 60, left % 60) : L("transfer.expired"))
-                            .font(GojiFont.caption().monospacedDigit())
-                            .foregroundStyle(left > 0 ? GojiColor.textSecondary : GojiColor.danger)
-                    }
-                    Button(L("transfer.regenerate")) {
-                        uri = AuthService.shared.transferURI()
-                        generatedAt = Date()
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
+                } else if loading {
+                    ProgressView().frame(height: 260)
                 } else {
-                    Text(L("error.session_expired"))
+                    Text(L("transfer.load_failed"))
                 }
                 Text(L("transfer.warning"))
                     .font(GojiFont.caption())
@@ -416,6 +407,10 @@ struct TransferQRSheet: View {
                 Spacer()
             }
             .padding(24)
+            .task {
+                uri = await AuthService.shared.transferURI()
+                loading = false
+            }
             .navigationTitle(L("transfer.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

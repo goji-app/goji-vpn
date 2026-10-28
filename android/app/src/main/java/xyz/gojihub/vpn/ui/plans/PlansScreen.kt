@@ -39,6 +39,7 @@ import xyz.gojihub.vpn.ui.util.QrDialog
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -120,14 +121,14 @@ fun PlansScreen(onOpenSupport: () -> Unit, viewModel: PlansViewModel = hiltViewM
 
         // Перенос входа на другое устройство по QR — без почты и пароля.
         var transferUri by remember { mutableStateOf<String?>(null) }
-        TransferCard(onClick = { transferUri = viewModel.transferUri() })
-        transferUri?.let { uri ->
-            // Код живёт 10 минут (см. AuthRepository.TRANSFER_TTL_SECONDS) — и на экране дольше
-            // не держим, чтобы его не "забыли" открытым.
-            LaunchedEffect(uri) {
-                kotlinx.coroutines.delay(10 * 60 * 1000L)
-                transferUri = null
+        val transferScope = rememberCoroutineScope()
+        TransferCard(onClick = {
+            transferScope.launch {
+                transferUri = viewModel.transferUri()
+                if (transferUri == null) android.widget.Toast.makeText(context, Loc.f.transferFailed, android.widget.Toast.LENGTH_LONG).show()
             }
+        })
+        transferUri?.let { uri ->
             QrDialog(
                 title = Loc.f.transferQrTitle,
                 subtitle = Loc.f.transferQrSubtitle,

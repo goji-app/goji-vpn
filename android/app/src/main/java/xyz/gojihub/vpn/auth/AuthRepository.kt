@@ -29,8 +29,6 @@ class AuthRepository @Inject constructor(
     private val api: RemnawaveApi,
     private val tokenManager: TokenManager,
     @ApplicationContext private val appContext: Context,
-    // Клиент без авторизационных интерсепторов (см. NetworkModule) — для проверки чужой сессии.
-    @javax.inject.Named("refresh") private val plainClient: okhttp3.OkHttpClient,
     private val subscriptionRepository: dagger.Lazy<xyz.gojihub.vpn.subscription.SubscriptionRepository>
 ) {
     // PKCE verifier/provider живут между стартом OAuth (открытие Custom Tabs) и возвратом
@@ -114,71 +112,32 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    /** Вход по готовой сессии сайта: сейчас — перенос входа QR-кодом (completeTransfer ниже);
-     *  раньше так же завершался вход через встроенный сайт (убран вместе со сборкой не для Play). Обходной путь: нативный обмен кода на токен
-     *  (POST /api/auth/native/exchange) на бэкенде 7.1.0 сломан и всегда отвечает 400 "invalid
-     *  request" — независимо от провайдера (см. ARCHITECTURE.md). Веб-флоу сайта использует
-     *  совсем другой, отдельный эндпоинт (/api/auth/session/exchange) и им не затронут — токен
-     *  из его же Set-Cookie мы уже проверяли живым запросом как обычный Bearer и подтвердили, что
-     *  бэкенд принимает его наравне с токеном из email-входа. */
-    suspend fun completeWebLogin(sessionToken: String, refreshToken: String?): AuthResult = runCatching {
-        refreshToken?.let(tokenManager::saveRefreshToken)
-        onAuthenticated(sessionToken, WEB_LOGIN_EXPIRES_IN_SECONDS)
-        AuthResult.Success
-    }.getOrElse {
-        AppLogger.e(appContext, LogCategory.MAIN, TAG, "completeWebLogin failed", it)
-        AuthResult.Error(it.message ?: Loc.s.errorOAuthCompleteFailed)
-    }
-
     /**
-     * Перенос входа на другое устройство по QR-коду (Подписка → "Перенести на другое
-     * устройство"): в код кладём текущую сессию — тот же JWT и refresh-токен, что уже лежат в
-     * TokenManager, — и момент создания. Бэкенд принимает JWT как обычный Bearer с любого
-     * устройства (так же, как токен из WebView-входа); новое устройство при первом запросе
-     * подписки само зарегистрирует свой HWID и займёт место в лимите устройств.
-     * null — если на этом устройстве сейчас нет сессии.
+     * Перенос входа на другое устройство по QR-коду (Подписка → «Перенести на другое
+     * устройство»): в коде только адрес почты аккаунта — godjivpn://transfer?e=<почта>. Новое
+     * устройство подставляет его и просит код из письма, дальше обычный вход по почте.
+     * Раньше в код клали саму сессию (JWT и refresh-токен): снимок экрана давал вход навсегда,
+     * а два устройства с одним refresh-токеном выбивали друг друга (бэкенд его ротирует).
+     * null — почту узнать не удалось (нет сессии или сети).
      */
-    fun transferUri(): String? {
-        val token = tokenManager.accessToken() ?: return null
-        val refresh = tokenManager.refreshToken()
+    suspend fun transferUri(): String? {
+        val email = runCatching { api.getMe().email }.getOrNull()?.takeIf { it.isNotBlank() } ?: return null
         return android.net.Uri.Builder()
             .scheme(TRANSFER_SCHEME).authority(TRANSFER_HOST)
-            .appendQueryParameter("s", token)
-            .apply { if (refresh != null) appendQueryParameter("r", refresh) }
-            .appendQueryParameter("t", (System.currentTimeMillis() / 1000).toString())
+            .appendQueryParameter("e", email)
             .build().toString()
     }
 
-    enum class TransferError { INVALID, EXPIRED, FAILED }
+    enum class TransferError { INVALID, OUTDATED }
 
-    /** Вход по отсканированному коду переноса. Проверяет формат и срок (TRANSFER_TTL), затем
-     *  проверяет присланную сессию ОТДЕЛЬНЫМ запросом /api/auth/me — и только если бэкенд её
-     *  принял, сохраняет. Текущий вход на этом устройстве при неудаче не трогается. */
-    suspend fun loginWithTransfer(raw: String): TransferError? {
+    /** Почта из отсканированного кода переноса или ошибка: не наш код, либо код старой версии
+     *  приложения (с сессией внутри — такие больше не принимаем). */
+    fun parseTransfer(raw: String): Pair<String?, TransferError?> {
         val uri = runCatching { android.net.Uri.parse(raw.trim()) }.getOrNull()
-        if (uri == null || uri.scheme != TRANSFER_SCHEME || uri.host != TRANSFER_HOST) return TransferError.INVALID
-        val session = uri.getQueryParameter("s")?.takeIf { it.isNotBlank() } ?: return TransferError.INVALID
-        val createdAt = uri.getQueryParameter("t")?.toLongOrNull() ?: return TransferError.INVALID
-        val age = System.currentTimeMillis() / 1000 - createdAt
-        if (age !in -300..TRANSFER_TTL_SECONDS) return TransferError.EXPIRED
-        if (!isSessionAccepted(session)) return TransferError.FAILED
-        val result = completeWebLogin(session, uri.getQueryParameter("r")?.takeIf { it.isNotBlank() })
-        return if (result is AuthResult.Error) TransferError.FAILED else null
-    }
-
-    /** GET /api/auth/me с присланным токеном — без authInterceptor основного клиента (тот
-     *  подставил бы текущий токен устройства и при 401 разлогинил бы его). */
-    private suspend fun isSessionAccepted(token: String): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        runCatching {
-            val request = okhttp3.Request.Builder()
-                .url("${xyz.gojihub.vpn.BuildConfig.SITE_URL}/api/auth/me")
-                .header("Authorization", "Bearer $token")
-                .header("X-Requested-With", "XMLHttpRequest")
-                .header("User-Agent", "Goji/${xyz.gojihub.vpn.BuildConfig.VERSION_NAME}/Android")
-                .build()
-            plainClient.newCall(request).execute().use { it.isSuccessful }
-        }.onFailure { AppLogger.e(appContext, LogCategory.MAIN, TAG, "isSessionAccepted failed", it) }
-            .getOrDefault(false)
+        if (uri == null || uri.scheme != TRANSFER_SCHEME || uri.host != TRANSFER_HOST) return null to TransferError.INVALID
+        val email = uri.getQueryParameter("e")?.trim()
+        if (email != null && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) return email to null
+        return null to if (uri.getQueryParameter("s") != null) TransferError.OUTDATED else TransferError.INVALID
     }
 
     private suspend fun onAuthenticated(token: String, expiresInSeconds: Long) {
@@ -215,13 +174,7 @@ class AuthRepository @Inject constructor(
         const val KEY_VERIFIER = "verifier"
         const val KEY_PROVIDER = "provider"
         const val TAG = "GodjiAuth"
-        // TokenManager реально этим значением уже не пользуется (см. комментарий у isLoggedIn()) —
-        // единственный источник правды о протухшем токене — 401 от бэкенда. Держим с запасом.
-        const val WEB_LOGIN_EXPIRES_IN_SECONDS = 30L * 24 * 3600
         const val TRANSFER_SCHEME = "godjivpn"
         const val TRANSFER_HOST = "transfer"
-        // Код переноса показывают с экрана "здесь и сейчас" — старый снимок экрана не должен
-        // давать вход спустя дни.
-        const val TRANSFER_TTL_SECONDS = 10L * 60
     }
 }

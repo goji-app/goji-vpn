@@ -13,8 +13,7 @@ import javax.inject.Inject
 
 fun transferErrorText(error: AuthRepository.TransferError): String = when (error) {
     AuthRepository.TransferError.INVALID -> Loc.f.transferInvalid
-    AuthRepository.TransferError.EXPIRED -> Loc.f.transferExpired
-    AuthRepository.TransferError.FAILED -> Loc.f.transferFailed
+    AuthRepository.TransferError.OUTDATED -> Loc.f.transferExpired
 }
 
 data class LoginUiState(
@@ -53,14 +52,16 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    /** Вход по QR-коду переноса, отсканированному прямо на экране входа. */
-    fun loginWithTransfer(raw: String, onSuccess: () -> Unit) {
-        _state.value = _state.value.copy(loading = true, error = null)
-        viewModelScope.launch {
-            val error = authRepository.loginWithTransfer(raw)
-            _state.value = _state.value.copy(loading = false, error = error?.let(::transferErrorText))
-            if (error == null) onSuccess()
+    /** QR-код переноса, отсканированный на экране входа: в нём почта аккаунта — подставляем её
+     *  и сразу отправляем код из письма, как по кнопке «Получить код». */
+    fun loginWithTransfer(raw: String, onCodeSent: (String) -> Unit) {
+        val (email, error) = authRepository.parseTransfer(raw)
+        if (email == null) {
+            _state.value = _state.value.copy(error = transferErrorText(error ?: AuthRepository.TransferError.INVALID))
+            return
         }
+        _state.value = _state.value.copy(email = email, emailMode = true, error = null)
+        sendOtp(onCodeSent)
     }
 
     /** provider: "google" | "yandex" | "telegram-oidc". [onUrlReady] открывает Custom Tabs. */

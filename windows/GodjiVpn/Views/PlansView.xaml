@@ -135,7 +135,7 @@
                         </controls:PagedItems>
                     </Grid>
                 </controls:GlassPanel>
-                <!-- Перенос входа на другое устройство по QR — без почты (порт 7060e31). -->
+                <!-- Перенос входа на другое устройство по QR: в коде почта, дальше код из письма. -->
                 <Button Grid.Row="2" Style="{StaticResource BareButton}" controls:Press.Scale="0.98" Margin="0,12,0,0" Command="{Binding ShowTransferQrCommand}"
                         AutomationProperties.Name="Перенести на другое устройство">
                     <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Padding="14">
@@ -150,7 +150,7 @@
                             </Border>
                             <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
                                 <TextBlock Text="Перенести на другое устройство" FontWeight="Bold" FontSize="{s:Fs 13.5}"/>
-                                <TextBlock Text="Вход без почты: покажи QR-код новому телефону" FontWeight="Medium" FontSize="{s:Fs 11}"
+                                <TextBlock Text="Покажи QR-код новому телефону — останется ввести код из письма" FontWeight="Medium" FontSize="{s:Fs 11}"
                                            Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0" LineHeight="{s:Fs 15.4}"/>
                             </StackPanel>
                             <Path Grid.Column="2" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}" Width="16" Height="16"
