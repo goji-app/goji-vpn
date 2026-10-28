@@ -1,0 +1,86 @@
+<UserControl x:Class="GodjiVpn.Views.OnboardingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:GodjiVpn.Utils"
+             xmlns:controls="clr-namespace:GodjiVpn.Controls">
+    <!-- Первый запуск — три экрана до входа, в стиле экрана входа: плашка Goji, глобус со
+         спутниками, снизу плотный стеклянный лист с текстом, точками страниц и кнопками. -->
+    <Grid Background="{DynamicResource BgBrush}" Margin="18,16,18,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*" MinHeight="110"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <controls:GlobeHost x:Name="Globe" Grid.Row="0" Grid.RowSpan="2" Satellites="True" Margin="-18,-16,-18,-8"/>
+
+        <controls:GlassPanel Grid.Row="0" Style="{StaticResource GlassPill}" HorizontalAlignment="Left" Padding="5,5,13,5">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="30" Height="30" CornerRadius="15" Background="{DynamicResource InkBrush}">
+                    <Image Source="pack://application:,,,/Assets/Images/logo.png" Width="20" Height="20"/>
+                </Border>
+                <TextBlock Text="Goji" FontWeight="Bold" FontSize="{s:Fs 15}" VerticalAlignment="Center" Margin="9,0,0,0"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+            </StackPanel>
+        </controls:GlassPanel>
+
+        <controls:GlassPanel Grid.Row="2" Style="{StaticResource GlassStrong}" CornerRadius="32" Margin="0,12,0,0">
+            <StackPanel Margin="18,22,18,16">
+                <TextBlock Text="{Binding Current.Title}" FontWeight="SemiBold" FontSize="{s:Fs 28}" LineHeight="{s:Fs 31}"
+                           LineStackingStrategy="BlockLineHeight" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <ItemsControl ItemsSource="{Binding Current.Points}" Margin="0,14,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,0,0,9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Width="6" Height="6" Fill="{DynamicResource TealBrush}" VerticalAlignment="Top" Margin="0,7,10,0"/>
+                                <TextBlock Grid.Column="1" Text="{Binding}" FontWeight="Medium" FontSize="{s:Fs 14}" LineHeight="{s:Fs 19}"
+                                           TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <ItemsControl ItemsSource="{Binding Dots}" HorizontalAlignment="Center" Margin="0,6,0,0" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Height="6" CornerRadius="3" Margin="3,0">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Width" Value="6"/>
+                                        <Setter Property="Background" Value="{DynamicResource HairBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding}" Value="True">
+                                                <Setter Property="Width" Value="18"/>
+                                                <Setter Property="Background" Value="{DynamicResource TealDeepBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Style="{StaticResource BareButton}" Command="{Binding SkipCommand}" VerticalAlignment="Center" Padding="6,12"
+                            Visibility="{Binding IsLast, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <TextBlock Text="Пропустить" FontWeight="SemiBold" FontSize="{s:Fs 14}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </Button>
+                    <Button Grid.Column="1" Style="{StaticResource AccentPillButton}" Height="52" MinWidth="150" Padding="24,0" FontSize="{s:Fs 15}"
+                            HorizontalAlignment="Right" Content="{Binding NextLabel}" Command="{Binding NextCommand}"/>
+                </Grid>
+            </StackPanel>
+        </controls:GlassPanel>
+    </Grid>
+</UserControl>

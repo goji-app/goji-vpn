@@ -13,7 +13,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private object currentViewModel;
 
-    public MainViewModel(TokenStore tokenStore, LoginViewModel login, ShellViewModel shell)
+    public MainViewModel(TokenStore tokenStore, LoginViewModel login, ShellViewModel shell, OnboardingViewModel onboarding)
     {
         _tokenStore = tokenStore;
         _login = login;
@@ -22,7 +22,9 @@ public sealed partial class MainViewModel : ObservableObject
         _login.LoggedIn += OnLoggedIn;
         _shell.LoggedOut += OnLoggedOut;
 
-        currentViewModel = _tokenStore.IsLoggedIn ? _shell : _login;
+        // Первый запуск — сначала три экрана знакомства (OnboardingViewModel), потом вход.
+        onboarding.Done += () => CurrentViewModel = _login;
+        currentViewModel = _tokenStore.IsLoggedIn ? _shell : OnboardingViewModel.IsSeen ? _login : onboarding;
 
         // Только для превью-экземпляра (GODJI_UI_PREVIEW, см. App.xaml.cs): показать экран
         // входа/подтверждения кода для сверки с эталоном, не трогая сохранённую сессию.
@@ -32,6 +34,9 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 case "login":
                     currentViewModel = _login;
+                    break;
+                case "onboarding":
+                    currentViewModel = onboarding;
                     break;
                 case "verify":
                     _login.Email = "you@mail.ru";

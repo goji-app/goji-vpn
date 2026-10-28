@@ -108,7 +108,7 @@ public partial class App : Application
         var settingsViewModel = new SettingsViewModel(tokenStore, vpnEngine, hwidProvider, pingSettings, themeService, updateService, apiClient, appSettings, networkRules);
         settingsViewModel.SubscriptionIdSource = () => subscriptionRepository.SelectedNode?.Uuid;
         var shellViewModel = new ShellViewModel(connectViewModel, serversViewModel, plansViewModel, settingsViewModel);
-        var mainViewModel = new MainViewModel(tokenStore, loginViewModel, shellViewModel);
+        var mainViewModel = new MainViewModel(tokenStore, loginViewModel, shellViewModel, new OnboardingViewModel());
         // Выход из аккаунта или истёкшая сессия — забыть подписку, новости и серверы прежнего
         // аккаунта (и на диске, см. AccountCache).
         tokenStore.Cleared += subscriptionRepository.ClearAccount;

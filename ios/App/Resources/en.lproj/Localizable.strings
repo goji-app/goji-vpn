@@ -407,3 +407,11 @@
 "error.hint.subscription" = "The subscription isn't active";
 "error.action.server" = "Change server";
 "error.action.plans" = "Open subscription";
+
+/* Первый запуск: экраны знакомства */
+"onboarding.title1" = "Works when others don't";
+"onboarding.points1" = "Connect in one tap\nRussian sites and banks go directly, outside the VPN\nIf mobile data is jammed, Goji switches to a working server on its own";
+"onboarding.title2" = "How to start";
+"onboarding.points2" = "Sign in with email — you'll get a code, the account is created automatically\nTurn on the free trial on the home screen\nTap the big button — and you're online";
+"onboarding.next" = "Next";
+"onboarding.skip" = "Skip";

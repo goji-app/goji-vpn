@@ -363,6 +363,9 @@
                 </Style.Triggers>
             </Style>
 
+            <DataTemplate DataType="{x:Type vm:OnboardingViewModel}">
+                <views:OnboardingView/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:LoginViewModel}">
                 <views:LoginView/>
             </DataTemplate>

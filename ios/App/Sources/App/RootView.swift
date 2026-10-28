@@ -8,7 +8,7 @@ struct RootView: View {
             GlassBackdrop()
             switch model.route {
             case .onboarding:
-                PrivacyIntroView()
+                OnboardingView()
                     .transition(.opacity)
             case .login:
                 NavigationStack { LoginView() }

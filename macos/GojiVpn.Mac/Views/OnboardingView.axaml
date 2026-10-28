@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:GodjiVpn.Utils"
+             xmlns:c="using:GodjiVpn.Controls"
+             x:Class="GodjiVpn.Views.OnboardingView">
+    <!-- Первый запуск — три экрана до входа, в стиле экрана входа (как Windows/Android/iOS). -->
+    <UserControl.Styles>
+        <Style Selector="Border.dot">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Height" Value="6"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Background" Value="{DynamicResource HairBrush}"/>
+        </Style>
+        <Style Selector="Border.dot.active">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Background" Value="{DynamicResource TealDeepBrush}"/>
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="Auto,*,Auto" Margin="18,16,18,20">
+        <c:Globe Grid.Row="0" Grid.RowSpan="2" Satellites="True" RadiusFactor="0.34" Margin="-18,-16,-18,-8"/>
+
+        <c:GlassPanel Classes="pill" HorizontalAlignment="Left" Padding="5,5,13,5">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="30" Height="30" CornerRadius="15" Background="{DynamicResource InkBrush}">
+                    <Image Source="avares://GojiVpn/Assets/Images/logo.png" Width="20" Height="20"/>
+                </Border>
+                <TextBlock Text="Goji" FontWeight="Bold" FontSize="{s:Fs 15}" VerticalAlignment="Center" Margin="9,0,0,0"/>
+            </StackPanel>
+        </c:GlassPanel>
+
+        <c:GlassPanel Grid.Row="2" Classes="strong" CornerRadius="32" Margin="0,12,0,0">
+            <StackPanel Margin="18,22,18,16">
+                <TextBlock Text="{Binding Current.Title}" FontWeight="SemiBold" FontSize="{s:Fs 28}" LineHeight="{s:Fs 31}" TextWrapping="Wrap"/>
+                <ItemsControl ItemsSource="{Binding Current.Points}" Margin="0,14,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,9">
+                                <Ellipse Width="6" Height="6" Fill="{DynamicResource TealBrush}" VerticalAlignment="Top" Margin="0,7,10,0"/>
+                                <TextBlock Grid.Column="1" Text="{Binding}" FontWeight="Medium" FontSize="{s:Fs 14}" LineHeight="{s:Fs 19}" TextWrapping="Wrap"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <ItemsControl ItemsSource="{Binding Dots}" HorizontalAlignment="Center" Margin="0,6,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="dot" Classes.active="{Binding}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid ColumnDefinitions="Auto,*" Margin="0,16,0,0">
+                    <Button Classes="bare" Command="{Binding SkipCommand}" VerticalAlignment="Center" Padding="6,12" IsVisible="{Binding !IsLast}">
+                        <TextBlock Classes="muted" Text="Пропустить" FontWeight="SemiBold" FontSize="{s:Fs 14}"/>
+                    </Button>
+                    <Button Grid.Column="1" Classes="accent" Height="52" MinWidth="150" Padding="24,0" FontSize="{s:Fs 15}"
+                            HorizontalAlignment="Right" Content="{Binding NextLabel}" Command="{Binding NextCommand}"/>
+                </Grid>
+            </StackPanel>
+        </c:GlassPanel>
+    </Grid>
+</UserControl>

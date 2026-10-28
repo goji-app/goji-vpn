@@ -184,6 +184,15 @@ data class FeatureStrings(
     val errorHintSubscription: String,
     val errorActionServer: String,
     val errorActionPlans: String,
+    val onboardingTitle1: String,
+    val onboardingBody1: String,
+    val onboardingTitle2: String,
+    val onboardingBody2: String,
+    val onboardingTitle3: String,
+    val onboardingBody3: String,
+    val onboardingNext: String,
+    val onboardingStart: String,
+    val onboardingSkip: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -377,6 +386,15 @@ data class FeatureStrings(
             errorHintSubscription = "Подписка не активна",
             errorActionServer = "Сменить сервер",
             errorActionPlans = "Открыть подписку",
+            onboardingTitle1 = "Работает, когда другие — нет",
+            onboardingBody1 = "Подключение в одно нажатие\nРоссийские сайты и банки — напрямую, мимо VPN\nГлушат мобильную связь — Goji сам переключится на рабочий сервер",
+            onboardingTitle2 = "Как начать",
+            onboardingBody2 = "Войди по почте — придёт код, аккаунт создастся сам\nВключи пробный период на главном экране\nНажми большую кнопку — и ты в сети",
+            onboardingTitle3 = "Одно разрешение",
+            onboardingBody3 = "При первом подключении Android спросит разрешение на VPN — нажми «ОК»\nОно нужно, чтобы трафик шёл через защищённый туннель\nGoji не ведёт журнал сайтов, которые ты открываешь",
+            onboardingNext = "Далее",
+            onboardingStart = "Начать",
+            onboardingSkip = "Пропустить",
         )
 
         private val EN = FeatureStrings(
@@ -564,6 +582,15 @@ data class FeatureStrings(
             errorHintSubscription = "The subscription isn't active",
             errorActionServer = "Change server",
             errorActionPlans = "Open subscription",
+            onboardingTitle1 = "Works when others don't",
+            onboardingBody1 = "Connect in one tap\nRussian sites and banks go directly, outside the VPN\nIf mobile data is jammed, Goji switches to a working server on its own",
+            onboardingTitle2 = "How to start",
+            onboardingBody2 = "Sign in with email — you'll get a code, the account is created automatically\nTurn on the free trial on the home screen\nTap the big button — and you're online",
+            onboardingTitle3 = "One permission",
+            onboardingBody3 = "On the first connection Android asks for VPN permission — tap \"OK\"\nIt lets traffic go through the protected tunnel\nGoji doesn't log the sites you open",
+            onboardingNext = "Next",
+            onboardingStart = "Start",
+            onboardingSkip = "Skip",
         )
 
         private val ZH = FeatureStrings(
@@ -751,6 +778,15 @@ data class FeatureStrings(
             errorHintSubscription = "订阅未激活",
             errorActionServer = "更换服务器",
             errorActionPlans = "打开订阅",
+            onboardingTitle1 = "别人不行时，它依然可用",
+            onboardingBody1 = "一键连接\n俄罗斯网站和银行直连，不经过 VPN\n移动网络受干扰时，Goji 会自动切换到可用的服务器",
+            onboardingTitle2 = "如何开始",
+            onboardingBody2 = "用邮箱登录 — 收到验证码，账户自动创建\n在主屏幕开启免费试用\n点按大按钮 — 即可上网",
+            onboardingTitle3 = "一项权限",
+            onboardingBody3 = "首次连接时 Android 会请求 VPN 权限 — 请点「确定」\n这样流量才能通过受保护的隧道\nGoji 不记录你访问的网站",
+            onboardingNext = "下一步",
+            onboardingStart = "开始",
+            onboardingSkip = "跳过",
         )
     }
 }

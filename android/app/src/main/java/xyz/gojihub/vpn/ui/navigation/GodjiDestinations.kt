@@ -1,6 +1,7 @@
 package xyz.gojihub.vpn.ui.navigation
 
 object GodjiDestinations {
+    const val ONBOARDING = "onboarding"
     const val LOGIN = "login"
     const val VERIFY_EMAIL = "verify_email/{email}"
     const val CONNECT = "connect"

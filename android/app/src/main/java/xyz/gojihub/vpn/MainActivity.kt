@@ -164,13 +164,25 @@ fun GodjiApp(startLoggedIn: Boolean, authRepository: AuthRepository, verifyEmail
     GlassBackdrop {
         NavHost(
             navController = navController,
-            startDestination = if (startLoggedIn) GodjiDestinations.CONNECT else GodjiDestinations.LOGIN,
+            startDestination = when {
+                startLoggedIn -> GodjiDestinations.CONNECT
+                !xyz.gojihub.vpn.ui.login.Onboarding.isSeen(view.context) -> GodjiDestinations.ONBOARDING
+                else -> GodjiDestinations.LOGIN
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.systemBars)
                 // Короткая нижняя панель M3 Expressive — 64dp над системной навигацией.
                 .padding(bottom = if (showBottomBar) TAB_BAR_HEIGHT else 0.dp)
         ) {
+            composable(GodjiDestinations.ONBOARDING) {
+                xyz.gojihub.vpn.ui.login.OnboardingScreen(onDone = {
+                    xyz.gojihub.vpn.ui.login.Onboarding.markSeen(view.context)
+                    navController.navigate(GodjiDestinations.LOGIN) {
+                        popUpTo(GodjiDestinations.ONBOARDING) { inclusive = true }
+                    }
+                })
+            }
             composable(GodjiDestinations.LOGIN) {
                 LoginScreen(
                     onCodeSent = { email ->
