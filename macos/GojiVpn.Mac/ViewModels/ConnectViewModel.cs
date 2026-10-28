@@ -44,6 +44,11 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string? errorMessage;
     /// <summary>«Повторить» у ошибки — только когда она от кабинета/подписки, а не от туннеля.</summary>
     [ObservableProperty] private bool canRetryRefresh;
+    /// <summary>Понятная причина над техническим текстом ошибки подключения и одна кнопка
+    /// следующего шага (как Android): неактивная подписка — «Открыть подписку», иначе «Сменить сервер».</summary>
+    [ObservableProperty] private string? errorHint;
+    [ObservableProperty] private bool canChangeServer;
+    [ObservableProperty] private bool canOpenPlans;
 
     /// <summary>Карточка пробного периода у аккаунта без подписки: число дней; null — карточки нет.</summary>
     [ObservableProperty]
@@ -293,6 +298,10 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         // «Нет активной подписки» не дублируем красной строкой, когда рядом карточка пробного периода.
         ErrorMessage = _vpnEngine.LastError ?? (HasTrial ? null : _subscription.LastError);
         CanRetryRefresh = _vpnEngine.LastError == null && ErrorMessage != null;
+        var vpnFailed = _vpnEngine.LastError != null;
+        CanOpenPlans = vpnFailed && _subscription.Subscription is { IsActive: false };
+        CanChangeServer = vpnFailed && !CanOpenPlans;
+        ErrorHint = CanOpenPlans ? "Подписка не активна" : CanChangeServer ? "Сервер не отвечает — попробуй другой" : null;
         ToggleCommand.NotifyCanExecuteChanged();
 
         var node = _subscription.SelectedNode;

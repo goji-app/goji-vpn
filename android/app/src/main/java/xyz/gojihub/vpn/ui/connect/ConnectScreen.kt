@@ -193,8 +193,22 @@ fun ConnectScreen(viewModel: ConnectViewModel = hiltViewModel(), onOpenPlans: ()
             }
         }
 
-        state.error?.let {
-            Text(it, color = GodjiColors.Danger, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        state.error?.let { message ->
+            // Понятная причина и одна кнопка следующего шага; техническое сообщение — мельче.
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                val hint = when (state.errorAction) {
+                    ErrorAction.OPEN_PLANS -> Loc.f.errorHintSubscription
+                    ErrorAction.CHANGE_SERVER -> Loc.f.errorHintServer
+                    null -> null
+                }
+                hint?.let { Text(it, color = GodjiColors.Danger, fontWeight = FontWeight.Bold, fontSize = 13.sp, textAlign = TextAlign.Center) }
+                Text(message, color = if (hint != null) GodjiColors.TextSecondary else GodjiColors.Danger, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                when (state.errorAction) {
+                    ErrorAction.OPEN_PLANS -> TextButton(onClick = onOpenPlans) { Text(Loc.f.errorActionPlans, color = GodjiColors.TealDeep, fontWeight = FontWeight.Bold) }
+                    ErrorAction.CHANGE_SERVER -> TextButton(onClick = onOpenServers) { Text(Loc.f.errorActionServer, color = GodjiColors.TealDeep, fontWeight = FontWeight.Bold) }
+                    null -> Unit
+                }
+            }
         }
 
         state.trialDays?.let { days ->

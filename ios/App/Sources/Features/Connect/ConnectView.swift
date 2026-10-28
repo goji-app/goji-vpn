@@ -27,7 +27,7 @@ struct ConnectView: View {
                     headline
                 }
                 if let banner = currentBanner {
-                    BannerView(text: banner.text, kind: banner.kind) { dismissBanner() }
+                    BannerView(text: banner.text, kind: banner.kind, action: errorAction) { dismissBanner() }
                 }
                 speedCard
                 HStack(alignment: .top, spacing: 8) {
@@ -66,8 +66,15 @@ struct ConnectView: View {
         return store.selectedNode?.geo
     }
 
+    /// Неактивная подписка — частая причина «не подключается» (как Android).
+    private var subscriptionInactive: Bool { store.subscription?.isActive == false }
+
     private var currentBanner: (text: String, kind: NetworkMonitor.Banner.Kind)? {
-        if let error = vpn.lastError { return (error, .warning) }
+        if let error = vpn.lastError {
+            // Понятная причина над техническим текстом ошибки.
+            let hint = subscriptionInactive ? L("error.hint.subscription") : L("error.hint.server")
+            return ("\(hint)\n\(error)", .warning)
+        }
         if let banner = network.banner { return (banner.text, banner.kind) }
         if let actual = vpn.actualCountry, let node = store.selectedNode, let nodeGeo = node.geo,
            let actualGeo = CountryGeoLookup.find(actual), actualGeo.country != nodeGeo.country {
@@ -75,6 +82,15 @@ struct ConnectView: View {
             return (L("banner.actual_country", actualGeo.displayName, node.displayName), .info)
         }
         return nil
+    }
+
+    /// Кнопка следующего шага у ошибки подключения: пользователи сами не разбираются, что делать.
+    private var errorAction: BannerView.Action? {
+        guard vpn.lastError != nil else { return nil }
+        if subscriptionInactive {
+            return .init(title: L("error.action.plans")) { model.tab = .subscription }
+        }
+        return .init(title: L("error.action.server")) { model.tab = .servers }
     }
 
     private func dismissBanner() {
@@ -612,8 +628,14 @@ struct PingLabel: View {
 /// Баннер (порт Android BannerCard): подложка primaryContainer/tertiaryContainer, круг 28 со
 /// значком, текст 12, крестик-круг 24.
 struct BannerView: View {
+    struct Action {
+        let title: String
+        let run: () -> Void
+    }
+
     let text: String
     let kind: NetworkMonitor.Banner.Kind
+    var action: Action? = nil
     let onClose: () -> Void
 
     var body: some View {
@@ -631,10 +653,20 @@ struct BannerView: View {
                 .foregroundStyle(GojiColor.onPrimary)
                 .frame(width: 28, height: 28)
                 .background(Circle().fill(ok ? GojiColor.teal : GojiColor.terracotta))
-            Text(text)
-                .font(GojiFont.manrope(12, .semibold))
-                .foregroundStyle(GojiColor.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text)
+                    .font(GojiFont.manrope(12, .semibold))
+                    .foregroundStyle(GojiColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let action {
+                    Button(action: action.run) {
+                        Text(action.title)
+                            .font(GojiFont.manrope(12, .bold))
+                            .foregroundStyle(GojiColor.tealDeep)
+                    }
+                    .frame(minHeight: 44)
+                }
+            }
             Spacer(minLength: 4)
             Button(action: onClose) {
                 Image(systemName: "xmark")

@@ -108,11 +108,22 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="{s:Fs 12}"
-                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <Button Grid.Column="1" Style="{StaticResource AccentPillButton}" Height="34" Padding="14,0" FontSize="{s:Fs 12}" VerticalAlignment="Center"
-                            Content="Повторить" Command="{Binding RetryRefreshCommand}"
-                            Visibility="{Binding CanRetryRefresh, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                        <TextBlock Text="{Binding ErrorHint}" Foreground="{DynamicResource DangerBrush}" FontWeight="Bold" FontSize="{s:Fs 12.5}" TextWrapping="Wrap"
+                                   Visibility="{Binding ErrorHint, Converter={StaticResource NullToVisibilityConverter}}"/>
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="{s:Fs 12}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <Button Style="{StaticResource AccentPillButton}" Height="34" Padding="14,0" FontSize="{s:Fs 12}"
+                                Content="Повторить" Command="{Binding RetryRefreshCommand}"
+                                Visibility="{Binding CanRetryRefresh, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <Button Style="{StaticResource AccentPillButton}" Height="34" Padding="14,0" FontSize="{s:Fs 12}"
+                                Content="Сменить сервер" Command="{Binding OpenServersCommand}"
+                                Visibility="{Binding CanChangeServer, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <Button Style="{StaticResource AccentPillButton}" Height="34" Padding="14,0" FontSize="{s:Fs 12}"
+                                Content="Открыть подписку" Command="{Binding OpenTrafficCommand}"
+                                Visibility="{Binding CanOpenPlans, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    </StackPanel>
                 </Grid>
             </controls:GlassPanel>
 

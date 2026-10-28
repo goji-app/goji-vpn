@@ -180,6 +180,10 @@ data class FeatureStrings(
     val crashReportText: String,
     val crashReportSend: String,
     val crashReportLater: String,
+    val errorHintServer: String,
+    val errorHintSubscription: String,
+    val errorActionServer: String,
+    val errorActionPlans: String,
 ) {
     companion object {
         fun forLang(lang: AppLanguage): FeatureStrings = when (lang) {
@@ -369,6 +373,10 @@ data class FeatureStrings(
             crashReportText = "Отправить отчёт об ошибке в поддержку? В нём только техническое описание сбоя — так мы быстрее его исправим.",
             crashReportSend = "Отправить",
             crashReportLater = "Не сейчас",
+            errorHintServer = "Сервер не отвечает — попробуй другой",
+            errorHintSubscription = "Подписка не активна",
+            errorActionServer = "Сменить сервер",
+            errorActionPlans = "Открыть подписку",
         )
 
         private val EN = FeatureStrings(
@@ -552,6 +560,10 @@ data class FeatureStrings(
             crashReportText = "Send an error report to support? It only contains a technical description of the crash — it helps us fix it faster.",
             crashReportSend = "Send",
             crashReportLater = "Not now",
+            errorHintServer = "The server isn't responding — try another one",
+            errorHintSubscription = "The subscription isn't active",
+            errorActionServer = "Change server",
+            errorActionPlans = "Open subscription",
         )
 
         private val ZH = FeatureStrings(
@@ -735,6 +747,10 @@ data class FeatureStrings(
             crashReportText = "要向客服发送错误报告吗？报告中只有崩溃的技术描述，可帮助我们更快修复。",
             crashReportSend = "发送",
             crashReportLater = "暂不",
+            errorHintServer = "服务器无响应 — 请换一个",
+            errorHintSubscription = "订阅未激活",
+            errorActionServer = "更换服务器",
+            errorActionPlans = "打开订阅",
         )
     }
 }

@@ -77,12 +77,22 @@
             <c:GlassPanel Classes="card" CornerRadius="18" Tint="{DynamicResource TerracottaTintBrush}" Padding="14,10" Margin="0,8,0,0"
                           IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="{s:Fs 12}"
-                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <Button Grid.Column="1" Classes="accent" Height="34" Padding="14,0" VerticalAlignment="Center"
-                            Command="{Binding RetryRefreshCommand}" IsVisible="{Binding CanRetryRefresh}">
-                        <TextBlock Text="Повторить" FontSize="{s:Fs 12}" FontWeight="Bold"/>
-                    </Button>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                        <TextBlock Text="{Binding ErrorHint}" Foreground="{DynamicResource DangerBrush}" FontWeight="Bold" FontSize="{s:Fs 12.5}" TextWrapping="Wrap"
+                                   IsVisible="{Binding ErrorHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="{s:Fs 12}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <Button Classes="accent" Height="34" Padding="14,0" Command="{Binding RetryRefreshCommand}" IsVisible="{Binding CanRetryRefresh}">
+                            <TextBlock Text="Повторить" FontSize="{s:Fs 12}" FontWeight="Bold"/>
+                        </Button>
+                        <Button Classes="accent" Height="34" Padding="14,0" Command="{Binding OpenServersCommand}" IsVisible="{Binding CanChangeServer}">
+                            <TextBlock Text="Сменить сервер" FontSize="{s:Fs 12}" FontWeight="Bold"/>
+                        </Button>
+                        <Button Classes="accent" Height="34" Padding="14,0" Command="{Binding OpenTrafficCommand}" IsVisible="{Binding CanOpenPlans}">
+                            <TextBlock Text="Открыть подписку" FontSize="{s:Fs 12}" FontWeight="Bold"/>
+                        </Button>
+                    </StackPanel>
                 </Grid>
             </c:GlassPanel>
 

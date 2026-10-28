@@ -47,6 +47,8 @@ data class ConnectUiState(
     val expiryLabel: String = "—",
     val daysLeft: Int = 0,
     val error: String? = null,
+    /** Что предложить рядом с ошибкой подключения (кнопка следующего шага). */
+    val errorAction: ErrorAction? = null,
 
     val globeStatus: String = "off", // "off" | "connecting" | "on"
     val globeNode: GlobeNode? = null,
@@ -76,6 +78,9 @@ data class ConnectUiState(
 )
 
 enum class BannerKind { WARNING, SUCCESS, INFO }
+
+/** Следующий шаг при ошибке подключения: пользователи сами не разбираются, что делать. */
+enum class ErrorAction { CHANGE_SERVER, OPEN_PLANS }
 
 /** Оценка канала 0..100: задержка до 150 мс — 100, к 900 мс линейно падает до 35; каждые 10%
  *  потерь — минус 5. Все замеры неудачны — 0. */
@@ -193,7 +198,7 @@ class ConnectViewModel @Inject constructor(
             // состояние — экран уже успевал показать "не получилось" ровно в тот момент,
             // когда сервис молча готовил следующую попытку.
             GodjiVpnService.lastError.collect { error ->
-                if (error != null) _state.value = _state.value.copy(error = error)
+                if (error != null) _state.value = _state.value.copy(error = error, errorAction = errorActionFor())
             }
         }
         viewModelScope.launch {
@@ -364,6 +369,11 @@ class ConnectViewModel @Inject constructor(
         }
     }
 
+    /** Неактивная подписка — частая причина «не подключается»: тогда ведём на «Подписку»,
+     *  иначе — сменить сервер. */
+    private fun errorActionFor(): ErrorAction =
+        if (subscriptionRepository.subscription.value?.isActive == false) ErrorAction.OPEN_PLANS else ErrorAction.CHANGE_SERVER
+
     fun dismissBanner() {
         _state.value = _state.value.copy(banner = null)
     }
@@ -371,10 +381,10 @@ class ConnectViewModel @Inject constructor(
     fun startTunnel(context: Context) {
         val node = subscriptionRepository.selectedNode()
         if (node == null) {
-            _state.value = _state.value.copy(error = Loc.s.noServerError)
+            _state.value = _state.value.copy(error = Loc.s.noServerError, errorAction = errorActionFor())
             return
         }
-        _state.value = _state.value.copy(error = null, connecting = true, globeStatus = "connecting")
+        _state.value = _state.value.copy(error = null, errorAction = null, connecting = true, globeStatus = "connecting")
         val intent = Intent(context, GodjiVpnService::class.java).apply {
             action = GodjiVpnService.ACTION_CONNECT
             putExtra(GodjiVpnService.EXTRA_VLESS_LINK, node.connectPayload)
