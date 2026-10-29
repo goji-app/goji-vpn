@@ -260,6 +260,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
         // адаптер найден, а не ждёт полный таймаут.
         _actualAdapterName = await WaitForAdapterAsync(TimeSpan.FromSeconds(40), _singBoxProcess).ConfigureAwait(false);
         LogEngine($"adapter found: {_actualAdapterName}");
+        await EnableForwardingAsync(_actualAdapterName).ConfigureAwait(false);
 
         // Пока IsRunning ещё false, OnCoreProcessExitedAsync на смерть любого из ядер молча
         // выходит (это "штатное" состояние для завершения ПОСЛЕ отключения) — то есть если
@@ -344,7 +345,13 @@ public sealed class VpnEngine : INotifyPropertyChanged
             var stillThere = NetworkInterface.GetAllNetworkInterfaces().Any(n =>
                 n.OperationalStatus == OperationalStatus.Up &&
                 n.GetIPProperties().UnicastAddresses.Any(a => a.Address.ToString() == PhysicalIp));
-            if (stillThere) return;
+            if (stillThere)
+            {
+                // Мобильный хот-спот/ICS при старте и остановке перенастраивает интерфейсы —
+                // возвращаем пересылку на TUN, если она слетела.
+                if (_actualAdapterName is { } tun) await EnableForwardingAsync(tun).ConfigureAwait(false);
+                return;
+            }
             if (Interlocked.Exchange(ref _reconnectInProgress, 1) == 1) return;
             try
             {
@@ -711,6 +718,8 @@ public sealed class VpnEngine : INotifyPropertyChanged
                 // КРУПНЫЕ ответы (потоковые данные), а не рукопожатие/заголовки. 1280 — тот же
                 // консервативный запас, что берут WireGuard/большинство VPN по умолчанию.
                 ["mtu"] = 1280,
+                // Подсеть «Мобильного хот-спота» Windows (ICS) — всегда on-link, в TUN её не тянем.
+                ["route_exclude_address"] = new JsonArray("192.168.137.0/24"),
                 ["auto_route"] = true,
                 ["strict_route"] = true,
                 ["stack"] = "system"
@@ -896,6 +905,33 @@ public sealed class VpnEngine : INotifyPropertyChanged
             catch (SocketException) { await Task.Delay(200).ConfigureAwait(false); }
         }
         throw new TimeoutException("xray.exe не поднял локальный SOCKS5 за отведённое время — см. Runtime/logs/xray.log");
+    }
+
+    /// <summary>Включает IPv4-пересылку на TUN-адаптере. Раздача интернета («Мобильный хот-спот»/ICS)
+    /// — это маршрутизация: пакеты клиентов приходят с интерфейса хот-спота и должны выйти в
+    /// TUN (default route), а Windows пересылает между интерфейсами только если forwarding
+    /// включён на ОБОИХ; на Wintun он по умолчанию выключен — клиенты хот-спота без интернета
+    /// или с обрывами. Лучшее усилие: ошибка не мешает основному подключению.</summary>
+    private static async Task EnableForwardingAsync(string adapterName)
+    {
+        try
+        {
+            var escapedName = adapterName.Replace("'", "''");
+            var psi = new ProcessStartInfo("powershell.exe",
+                "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command " +
+                $"\"Set-NetIPInterface -InterfaceAlias '{escapedName}' -AddressFamily IPv4 -Forwarding Enabled -ErrorAction Stop\"")
+            {
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(psi);
+            if (process == null) return;
+            var err = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
+            Log(process.ExitCode == 0 ? $"forwarding включён на {adapterName}" : $"forwarding: {err.Trim()}");
+        }
+        catch (Exception ex) { Log($"forwarding: {ex.Message}"); }
     }
 
     /// <summary>Снимает оставшиеся IPv4-адреса с НАШЕГО Wintun-адаптера прошлой сессии (если он
