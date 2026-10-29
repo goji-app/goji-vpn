@@ -197,7 +197,7 @@ class SettingsViewModel @Inject constructor(
      *  обновляет индикатор прогресса. */
     fun downloadUpdate() {
         val update = _state.value.updateAvailable ?: return
-        val id = AppUpdateDownloader.startDownload(appContext, update.apkUrl, update.version)
+        val id = AppUpdateDownloader.startDownload(appContext, update.apkUrl, update.version, update.sha256)
         _state.value = _state.value.copy(updateDownloading = true, updateDownloadProgress = 0)
         viewModelScope.launch {
             while (true) {

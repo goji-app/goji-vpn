@@ -54,8 +54,12 @@ internal object GeoFileDownload {
                     return false
                 }
                 if (!tmp.renameTo(dest)) {
-                    tmp.copyTo(dest, overwrite = true)
+                    // Копирование поверх рабочего файла не атомарно: смерть процесса посреди
+                    // него оставила бы обрезанный geoip.dat вместо рабочей версии. Оставляем
+                    // рабочую — недокачанный tmp удаляем, воркер повторит при следующей проверке.
+                    Log.w(TAG, "GeoFileDownload: rename $url -> ${dest.name} не удался, оставляю прежнюю версию")
                     tmp.delete()
+                    return false
                 }
                 response.header("ETag")?.let { etagFile.writeText(it) } ?: etagFile.delete()
                 markChecked(dest)

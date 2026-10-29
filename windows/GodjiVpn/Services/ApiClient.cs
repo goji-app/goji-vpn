@@ -303,6 +303,14 @@ public sealed class ApiClient
                         (_tokenStore.RefreshToken is { } refreshToken &&
                          await RefreshSessionAsync(refreshToken, ct).ConfigureAwait(false) == RefreshOutcome.Refreshed);
         }
+        catch
+        {
+            // Refresh упал сетевой ошибкой — по контракту запрос ведёт себя как обычная
+            // сетевая ошибка, но исходный 401-ответ нельзя бросить без Dispose: соединение
+            // висит открытым до GC (ловилось на неустойчивой сети).
+            response.Dispose();
+            throw;
+        }
         finally
         {
             _refreshLock.Release();

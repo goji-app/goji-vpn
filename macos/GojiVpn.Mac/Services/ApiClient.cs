@@ -58,7 +58,7 @@ public sealed class ApiClient
         var versionText = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.0.0";
         foreach (var client in new[] { _http, _directHttp })
         {
-            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("GodjiVPN-Windows", versionText));
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("GodjiVPN-macOS", versionText));
             client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue($"({RuntimeInformation.OSDescription})"));
         }
     }

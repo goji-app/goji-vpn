@@ -151,6 +151,21 @@ public sealed class VpnEngine : INotifyPropertyChanged
         finally { _lifecycleLock.Release(); }
     }
 
+    /// <summary>Журналы старше этого размера начинаются заново (см. TrimLogIfNeeded).</summary>
+    private const long MaxLogBytes = 10 * 1024 * 1024;
+
+    /// <summary>Логи sing-box (level info — строка на каждое соединение) и xray дописываются
+    /// вечно; разросшийся файл начинаем заново при следующем подключении.</summary>
+    private static void TrimLogIfNeeded(string path)
+    {
+        try
+        {
+            if (File.Exists(path) && new FileInfo(path).Length > MaxLogBytes)
+                File.Delete(path);
+        }
+        catch { /* не критично */ }
+    }
+
     private async Task ConnectAttemptAsync(VlessNode node)
     {
         KillStrayXray();
@@ -158,6 +173,9 @@ public sealed class VpnEngine : INotifyPropertyChanged
         // Остатки прошлой сессии: сигнал остановки и pid-файл удаляем до старта обёртки.
         TryDelete(StopFile);
         TryDelete(PidFile);
+        TrimLogIfNeeded(Path.Combine(LogsDir, "xray.log"));
+        TrimLogIfNeeded(Path.Combine(LogsDir, "sing-box.log"));
+        TrimLogIfNeeded(Path.Combine(LogsDir, "tun-wrapper.log"));
 
         var xrayConfigPath = await WriteXrayConfigAsync(node).ConfigureAwait(false);
         _xrayLog = new StreamWriter(Path.Combine(LogsDir, "xray.log"), append: true) { AutoFlush = true };
@@ -405,7 +423,20 @@ public sealed class VpnEngine : INotifyPropertyChanged
             while (File.Exists(PidFile) && DateTime.UtcNow < deadline)
                 await Task.Delay(200).ConfigureAwait(false);
         }
-        TryDelete(StopFile);
+        if (File.Exists(PidFile))
+        {
+            // Обёртка не уложилась (медленный networksetup на десятке служб): stop-файл —
+            // ЕДИНСТВЕННЫЙ сигнал для root-процесса, стирать его нельзя. Иначе обёртка не
+            // увидит ни stop, ни смерти приложения — и оставит root-sing-box со strict_route
+            // (весь трафик заблокирован) и DNS служб, подменённым на 1.1.1.1. Оставляем файл:
+            // следующий ConnectAsync удаляет его до старта новой обёртки, а сама обёртка
+            // погасит туннель, чуть позже.
+            LogEngine("Teardown: обёртка не завершилась за 8 с — stop-файл оставлен, туннель погасит она сама");
+        }
+        else
+        {
+            TryDelete(StopFile);
+        }
         try { if (_xrayProcess is { HasExited: false }) _xrayProcess.Kill(entireProcessTree: true); } catch { }
         _xrayProcess?.Dispose();
         _xrayProcess = null;
@@ -657,16 +688,26 @@ public sealed class VpnEngine : INotifyPropertyChanged
                 ["auto_detect_interface"] = true,
                 ["rules"] = new JsonArray(
                     new JsonObject { ["action"] = "sniff" },
-                    // Сначала свои процессы: иначе DNS-запросы самого xray перехватывались бы
-                    // и уходили обратно в xray по кругу.
-                    // Плюс «Приложения мимо VPN» (Настройки → Подключение) — имена их процессов.
+                    // 1. Петля: собственный трафик xray (и его DNS) — напрямую, иначе он
+                    // перехватывался бы и уходил обратно в xray по кругу.
                     new JsonObject
                     {
-                        ["process_name"] = new JsonArray(new[] { "xray", "xray-legacy", "GojiVpn" }.Concat(new AppSettings().BypassApps)
+                        ["process_name"] = new JsonArray("xray", "xray-legacy"),
+                        ["outbound"] = "direct"
+                    },
+                    // 2. DNS — уже после исключения xray, но ДО direct для приложения и
+                    // байпасов: иначе DNS-запросы самого приложения (API, обновления, проверка
+                    // утечек) уходили открытым UDP мимо туннеля, а проверка утечек при этом
+                    // рапортовала «безопасно», видя резолвер Cloudflare.
+                    new JsonObject { ["protocol"] = "dns", ["action"] = "hijack-dns" },
+                    // 3. Само приложение (TCP — напрямую, DNS теперь уходит в пункт 2) и
+                    // «Приложения мимо VPN» (Настройки → Подключение).
+                    new JsonObject
+                    {
+                        ["process_name"] = new JsonArray(new[] { "GojiVpn" }.Concat(new AppSettings().BypassApps)
                             .Select(name => (JsonNode)JsonValue.Create(name)!).ToArray()),
                         ["outbound"] = "direct"
                     },
-                    new JsonObject { ["protocol"] = "dns", ["action"] = "hijack-dns" },
                     new JsonObject { ["ip_cidr"] = new JsonArray("169.254.0.0/16"), ["action"] = "reject" }),
                 ["final"] = "socks-out"
             }

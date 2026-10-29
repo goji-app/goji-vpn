@@ -38,7 +38,6 @@ class TokenManager @Inject constructor(
     fun save(token: String, expiresInSeconds: Long) {
         prefs.edit()
             .putString(KEY_TOKEN, token)
-            .putLong(KEY_EXPIRES_AT, System.currentTimeMillis() + expiresInSeconds * 1000)
             .apply()
     }
 
@@ -70,6 +69,8 @@ class TokenManager @Inject constructor(
         }
     }
 
+    // Это НЕ дубль network/CookieUtils: там разбор заголовков Set-Cookie (с атрибутами до ';'),
+    // здесь — сырая Cookie-строка CookieManager (только пары name=value).
     private fun cookie(cookies: String?, name: String): String? =
         cookies?.split("; ")?.firstOrNull { it.startsWith("$name=") }?.substringAfter("$name=")
 
@@ -104,7 +105,6 @@ class TokenManager @Inject constructor(
 
     private companion object {
         const val KEY_TOKEN = "access_token"
-        const val KEY_EXPIRES_AT = "expires_at"
         const val KEY_REFRESH_TOKEN = "refresh_token"
     }
 }

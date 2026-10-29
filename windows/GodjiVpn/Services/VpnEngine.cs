@@ -105,12 +105,21 @@ public sealed class VpnEngine : INotifyPropertyChanged
     private DateTime? _connectedSinceUtc;
     public DateTime? ConnectedSinceUtc { get => _connectedSinceUtc; private set => SetField(ref _connectedSinceUtc, value); }
 
+    /// <summary>Подписка на смену адресов на время сессии (см. OnNetworkAddressChanged).</summary>
+    private NetworkAddressChangedEventHandler? _addressChangedHandler;
+    private int _reconnectInProgress;
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public VpnEngine()
     {
         Current = this;
         Directory.CreateDirectory(StateDir);
+        // Остатки аварийно завершённой прошлой сессии (краш приложения, выключение ПК при
+        // поднятом туннеле): жёстко убитый sing-box не снимает strict_route и маршрут на TUN —
+        // машина оставалась без интернета до следующего «Подключиться». Чистим при старте.
+        KillStrayCoreProcesses();
+        _ = Task.Run(CleanupStaleAdapterAsync);
     }
 
     /// <summary>До 3 попыток с короткой паузой между ними вместо немедленной сдачи на первой же
@@ -119,6 +128,9 @@ public sealed class VpnEngine : INotifyPropertyChanged
     /// заново при том, что вторая попытка почти наверняка сработала бы сама. Порт из Android
     /// (67c25fd: GodjiVpnService.performConnect retries up to 3 times).</summary>
     private const int MaxConnectAttempts = 3;
+
+    /// <summary>Журналы ядер старше этого размера начинаются заново (см. StartProcess).</summary>
+    private const long MaxCoreLogBytes = 10 * 1024 * 1024;
 
     private VlessNode? _lastNode;
 
@@ -150,6 +162,16 @@ public sealed class VpnEngine : INotifyPropertyChanged
                     ConnectedSinceUtc = DateTime.UtcNow;
                     IsRunning = true;
                     LogEngine("ConnectAsync: success, IsRunning=true");
+                    // Микрогонка: ядро могло умереть в окне между проверкой HasExited в
+                    // ConnectAttemptAsync и IsRunning=true выше — Exited-обработчик при этом
+                    // молча вышел (IsRunning был ещё false). Без перепроверки остались бы
+                    // «Подключено» без туннеля и без kill switch.
+                    if (_xrayProcess!.HasExited || _singBoxProcess!.HasExited)
+                    {
+                        var dead = _xrayProcess.HasExited ? "xray.exe" : "sing-box.exe";
+                        throw new InvalidOperationException($"{dead} завершился сразу после подключения — см. Runtime/logs/.");
+                    }
+                    WatchPhysicalIpChanges();
                     return;
                 }
                 catch (Exception ex)
@@ -284,6 +306,11 @@ public sealed class VpnEngine : INotifyPropertyChanged
     private void Teardown()
     {
         LogEngine("Teardown: start");
+        if (_addressChangedHandler != null)
+        {
+            NetworkChange.NetworkAddressChanged -= _addressChangedHandler;
+            _addressChangedHandler = null;
+        }
         KillProcess(ref _singBoxProcess, ref _singBoxLog, "sing-box.exe");
         KillProcess(ref _xrayProcess, ref _xrayLog, "xray.exe");
         _actualAdapterName = null;
@@ -291,6 +318,42 @@ public sealed class VpnEngine : INotifyPropertyChanged
         IsRunning = false;
         ConnectedSinceUtc = null;
         LogEngine("Teardown: done");
+    }
+
+    /// <summary>sendThrough во всех outbound'ах xray — адрес физического интерфейса, снятый в
+    /// МОМЕНТ подключения (см. ConnectAttemptAsync). После смены сети (Wi-Fi → Ethernet, новый
+    /// DHCP-адрес) этот адрес исчезает: sing-box переживает смену через auto_detect_interface,
+    /// а xray больше не может забиндиться на sendThrough — остаёмся «Подключено» с мёртвым
+    /// интернетом до ручного переподключения. Следим за адресом и переподключаемся сами.</summary>
+    private void WatchPhysicalIpChanges()
+    {
+        if (PhysicalIp == null) return;
+        _addressChangedHandler = OnNetworkAddressChanged;
+        NetworkChange.NetworkAddressChanged += _addressChangedHandler;
+    }
+
+    private async void OnNetworkAddressChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (!IsRunning || IsConnecting || PhysicalIp == null) return;
+            // Событие сыпется пачкой при любом чихе сети — даём устаканиться и перепроверяем:
+            // адрес мог мигнуть на секунду (перезагрузка роутера), а не исчезнуть навсегда.
+            await Task.Delay(1500).ConfigureAwait(false);
+            if (!IsRunning || IsConnecting || PhysicalIp == null) return;
+            var stillThere = NetworkInterface.GetAllNetworkInterfaces().Any(n =>
+                n.OperationalStatus == OperationalStatus.Up &&
+                n.GetIPProperties().UnicastAddresses.Any(a => a.Address.ToString() == PhysicalIp));
+            if (stillThere) return;
+            if (Interlocked.Exchange(ref _reconnectInProgress, 1) == 1) return;
+            try
+            {
+                LogEngine($"физический адрес {PhysicalIp} исчез (смена сети?) — переподключаемся");
+                await ReconnectAsync().ConfigureAwait(false);
+            }
+            finally { Interlocked.Exchange(ref _reconnectInProgress, 0); }
+        }
+        catch (Exception ex) { LogEngine($"обработка смены сети: {ex.Message}"); }
     }
 
     /// <summary>Раньше неожиданная смерть ядра ПОСЛЕ успешного подключения была не видна
@@ -347,12 +410,23 @@ public sealed class VpnEngine : INotifyPropertyChanged
             try
             {
                 KillProcess(ref _xrayProcess, ref _xrayLog, "xray.exe");
+                // Пока наш xray мёртв, порт 10808 может успеть занять Happ/Incy/другой клиент —
+                // тогда WaitForSocksReadyAsync ложно примет чужой listener за наш, и весь
+                // трафик из туннеля (strict_route ещё поднят) уйдёт в чужое приложение. Требуем
+                // свободный порт ДО старта: занято — считаем попытку неудачной, туннель остаётся
+                // закрытым (kill switch), а не молча перенаправляется.
+                EnsurePortFree(SocksPort);
                 _xrayProcess = StartProcess(
                     Path.Combine(RuntimeDir, "xray.exe"), $"run -c \"{configPath}\"",
                     RuntimeDir, out _xrayLog, "xray.log",
                     env => env["XRAY_LOCATION_ASSET"] = RuntimeDir);
                 AttachExitWatch(_xrayProcess, "xray.exe");
                 await WaitForSocksReadyAsync(_xrayProcess, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                // TCP-connect мог ответить от чужого слушателя в мгновение до смерти нашего
+                // xray (занятый порт) — короткая перепроверка, что готовность не мнимая.
+                await Task.Delay(300).ConfigureAwait(false);
+                if (_xrayProcess.HasExited)
+                    throw new InvalidOperationException("xray.exe завершился сразу после перезапуска — порт занят другим приложением?");
                 return true;
             }
             catch (Exception ex)
@@ -605,7 +679,10 @@ public sealed class VpnEngine : INotifyPropertyChanged
     {
         var config = new JsonObject
         {
-            ["log"] = new JsonObject { ["level"] = "info" },
+            // "warn", а не "info": на info sing-box пишет строку на КАЖДОЕ соединение всего
+            // системного трафика — за месяцы непрерывной работы это гигабайты в %LOCALAPPDATA%.
+            // Ошибки поднятия адаптера/конфига на warn уровне остаются.
+            ["log"] = new JsonObject { ["level"] = "warn" },
             // sing-box >= 1.12 убрал "легаси" формат DNS-сервера ("address": "udp://...") —
             // с 1.14 конфиг с ним не грузится вообще ("legacy DNS server formats ... removed
             // in sing-box 1.14.0"). Новый формат — явный "type"/"server", "detour" остался
@@ -686,9 +763,18 @@ public sealed class VpnEngine : INotifyPropertyChanged
         // append: true — раньше при переподключении файл лога перезаписывался с нуля, и если
         // ядро падало почти сразу после старта (см. Teardown → следующий ConnectAsync),
         // причина падения терялась ещё до того, как её успевали посмотреть. Разделитель ниже
-        // делает границы отдельных запусков видимыми даже при накоплении лога.
+        // делает границы отдельных запусков видимыми даже при накоплении лога. Рост ограничен:
+        // разросшийся сверх лимита файл начинаем заново (хвост старой сессии не критичен,
+        // зато диск не распухает у «вечно подключённых» пользователей).
         Directory.CreateDirectory(Path.Combine(StateDir, "logs"));
-        log = new StreamWriter(Path.Combine(StateDir, "logs", logFileName), append: true) { AutoFlush = true };
+        var logPath = Path.Combine(StateDir, "logs", logFileName);
+        try
+        {
+            if (File.Exists(logPath) && new FileInfo(logPath).Length > MaxCoreLogBytes)
+                File.Delete(logPath);
+        }
+        catch { /* не смогли удалить — append продолжит в существующий */ }
+        log = new StreamWriter(logPath, append: true) { AutoFlush = true };
         log.WriteLine($"===== launch {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} =====");
 
         var psi = new ProcessStartInfo(exePath, args)
@@ -812,13 +898,18 @@ public sealed class VpnEngine : INotifyPropertyChanged
         throw new TimeoutException("xray.exe не поднял локальный SOCKS5 за отведённое время — см. Runtime/logs/xray.log");
     }
 
-    /// <summary>Снимает все IPv4-адреса с уже существующего Wintun-адаптера (если он есть) —
-    /// см. вызов в ConnectAsync. Лучшее усилие: если адаптера ещё нет (первый чистый запуск)
-    /// или снять нечего, PowerShell просто ничего не найдёт — не считаем это ошибкой.</summary>
+    /// <summary>Снимает оставшиеся IPv4-адреса с НАШЕГО Wintun-адаптера прошлой сессии (если он
+    /// есть) — см. вызов в ConnectAsync. Наш = имя "Godji" ИЛИ на нём наш адрес 172.19.0.1;
+    /// чужой Wintun-адаптер (WireGuard и т.п.) не трогаем — снятие его адресов ломало чужой
+    /// живой VPN. Лучшее усилие: если нашего адаптера нет, PowerShell просто ничего не
+    /// сделает — не считаем это ошибкой.</summary>
     private static async Task CleanupStaleAdapterAsync()
     {
+        var ourIp = IPAddress.Parse(AdapterIp);
         var adapter = NetworkInterface.GetAllNetworkInterfaces()
-            .FirstOrDefault(n => n.Description.Contains("Wintun", StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(n => n.Description.Contains("Wintun", StringComparison.OrdinalIgnoreCase) &&
+                                 (string.Equals(n.Name, RequestedAdapterName, StringComparison.Ordinal) ||
+                                  n.GetIPProperties().UnicastAddresses.Any(a => a.Address.Equals(ourIp))));
         if (adapter == null) return;
 
         try

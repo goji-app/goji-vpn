@@ -51,7 +51,10 @@ class TransferLoginActivity : ComponentActivity() {
             return
         }
         lifecycleScope.launch {
-            if (authRepository.isLoggedIn()) authRepository.logout()
+            // Старую сессию снимаем НЕ здесь, а после успешного ввода кода (см. verifyOtp):
+            // выход до отправки кода уничтожал аккаунт при отменённом переносе (письмо не
+            // пришло, экран закрыли) — сессия терялась безвозвратно.
+            authRepository.markTransferReplace()
             val sent = authRepository.sendOtp(email)
             if (sent is AuthResult.Error) {
                 Toast.makeText(this@TransferLoginActivity, sent.message, Toast.LENGTH_LONG).show()

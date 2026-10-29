@@ -26,6 +26,13 @@ class OAuthCallbackActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
+    // Активити singleTask (см. манифест): повторный deeplink при ещё живом экземпляре
+    // приходит сюда, а не в onCreate — без этого второй callback молча терялся.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
     private fun handleIntent(intent: Intent?) {
         val uri = intent?.data
         val code = uri?.getQueryParameter("code")

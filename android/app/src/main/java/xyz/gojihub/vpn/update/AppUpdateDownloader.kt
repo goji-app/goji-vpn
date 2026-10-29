@@ -15,6 +15,7 @@ import java.io.File
 private const val PREFS_NAME = "godji_update_download"
 private const val KEY_DOWNLOAD_ID = "download_id"
 private const val KEY_PENDING_VERSION = "pending_version"
+private const val KEY_PENDING_SHA256 = "pending_sha256"
 private const val TAG = "GodjiUpdate"
 
 data class DownloadStatus(val status: Int, val percent: Int)
@@ -27,8 +28,17 @@ object AppUpdateDownloader {
 
     fun fileNameFor(version: String) = "Goji-$version.apk"
 
-    fun startDownload(context: Context, apkUrl: String, version: String): Long {
+    fun startDownload(context: Context, apkUrl: String, version: String, sha256: String? = null): Long {
         val fileName = fileNameFor(version)
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        // Прошлая загрузка ещё не завершилась (ушёл с экрана — опрос прогресса умер, а
+        // DownloadManager продолжает качать): снимаем её, иначе вторая закачка качает те же
+        // ~100 МБ параллельно в тот же файл.
+        val previousId = prefs.getLong(KEY_DOWNLOAD_ID, -1L)
+        if (previousId != -1L) {
+            runCatching { context.getSystemService(DownloadManager::class.java).remove(previousId) }
+                .onFailure { Log.d(TAG, "startDownload: не удалось снять прошлую загрузку $previousId — ${it.message}") }
+        }
         // Стереть возможный недокачанный файл от прошлой попытки с тем же именем — иначе
         // DownloadManager иногда дописывает поверх старого частичного файла молча.
         File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
@@ -42,9 +52,10 @@ object AppUpdateDownloader {
             .setMimeType("application/vnd.android.package-archive")
         val id = context.getSystemService(DownloadManager::class.java).enqueue(request)
         Log.d(TAG, "startDownload: enqueued id=$id url=$apkUrl -> $fileName")
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+        prefs.edit()
             .putLong(KEY_DOWNLOAD_ID, id)
             .putString(KEY_PENDING_VERSION, version)
+            .putString(KEY_PENDING_SHA256, sha256)
             .apply()
         return id
     }
@@ -69,12 +80,24 @@ object AppUpdateDownloader {
         return null
     }
 
-    fun installDownloaded(context: Context, version: String) {
+    fun installDownloaded(context: Context, version: String, expectedSha256: String? = null) {
         val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileNameFor(version))
         if (!file.exists()) {
             Log.e(TAG, "installDownloaded: файл не найден — $file")
             AppLogger.e(context, LogCategory.MAIN, TAG, "installDownloaded: файл не найден — $file")
             return
+        }
+        if (expectedSha256 != null) {
+            val actual = sha256Of(file)
+            if (actual == null || !actual.equals(expectedSha256.trim(), ignoreCase = true)) {
+                // Не совпало — это НЕ наш файл (скомпрометированное зеркало/битая закачка):
+                // чужой APK предлагать к установке нельзя, удаляем и останавливаемся.
+                Log.e(TAG, "installDownloaded: sha256 не совпал (ожидалось $expectedSha256, получено $actual) — файл удалён")
+                AppLogger.e(context, LogCategory.MAIN, TAG, "Обновление $version не прошло проверку целостности — установка отменена")
+                file.delete()
+                return
+            }
+            Log.d(TAG, "installDownloaded: sha256 совпал")
         }
         Log.d(TAG, "installDownloaded: запускаю установщик для $file (${file.length()} байт)")
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
@@ -88,6 +111,19 @@ object AppUpdateDownloader {
                 AppLogger.e(context, LogCategory.MAIN, TAG, "installDownloaded: не удалось открыть установщик", it)
             }
     }
+
+    private fun sha256Of(file: File): String? = runCatching {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        digest.digest().joinToString("") { "%02x".format(it) }
+    }.onFailure { Log.e(TAG, "sha256Of: не удалось посчитать сумму — ${it.message}") }.getOrNull()
 }
 
 /** DownloadManager переживает смерть процесса приложения — регистрация только в манифесте,
@@ -105,6 +141,7 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val expectedId = prefs.getLong(KEY_DOWNLOAD_ID, -1L)
         val version = prefs.getString(KEY_PENDING_VERSION, null)
+        val sha256 = prefs.getString(KEY_PENDING_SHA256, null)
         if (id != expectedId || version == null) {
             Log.d(TAG, "UpdateDownloadReceiver: id=$id не совпадает с ожидаемым $expectedId (version=$version) — не наша загрузка, игнорирую")
             return
@@ -112,7 +149,7 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
         val status = AppUpdateDownloader.queryStatus(context, id) ?: return
         if (status.status == DownloadManager.STATUS_SUCCESSFUL) {
             Log.d(TAG, "UpdateDownloadReceiver: загрузка $version успешна, запускаю установку")
-            AppUpdateDownloader.installDownloaded(context, version)
+            AppUpdateDownloader.installDownloaded(context, version, sha256)
         } else {
             Log.w(TAG, "UpdateDownloadReceiver: загрузка $version завершилась неуспешно, status=${status.status}")
             AppLogger.e(context, LogCategory.MAIN, TAG, "Загрузка обновления $version завершилась неуспешно (status=${status.status})")

@@ -71,8 +71,12 @@ enum GeoDataUpdater {
                 return false
             }
             let dest = SharedStorage.geoDir.appendingPathComponent(source.file)
-            _ = try? FileManager.default.removeItem(at: dest)
-            try FileManager.default.moveItem(at: tmp, to: dest)
+            // Атомарная замена: окно между removeItem и moveItem оставляло расширение без
+            // файла геоданных — старт ядра в этот момент молча выбрасывал правило «RU → direct».
+            if (try? FileManager.default.replaceItemAt(dest, withItemAt: tmp)) == nil {
+                // Файла ещё нет (первая загрузка) — replaceItemAt неприменим, просто переносим.
+                try FileManager.default.moveItem(at: tmp, to: dest)
+            }
             try? (dest as NSURL).setResourceValue(URLFileProtection.completeUntilFirstUserAuthentication, forKey: .fileProtectionKey)
             AppLog.i(.core, "геоданные: \(source.file) обновлён с \(url.host ?? "?") (\(size) байт)")
             return true

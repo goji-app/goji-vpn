@@ -114,7 +114,10 @@ final class SubscriptionStore: ObservableObject {
         }
         if freshLink != nil { cachedLink = freshLink }
         persist()
-        lastRefreshFailed = freshLink == nil && fetched.isEmpty
+        // Дошли сюда — ссылка была (свежая или кэшированная). Пустой ответ = обновить список
+        // не удалось: раньше freshLink == nil маскировал неудачу как успех, и экран серверов
+        // показывал «обновлено» поверх устаревших узлов.
+        lastRefreshFailed = fetched.isEmpty
         return !lastRefreshFailed
     }
 

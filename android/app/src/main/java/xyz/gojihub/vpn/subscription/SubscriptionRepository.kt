@@ -123,7 +123,8 @@ class SubscriptionRepository @Inject constructor(
             AppLogger.i(appContext, LogCategory.SUBSCRIPTION, "GodjiSub", "trial activated")
             trialGeneration++
             _trialDays.value = null
-            scope.launch { refreshMutex.withLock { refresh() } }
+            // refresh() сам берёт refreshMutex — повторный withLock здесь навсегда завис бы.
+            scope.launch { refresh() }
             return null
         }
         val message = body?.message?.takeIf { it.isNotBlank() } ?: errorMessage(result.errorBody()?.string())
@@ -156,7 +157,8 @@ class SubscriptionRepository @Inject constructor(
     }
 
     /** Выход из аккаунта: в памяти не должно остаться ни подписки, ни новостей, ни предложения
-     *  триала прежнего аккаунта, а следующий вход — сразу обновить данные, не дожидаясь часа. */
+     *  триала прежнего аккаунта, ни списка его серверов, а следующий вход — сразу обновить
+     *  данные, не дожидаясь часа. */
     fun clearAccount() {
         trialGeneration++
         lastRefreshAt = 0L
@@ -165,6 +167,8 @@ class SubscriptionRepository @Inject constructor(
         _subscription.value = null
         _trialDays.value = null
         _broadcasts.value = emptyList()
+        _nodes.value = emptyList()
+        _selectedId.value = null
     }
 
     // Новости/рассылки (см. RemnawaveApi.getBroadcasts) — та же страница, что "Мои рассылки"
@@ -215,13 +219,20 @@ class SubscriptionRepository @Inject constructor(
         if (isFresh(maxAgeMs)) return lastRefreshOk
         return refreshMutex.withLock {
             // Пока ждали, другой вызов мог уже обновить — его результат и вернём.
-            if (isFresh(maxAgeMs)) lastRefreshOk else refresh()
+            if (isFresh(maxAgeMs)) lastRefreshOk else refreshLocked()
         }
     }
 
     /** @return true, если подписку удалось реально получить с бэкенда (для UI ручного
      *  обновления — показать "обновлено" или ошибку сети/сервера). */
-    suspend fun refresh(): Boolean = refreshInternal().also {
+    suspend fun refresh(): Boolean = refreshMutex.withLock { refreshLocked() }
+
+    /** Тело обновления БЕЗ захвата [refreshMutex]: часовой воркер и foreground-возврат звали
+     *  refresh() напрямую мимо мьютекса и гонялись друг с другом (2×4 запроса, гонка записи
+     *  NodeListCache), а direct-вызов из-под refreshIfStale с повторным withLock навсегда
+     *  завис бы — Kotlin Mutex не реентерабельный. Все входы идут через мьютекс, сюда —
+     *  только уже под ним. */
+    private suspend fun refreshLocked(): Boolean = refreshInternal().also {
         lastRefreshOk = it
         lastRefreshAt = System.currentTimeMillis()
         refreshedForToken = tokenManager.accessToken()
@@ -495,6 +506,9 @@ class SubscriptionRepository @Inject constructor(
             ?.takeIf { it.isNotBlank() }
             ?: Loc.s.fallbackServerName(index + 1)
         val uuid = uri.userInfo?.takeIf { it.isNotBlank() }
-        VlessNode(id = index.toString(), name = remark, host = host, port = port, connectPayload = link, geo = CountryGeoLookup.find(remark), uuid = uuid)
+        // Тот же стабильный ключ "remark|host:port", что у JSON-профилей выше: позиция в
+        // списке меняется при любом изменении состава узлов, и сохранённый _selectedId
+        // молча указывал бы на другой сервер.
+        VlessNode(id = "$remark|$host:$port", name = remark, host = host, port = port, connectPayload = link, geo = CountryGeoLookup.find(remark), uuid = uuid)
     }.getOrNull()
 }

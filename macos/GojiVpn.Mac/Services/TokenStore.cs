@@ -2,10 +2,16 @@ using System.Text.Json;
 
 namespace GodjiVpn.Services;
 
-/// <summary>Сессия (JWT + refresh-токен) — см. SecretFile. API тот же, что в Windows-клиенте.</summary>
+/// <summary>Сессия (JWT + refresh-токен) — в Keychain (см. Keychain): файл 600 защищал только
+/// от других локальных пользователей, любой процесс того же пользователя читал refresh-токен.
+/// Старый файл session.json при первом чтении мигрирует в Keychain и удаляется.
+/// API тот же, что в Windows-клиенте.</summary>
 public sealed class TokenStore
 {
-    private static readonly string StorePath = SecretFile.PathFor("session.json");
+    private const string AccountToken = "access";
+    private const string AccountRefresh = "refresh";
+    /// <summary>Легаси-хранилище (до Keychain) — только для одноразовой миграции.</summary>
+    private static readonly string LegacyPath = SecretFile.PathFor("session.json");
 
     private string? _cachedToken;
     private string? _cachedRefreshToken;
@@ -19,14 +25,14 @@ public sealed class TokenStore
     {
         EnsureLoaded();
         _cachedToken = accessToken;
-        Persist();
+        Keychain.Write(AccountToken, accessToken);
     }
 
     public void SaveRefreshToken(string refreshToken)
     {
         EnsureLoaded();
         _cachedRefreshToken = refreshToken;
-        Persist();
+        Keychain.Write(AccountRefresh, refreshToken);
     }
 
 /// <summary>Сессия очищена (выход из аккаунта или истёкшая сессия) — SubscriptionRepository
@@ -38,25 +44,36 @@ public sealed class TokenStore
         _cachedToken = null;
         _cachedRefreshToken = null;
         _loaded = true;
-        try { if (File.Exists(StorePath)) File.Delete(StorePath); } catch { }
+        Keychain.Delete(AccountToken);
+        Keychain.Delete(AccountRefresh);
+        try { if (File.Exists(LegacyPath)) File.Delete(LegacyPath); } catch { }
         Cleared?.Invoke();
     }
-
-    private void Persist() =>
-        SecretFile.Write(StorePath, JsonSerializer.Serialize(new Stored { AccessToken = _cachedToken, RefreshToken = _cachedRefreshToken }));
 
     private void EnsureLoaded()
     {
         if (_loaded) return;
         _loaded = true;
-        try
+        _cachedToken = Keychain.Read(AccountToken);
+        _cachedRefreshToken = Keychain.Read(AccountRefresh);
+        // Миграция с прежнего файла: прочитали — переложили в Keychain, файл удалили.
+        if (_cachedToken == null && SecretFile.Read(LegacyPath) is { } legacy)
         {
-            if (SecretFile.Read(StorePath) is not { } text) return;
-            var stored = JsonSerializer.Deserialize<Stored>(text);
-            _cachedToken = stored?.AccessToken;
-            _cachedRefreshToken = stored?.RefreshToken;
+            try
+            {
+                var stored = JsonSerializer.Deserialize<Stored>(legacy);
+                if (!string.IsNullOrEmpty(stored?.AccessToken))
+                {
+                    _cachedToken = stored.AccessToken;
+                    _cachedRefreshToken = stored.RefreshToken;
+                    Keychain.Write(AccountToken, stored.AccessToken!);
+                    if (!string.IsNullOrEmpty(stored.RefreshToken))
+                        Keychain.Write(AccountRefresh, stored.RefreshToken!);
+                }
+                try { File.Delete(LegacyPath); } catch { }
+            }
+            catch { try { File.Delete(LegacyPath); } catch { } }
         }
-        catch { /* повреждённый файл — просто попросим войти заново */ }
     }
 
     private sealed class Stored

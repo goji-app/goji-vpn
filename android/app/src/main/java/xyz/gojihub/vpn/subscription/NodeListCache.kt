@@ -118,5 +118,11 @@ object NodeListCache {
         )
     }
 
+    /** Полная очистка при выходе из аккаунта: в кэше лежат uuid и ссылки подписки прежнего
+     *  аккаунта — следующему вошедшему на этом телефоне они не нужны. */
+    fun clear(context: Context) {
+        file(context).delete()
+    }
+
     private fun file(context: Context) = File(context.filesDir, FILE_NAME)
 }

@@ -68,6 +68,11 @@ class AuthRepository @Inject constructor(
         // подтверждено живым запросом к /api/auth/me и /api/subscriptions.
         val token = extractCookieValue(response.headers(), "rw_session_token")
             ?: error("verifyOtp: в ответе нет куки rw_session_token")
+        // QR-перенос со сменой аккаунта: прежнюю сессию снимаем только теперь, когда перенос
+        // РЕАЛЬНО состоялся — раньше (TransferLoginActivity) выходили до отправки кода, и
+        // отмена переноса (письмо не пришло, экран закрыли) безвозвратно уничтожала активный
+        // аккаунт. До saveRefreshToken, чтобы очистка не стёрла уже сохранённую новую куку.
+        if (consumeTransferReplace() && tokenManager.isLoggedIn()) logout()
         // Живёт намного дольше сессионного JWT — без неё TokenAuthenticator не сможет
         // обновить сессию по истечении суток и пользователя раз в день выкидывало бы на
         // логин (см. TokenAuthenticator в NetworkModule).
@@ -154,14 +159,31 @@ class AuthRepository @Inject constructor(
     fun logout() {
         tokenManager.clear()
         // Данные прежнего аккаунта (подписка, устройства, рефералы) не должны показываться
-        // следующему, кто войдёт на этом телефоне.
+        // следующему, кто войдёт на этом телефоне. NodeListCache и ClientProfileStorage —
+        // тоже: там uuid узлов, ссылки подписки и connectPayload-профили (фактические
+        // «пароли» подключения, см. ClientProfileStorage) — они не должны переживать выход.
         listOf(
             "account_subscription.json", "account_broadcasts.json", "account_plans.json",
             "account_referrals.json", "account_partner.json", "account_devices.json"
         ).forEach { runCatching { java.io.File(appContext.filesDir, it).delete() } }
         appContext.getSharedPreferences("subscription_refresh", Context.MODE_PRIVATE).edit().clear().apply()
+        xyz.gojihub.vpn.subscription.NodeListCache.clear(appContext)
+        xyz.gojihub.vpn.subscription.ClientProfileStorage.clear(appContext)
+        pendingPrefs.edit().clear().apply()
         subscriptionRepository.get().clearAccount()
         xyz.gojihub.vpn.util.SubscriptionPeriod.clear(appContext)
+    }
+
+    /** QR-перенос со сменой аккаунта идёт: старую сессию снять после успешного verifyOtp
+     *  (см. TransferLoginActivity и комментарий там). */
+    fun markTransferReplace() {
+        pendingPrefs.edit().putBoolean(KEY_TRANSFER_REPLACE, true).apply()
+    }
+
+    private fun consumeTransferReplace(): Boolean {
+        if (!pendingPrefs.getBoolean(KEY_TRANSFER_REPLACE, false)) return false
+        pendingPrefs.edit().putBoolean(KEY_TRANSFER_REPLACE, false).apply()
+        return true
     }
     fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
 
@@ -173,6 +195,7 @@ class AuthRepository @Inject constructor(
     private companion object {
         const val KEY_VERIFIER = "verifier"
         const val KEY_PROVIDER = "provider"
+        const val KEY_TRANSFER_REPLACE = "transfer_replace"
         const val TAG = "GodjiAuth"
         const val TRANSFER_SCHEME = "godjivpn"
         const val TRANSFER_HOST = "transfer"

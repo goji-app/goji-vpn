@@ -9,11 +9,17 @@ import Darwin
 final class PacketTunnelProvider: NEPacketTunnelProvider {
     private let queue = DispatchQueue(label: "xyz.gojihub.vpn.tunnel")
     private var profile: SharedStorage.ActiveProfile?
+    /// Payload, на котором ядро запущено прямо сейчас — для отката при неудачной смене узла
+    /// (см. restartCore) и как признак «ядро живо».
+    private var runningPayload: String?
     private var tunFd: Int32?
     private var socksPort: Int?
     private var metricsPort: Int?
     private var watchdog: DispatchSourceTimer?
     private var consecutiveFailures = 0
+    /// Перезапусков ядра сторожем подряд без успешной проверки: выше лимита — туннель не
+    /// спасают бесконечными рестартами, а честно закрывают (см. probe()).
+    private var watchdogRestarts = 0
     private var lastTrafficBytes: Int64 = 0
     private var stopping = false
     /// Столько трафика за тик сторожа достаточно, чтобы считать туннель живым без проверки.
@@ -53,6 +59,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.tunFd = fd
                 do {
                     try self.startCore(payload: profile.payload)
+                    self.runningPayload = profile.payload
                     TunnelSettings.connectedSince = Date()
                     AppLog.i(.service, "туннель поднят: \(profile.label)")
                     self.startWatchdog()
@@ -71,6 +78,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             self.watchdog?.cancel()
             self.watchdog = nil
             XrayCore.stop()
+            self.runningPayload = nil
             TunnelSettings.connectedSince = nil
             completionHandler()
         }
@@ -184,17 +192,35 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     /// Перезапуск ядра на том же utun — без разрыва VPN для системы.
     @discardableResult
     private func restartCore(reason: String) -> Bool {
-        guard let profile else { return false }
+        guard let newProfile = profile else { return false }
         AppLog.i(.service, "перезапуск ядра: \(reason)")
+        let previousPayload = runningPayload
         XrayCore.stop()
+        runningPayload = nil
         do {
-            try startCore(payload: profile.payload)
+            try startCore(payload: newProfile.payload)
+            runningPayload = newProfile.payload
             consecutiveFailures = 0
             TunnelSettings.lastError = nil
             return true
         } catch {
             AppLog.e(.service, "перезапуск ядра не удался", error)
             TunnelSettings.lastError = error.localizedDescription
+            // Ядро мертво при поднятом системном туннеле — трафик никуда не идёт, а сторож
+            // бесконечно перезапускал бы тот же битый профиль (он уже записан в
+            // active-profile.json, системный рестарт поднял бы его же). Откат на предыдущий
+            // рабочий payload, если он был.
+            if let previousPayload, previousPayload != newProfile.payload {
+                do {
+                    try startCore(payload: previousPayload)
+                    runningPayload = previousPayload
+                    TunnelSettings.lastError = "Профиль «\(newProfile.label)» не запустился — работаем на предыдущем узле"
+                    AppLog.w(.service, "ядро откатилось на предыдущий профиль")
+                } catch {
+                    AppLog.e(.service, "откат ядра тоже не удался", error)
+                    TunnelSettings.lastError = error.localizedDescription
+                }
+            }
             return false
         }
     }
@@ -203,6 +229,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         AppLog.e(.service, "туннель не поднят", error)
         TunnelSettings.lastError = error.localizedDescription
         XrayCore.stop()
+        runningPayload = nil
         completion(error)
     }
 
@@ -213,6 +240,11 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         let ipv4 = NEIPv4Settings(addresses: ["172.19.0.1"], subnetMasks: ["255.255.255.252"])
         ipv4.includedRoutes = [NEIPv4Route.default()]
         settings.ipv4Settings = ipv4
+        // Без default-маршрута IPv6 весь v6-трафик уходил бы мимо туннеля с реальным IP
+        // (Happy Eyeballs предпочитает v6 там, где он есть) — заворачиваем его тоже.
+        let ipv6 = NEIPv6Settings(addresses: ["fd00::1"], networkPrefixLengths: [64])
+        ipv6.includedRoutes = [NEIPv6Route.default()]
+        settings.ipv6Settings = ipv6
         let dns = NEDNSSettings(servers: ["1.1.1.1", "8.8.8.8"])
         dns.matchDomains = [""]
         settings.dnsSettings = dns
@@ -246,6 +278,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private func startWatchdog() {
         watchdog?.cancel()
         consecutiveFailures = 0
+        watchdogRestarts = 0
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now() + 30, repeating: 30)
         timer.setEventHandler { [weak self] in self?.watchdogTick() }
@@ -278,11 +311,23 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 if alive {
                     if self.consecutiveFailures > 0 { AppLog.i(.service, "сторож: связь восстановилась сама") }
                     self.consecutiveFailures = 0
+                    self.watchdogRestarts = 0
                     return
                 }
                 self.consecutiveFailures += 1
                 AppLog.w(.service, "сторож: проверка через туннель не прошла (\(self.consecutiveFailures) подряд)")
                 if self.consecutiveFailures >= 3 && !self.stopping {
+                    // Лимит: три перезапуска ядра подряд не вернули связь — дальше крутить
+                    // бессмысленно (и это вечный цикл рестартов на мёртвой сети). Закрываем
+                    // туннель с ошибкой, чтобы пользователь увидел состояние, а не «подключено
+                    // без интернета».
+                    if self.watchdogRestarts >= 3 {
+                        AppLog.e(.service, "сторож: 3 перезапуска ядра не помогли — останавливаю туннель")
+                        TunnelSettings.lastError = "Связь не восстанавливается — включите VPN заново"
+                        self.cancelTunnelWithError(TunnelError.core("сторож: связь не восстановилась после перезапусков ядра"))
+                        return
+                    }
+                    self.watchdogRestarts += 1
                     self.restartCore(reason: "сторож: туннель молча умер")
                 }
             }

@@ -38,6 +38,12 @@ object ClientProfileStorage {
 
     fun fileFor(context: Context, nodeId: String): File = File(dir(context), fileNameFor(nodeId))
 
+    /** Полная очистка при выходе из аккаунта: в профилях VLESS UUID — фактический «пароль»
+     *  подключения (см. шапку класса), он не должен переживать выход. */
+    fun clear(context: Context) {
+        dir(context).deleteRecursively()
+    }
+
     private fun writeEncrypted(context: Context, file: File, text: String) {
         if (file.exists()) file.delete() // EncryptedFile не даёт открыть на запись существующий файл
         encryptedFile(context, file).openFileOutput().use { it.write(text.toByteArray()) }

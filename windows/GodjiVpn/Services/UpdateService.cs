@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Windows;
 using GodjiVpn.Models;
 
@@ -12,8 +13,9 @@ namespace GodjiVpn.Services;
 /// <summary>Одна доступная версия, готовая к скачиванию. Changelog — сырой Markdown из тела
 /// релиза (release.Body), рендерится через Utils/RichContent.cs на стороне ViewModel — тот же
 /// рендерер, что и у новостей, GitHub-флейвор Markdown он покрывает разумно (заголовки, списки,
-/// жирный/курсив, ссылки — то немногое, чем обычно пишут release notes).</summary>
-public sealed record UpdateInfo(Version Version, string VersionLabel, string Changelog, string DownloadUrl, string FileName, long? SizeBytes);
+/// жирный/курсив, ссылки — то немногое, чем обычно пишут release notes). Sha256 приходит из
+/// манифеста сайта; у GitHub-фолбэка его нет — там остаётся доверие HTTPS к github.com.</summary>
+public sealed record UpdateInfo(Version Version, string VersionLabel, string Changelog, string DownloadUrl, string FileName, long? SizeBytes, string Sha256 = "");
 
 /// <summary>
 /// Проверка новых версий: сначала манифест latest.json на сайте загрузки (открывается
@@ -71,7 +73,7 @@ public sealed class UpdateService
             var file = platform.Files.FirstOrDefault(f => f.Kind == "exe");
             if (file == null || string.IsNullOrWhiteSpace(file.Path) || file.Path.Contains("..")) return null;
 
-            return new UpdateInfo(version, platform.Version, platform.Notes, $"{site}/{file.Path.TrimStart('/')}", file.Name, file.Size);
+            return new UpdateInfo(version, platform.Version, platform.Notes, $"{site}/{file.Path.TrimStart('/')}", file.Name, file.Size, file.Sha256);
         }
         catch { return null; }
     }
@@ -86,7 +88,9 @@ public sealed class UpdateService
             var tag = release.TagName.TrimStart('v', 'V');
             if (!Version.TryParse(tag, out var version)) return null;
 
-            var asset = release.Assets.FirstOrDefault(a => a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
+            // Только наш установщик: в релизе может появиться второй .exe (portable и т.п.).
+            var asset = release.Assets.FirstOrDefault(a => a.Name.StartsWith("GodjiVpn-Setup-", StringComparison.OrdinalIgnoreCase)
+                                                           && a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
             if (asset == null) return null;
 
             return new UpdateInfo(version, tag, release.Body, asset.BrowserDownloadUrl, asset.Name, asset.Size);
@@ -94,7 +98,9 @@ public sealed class UpdateService
         catch { return null; }
     }
 
-    /// <returns>Путь к скачанному установщику во временной папке.</returns>
+    /// <returns>Путь к скачанному установщику во временной папке. Если в манифесте был sha256
+    /// и файл не совпал — файл удаляется и бросается InvalidDataException: запускать чужой
+    /// установщик от администратора нельзя ни при каком раскладе.</returns>
     public async Task<string> DownloadAsync(UpdateInfo update, IProgress<double>? progress, CancellationToken ct = default)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), update.FileName);
@@ -107,11 +113,26 @@ public sealed class UpdateService
         var buffer = new byte[81920];
         long downloaded = 0;
         int read;
+        using var sha = SHA256.Create();
         while ((read = await stream.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
         {
             await file.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+            sha.TransformBlock(buffer, 0, read, null, 0);
             downloaded += read;
             if (total > 0) progress?.Report((double)downloaded / total);
+        }
+        sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+
+        if (!string.IsNullOrWhiteSpace(update.Sha256))
+        {
+            var actual = Convert.ToHexString(sha.Hash!).ToLowerInvariant();
+            var expected = update.Sha256.Trim().ToLowerInvariant();
+            if (actual != expected)
+            {
+                await file.DisposeAsync().ConfigureAwait(false);
+                File.Delete(tempPath);
+                throw new InvalidDataException($"Установщик не прошёл проверку целостности (sha256): ожидалось {expected}, получено {actual}");
+            }
         }
         return tempPath;
     }

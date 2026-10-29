@@ -4,9 +4,25 @@ namespace GodjiVpn;
 
 internal static class Program
 {
+    private static FileStream? _singleInstanceLock;
+
     [STAThread]
     public static void Main(string[] args)
     {
+        // Второй экземпляр (open -n, копия .app) воевал бы за порт 10808, DNS и root-обёртку
+        // с первым — его просто закрываем. Эксклюзивная блокировка файла держится, пока
+        // процесс жив, и освобождается системой при любом способе завершения.
+        try
+        {
+            var lockPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GodjiVpn", "app.lock");
+            Directory.CreateDirectory(Path.GetDirectoryName(lockPath)!);
+            _singleInstanceLock = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        }
+        catch (IOException)
+        {
+            return; // уже запущено — второй экземпляр не нужен
+        }
         // Необработанное исключение — в crash.log (журнал "Сбои" в Настройках).
         AppDomain.CurrentDomain.UnhandledException += (_, e) => LogCrash(e.ExceptionObject as Exception);
         TaskScheduler.UnobservedTaskException += (_, e) => { LogCrash(e.Exception); e.SetObserved(); };

@@ -9,7 +9,7 @@ import org.json.JSONObject
 import xyz.gojihub.vpn.BuildConfig
 import java.util.concurrent.TimeUnit
 
-data class UpdateInfo(val version: String, val changelog: String, val apkUrl: String)
+data class UpdateInfo(val version: String, val changelog: String, val apkUrl: String, val sha256: String? = null)
 
 /**
  * Проверяет, вышла ли новая версия. Основной источник — манифест latest.json на зеркалах нашего
@@ -48,12 +48,15 @@ object AppUpdateChecker {
         val android = json.optJSONObject("android") ?: return@fetchJson null
         val version = android.optString("version")
         val files = android.optJSONArray("files") ?: return@fetchJson null
-        val apkPath = (0 until files.length())
+        val apkFile = (0 until files.length())
             .mapNotNull { files.optJSONObject(it) }
             .firstOrNull { it.optString("kind") == "apk" }
-            ?.optString("path")
+        val apkPath = apkFile?.optString("path")
         if (version.isBlank() || apkPath.isNullOrBlank() || apkPath.contains("..")) return@fetchJson null
-        UpdateInfo(version = version, changelog = android.optString("notes"), apkUrl = "$site/${apkPath.trimStart('/')}")
+        // sha256 из манифеста — единственная проверка целостности APK перед установкой
+        // (см. AppUpdateDownloader.installDownloaded); у GitHub-фолбэка её нет.
+        val sha256 = apkFile?.optString("sha256")?.takeIf { it.isNotBlank() }
+        UpdateInfo(version = version, changelog = android.optString("notes"), apkUrl = "$site/${apkPath.trimStart('/')}", sha256 = sha256)
     }
 
     /** Запасной путь — последний релиз на GitHub. Теги релизов — vX.Y.Z, префикс убираем. */
