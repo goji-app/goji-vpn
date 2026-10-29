@@ -15,7 +15,7 @@ zip через ditto и один универсальный установщик
 "повреждённым" без кнопки "Всё равно открыть".
 
 Результат: dist/GojiVPN-<версия>-macOS-<arch>.zip (имя ждёт UpdateService) и .dmg;
-на Windows ещё копия в «3. macOS/Сборки» рядом с репозиторием.
+на Windows ещё копия в «Приложения/macOS/Сборки» рядом с репозиторием.
 Запуск: python build-macos.py [arm64|x64 ...]
 """
 import io
@@ -37,7 +37,7 @@ ICON_SRC = os.path.join(ROOT, "packaging", "icon-512.png")
 FONTS = os.path.join(ROOT, "GojiVpn.Mac", "Assets", "Fonts")
 OUT = os.path.join(ROOT, "out")
 DIST = os.path.join(ROOT, "dist")
-ARCHIVE = os.path.join(ROOT, "..", "..", "3. macOS", "Сборки")
+ARCHIVE = os.path.join(ROOT, "..", "..", "Приложения", "macOS", "Сборки")
 APP_NAME = "Goji VPN"
 EXE_NAME = "GojiVpn"
 BUNDLE_ID = "xyz.gojihub.vpn.mac"
