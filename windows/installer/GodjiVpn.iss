@@ -71,4 +71,4 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 ; По ПОЛНОМУ ПУТИ, а не по имени образа: taskkill /IM xray.exe убил бы и
 ; ядро Happ/Incy/другого v2ray-клиента, запущенного не из нашей папки.
 ; В Inno литеральная фигурная скобка удваивается — поэтому {{ открывает блок Where-Object.
-Filename: "{powershell}"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ""Get-Process xray,sing-box -ErrorAction SilentlyContinue | Where-Object {{ $_.Path -like '{app}\Runtime\*' } | Stop-Process -Force"""; Flags: runhidden skipifdoesntexist; RunOnceId: "KillCoreProcesses"
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ""Get-Process xray,sing-box -ErrorAction SilentlyContinue | Where-Object {{ $_.Path -like '{app}\Runtime\*' } | Stop-Process -Force"""; Flags: runhidden skipifdoesntexist; RunOnceId: "KillCoreProcesses"

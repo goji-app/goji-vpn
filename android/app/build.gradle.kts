@@ -48,8 +48,8 @@ android {
         applicationId = "xyz.gojihub.vpn"
         minSdk = 24 // VpnService + Reality нормально живут с 24+, но проверьте охват вашей аудитории
         targetSdk = 37
-        versionCode = 112
-        versionName = "1.0.130"
+        versionCode = 113
+        versionName = "1.0.131"
 
         buildConfigField("String", "SITE_URL", "\"${gojiHost("GOJI_SITE_URL")}\"")
         buildConfigField("String", "DOWNLOAD_URL", "\"${gojiHost("GOJI_DOWNLOAD_URL")}\"")
