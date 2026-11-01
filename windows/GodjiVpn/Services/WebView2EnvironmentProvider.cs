@@ -18,7 +18,10 @@ public static class WebView2EnvironmentProvider
 
     public static Task<CoreWebView2Environment> GetAsync()
     {
-        _task ??= CreateAsync();
+        // Неудачная попытка не кэшируется: следующий вызов (повторное открытие окна веб-входа,
+        // глобуса и т.п.) создаёт среду заново, а не вечно возвращает тот же faulted-таск.
+        if (_task == null || _task.IsCanceled || (_task.IsCompleted && _task.IsFaulted))
+            _task = CreateAsync();
         return _task;
     }
 

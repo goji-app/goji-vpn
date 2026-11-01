@@ -48,6 +48,11 @@ public sealed partial class TicketChatViewModel : ObservableObject
     private readonly DispatcherTimer _pollTimer;
     private long _ticketId;
 
+    /// <summary>Экран/окно чата закрыты. Выставляется в Stop() немедленно: если StartAsync в
+    /// этот момент ещё ждёт загрузку, по её завершении он НЕ должен запускать поллинг —
+    /// DispatcherTimer, запущенный после Stop(), тикал бы каждые 5с до конца процесса.</summary>
+    private bool _stopped;
+
     [ObservableProperty] private string title = "Поддержка";
     [ObservableProperty] private bool isClosed;
     [ObservableProperty] private bool loading = true;
@@ -91,6 +96,7 @@ public sealed partial class TicketChatViewModel : ObservableObject
     public async Task StartAsync(long ticketId)
     {
         Stop();
+        _stopped = false;
         _ticketId = ticketId;
         Messages.Clear();
         Attachments.Clear();
@@ -120,11 +126,18 @@ public sealed partial class TicketChatViewModel : ObservableObject
         }
         catch { /* заголовок — второстепенная деталь, сами сообщения важнее */ }
 
+        // Чат могли закрыть, пока шла загрузка (Stop уже был) — не грузим и не запускаем поллинг.
+        if (_stopped) return;
         await LoadMessagesAsync(showLoading: true);
+        if (_stopped) return;
         _pollTimer.Start();
     }
 
-    public void Stop() => _pollTimer.Stop();
+    public void Stop()
+    {
+        _stopped = true;
+        _pollTimer.Stop();
+    }
 
     private async Task LoadMessagesAsync(bool showLoading)
     {

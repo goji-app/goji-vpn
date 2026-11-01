@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
@@ -91,7 +92,8 @@ public partial class App : Application
         var broadcastNotifier = new BroadcastNotifier();
         var updateService = new UpdateService();
         var updateNotifier = new UpdateNotifier();
-        var vpnEngine = new VpnEngine(); // конструктор сам регистрирует себя в VpnEngine.Current
+        // preview: конструктор не убивает чужие ядра и не трогает engine.log настоящего клиента.
+        var vpnEngine = new VpnEngine(preview: uiPreview); // конструктор сам регистрирует себя в VpnEngine.Current
         // Журнал сети: подключения, смена сети, ошибки (см. JournalRecorder/NetworkJournal).
         _journalRecorder = new JournalRecorder(vpnEngine, subscriptionRepository);
         // Правила Wi-Fi: превью-экземпляр только читает имя сети для экрана, но не следит за
@@ -221,19 +223,49 @@ public partial class App : Application
         {
             var logsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GodjiVpn", "logs");
             Directory.CreateDirectory(logsDir);
-            File.AppendAllText(Path.Combine(logsDir, "crash.log"),
+            var crashLog = Path.Combine(logsDir, "crash.log");
+            // Ротация по образцу MaxCoreLogBytes у ядер: разросшийся журнал начинаем заново,
+            // а не копим бесконечно (хвост старых сессий не критичен).
+            try { if (File.Exists(crashLog) && new FileInfo(crashLog).Length > MaxLogBytes) File.Delete(crashLog); }
+            catch { /* не смогли усечь — просто продолжаем дописывать */ }
+            File.AppendAllText(crashLog,
                 $"===== {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} =====\n{ex}\n\n");
         }
         catch { /* если даже лог не записать — уже ничего не поделать, не даём этому уронить обработчик */ }
     }
 
+    private const long MaxLogBytes = 10 * 1024 * 1024;
+
     private async void ExitApplication()
+    {
+        await PrepareExitAsync();
+        Shutdown();
+    }
+
+    /// <summary>Путь обновления — тот же порядок завершения, что и «Выход» из трея
+    /// (ExitApplication), плюс запуск установщика: сначала РАЗОРВАТЬ ТУННЕЛЬ. Раньше
+    /// установщик запускался прямо из SettingsViewModel (Process.Start + Shutdown, минуя
+    /// разрыв), и живые xray.exe/sing-box.exe держали файлы, которые он заменяет.</summary>
+    internal async Task InstallUpdateAndExitAsync(string installerPath)
+    {
+        await PrepareExitAsync();
+        Process.Start(new ProcessStartInfo(installerPath) { UseShellExecute = true });
+        Shutdown();
+    }
+
+    /// <summary>Общая часть завершения процесса: таймеры, разрыв туннеля (с таймаутом —
+    /// зависшее ядро не должно держать закрытие бесконечно), Job Object/журнал движка, трей.</summary>
+    private async Task PrepareExitAsync()
     {
         _hourlyRefreshTimer?.Stop();
         _updateCheckTimer?.Stop();
-        try { await (VpnEngine.Current?.DisconnectAsync() ?? Task.CompletedTask); }
+        try
+        {
+            var disconnect = VpnEngine.Current?.DisconnectAsync() ?? Task.CompletedTask;
+            await Task.WhenAny(disconnect, Task.Delay(TimeSpan.FromSeconds(10)));
+        }
         catch { /* уходим в любом случае — не даём сбою разрыва тоннеля помешать закрытию */ }
+        try { VpnEngine.Current?.Dispose(); } catch { /* Job Object и журнал — лучшее усилие */ }
         Tray?.Dispose();
-        Shutdown();
     }
 }

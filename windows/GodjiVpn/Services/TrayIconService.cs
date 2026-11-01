@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
@@ -18,6 +19,10 @@ public sealed class TrayIconService : IDisposable
     private readonly VpnEngine _vpnEngine;
     private readonly MenuItem _toggleItem;
     private readonly ConnectViewModel _connect;
+    // Хранятся, чтобы снять в Dispose — иначе движок/вьюмодель продолжали бы держать живой
+    // TrayIconService после Dispose (утечка + апдейты мёртвой иконки).
+    private readonly PropertyChangedEventHandler _onEngineChanged;
+    private readonly PropertyChangedEventHandler _onConnectChanged;
 
     // Значок показывает состояние без открытия окна: серый — отключено, жёлтая точка —
     // подключаемся, зелёная — подключено (Assets/Images/tray-*.png, из logo.png).
@@ -61,12 +66,14 @@ public sealed class TrayIconService : IDisposable
 
         _icon.TrayMouseDoubleClick += (_, _) => ShowWindow(window);
 
-        _vpnEngine.PropertyChanged += (_, _) => UpdateStatus();
+        _onEngineChanged = (_, _) => UpdateStatus();
+        _vpnEngine.PropertyChanged += _onEngineChanged;
         // Название узла в меню меняется вместе с выбором на вкладке "Серверы".
-        connect.PropertyChanged += (_, e) =>
+        _onConnectChanged = (_, e) =>
         {
             if (e.PropertyName == nameof(ConnectViewModel.CurrentNodeName)) UpdateStatus();
         };
+        connect.PropertyChanged += _onConnectChanged;
         UpdateStatus();
     }
 
@@ -109,5 +116,10 @@ public sealed class TrayIconService : IDisposable
         _icon.ShowBalloonTip(title, text, BalloonIcon.Info);
     }
 
-    public void Dispose() => _icon.Dispose();
+    public void Dispose()
+    {
+        _vpnEngine.PropertyChanged -= _onEngineChanged;
+        _connect.PropertyChanged -= _onConnectChanged;
+        _icon.Dispose();
+    }
 }

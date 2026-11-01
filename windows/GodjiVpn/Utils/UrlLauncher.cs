@@ -11,11 +11,12 @@ namespace GodjiVpn.Utils;
 /// способ слить NTLM-хэш машины на подконтрольный SMB-listener одним кликом по "ссылке") или
 /// протокол стороннего приложения с собственной уязвимостью в обработчике. Ограничиваем набор
 /// схем до тех, что реально нужны (http/https — сайт/оплата/соцсети, mailto — "написать
-/// разработчику"), остальное молча не открываем, а не пытаемся отфильтровать блок-лист (его
+/// разработчику", bingmaps — <tg-map> в новостях: Windows Maps, см. RichContent.MapBlock),
+/// остальное молча не открываем, а не пытаемся отфильтровать блок-лист (его
 /// всегда можно обойти новым необычным URI-scheme).</summary>
 public static class UrlLauncher
 {
-    private static readonly string[] AllowedSchemes = { "https", "http", "mailto" };
+    private static readonly string[] AllowedSchemes = { "https", "http", "mailto", "bingmaps" };
 
     /// <returns>false — схема не в списке разрешённых (ссылка не открыта) или запуск не
     /// удался (нет обработчика схемы, битый URL и т.п.).</returns>

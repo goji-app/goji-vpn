@@ -604,10 +604,20 @@ public sealed partial class SettingsViewModel : ObservableObject
             if (!File.Exists(path)) { LogContent = ""; return; }
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             const int maxChars = 20000;
+            var truncated = stream.Length > maxChars;
             var length = (int)Math.Min(stream.Length, maxChars);
             stream.Seek(-length, SeekOrigin.End);
             using var reader = new StreamReader(stream);
-            LogContent = reader.ReadToEnd();
+            var tail = reader.ReadToEnd();
+            // Хвост читается с произвольного БАЙТОВОГО смещения: первый фрагмент может быть
+            // разрезан посреди многобайтового UTF-8-символа (битый символ в начале вывода) и
+            // посреди строки — первую неполную строку отбрасываем до первого перевода строки.
+            if (truncated)
+            {
+                var firstLineEnd = tail.IndexOf('\n');
+                if (firstLineEnd >= 0) tail = tail[(firstLineEnd + 1)..];
+            }
+            LogContent = tail;
         }
         catch (Exception ex)
         {
@@ -697,7 +707,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             var progress = new Progress<double>(p => DownloadProgress = p);
             var installerPath = await _updateService.DownloadAsync(update, progress);
-            UpdateService.RunInstallerAndExit(installerPath);
+            // Туннель разрывается ДО запуска установщика — по образцу App.ExitApplication
+            // (см. App.InstallUpdateAndExitAsync): иначе живые xray.exe/sing-box.exe держат
+            // заменяемые установщиком файлы. RunInstallerAndExit — запасной путь вне приложения.
+            if (Application.Current is App app) await app.InstallUpdateAndExitAsync(installerPath);
+            else UpdateService.RunInstallerAndExit(installerPath);
         }
         catch
         {

@@ -5,6 +5,9 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Nodes;
 using GodjiVpn.Models;
 
@@ -54,6 +57,30 @@ public sealed class VpnEngine : INotifyPropertyChanged
 
     private readonly SemaphoreSlim _lifecycleLock = new(1, 1);
 
+    /// <summary>Флаг «пользователь запросил отключение» — выставляется в DisconnectAsync ДО
+    /// захвата _lifecycleLock: kill switch (TryRestartXrayAsync) держит лок до ~36с на трёх
+    /// попытках перезапуска ядра, и без этого «Отключить» висело бы весь срок, ожидая
+    /// освобождения. Проверяется между попытками перезапуска.</summary>
+    private int _disconnectRequested;
+
+    /// <summary>Превью-экземпляр (GODJI_UI_PREVIEW=1) работает рядом с настоящим клиентом и
+    /// без повышения прав: не убиваем его ядра, не трогаем его адаптер и его engine.log
+    /// (журнал создаётся с append:false — первым же открытием обнулил бы чужой).</summary>
+    private readonly bool _preview;
+
+    /// <summary>Job Object с JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, в который кладутся оба ядра:
+    /// при аварийном завершении приложения (убийство через Диспетчер задач, необработанный
+    /// краш) Windows завершает их сама — иначе xray.exe/sing-box.exe оставались жить и держать
+    /// TUN-адаптер с маршрутом по умолчанию. См. EnsureJob/TryAddToJob/Dispose.</summary>
+    private IntPtr _jobHandle;
+
+    /// <summary>engine.log пишется из многих потоков (ConnectAsync/DisconnectAsync идут через
+    /// ConfigureAwait(false), события смерти ядра, NetworkDiagnostics) — StreamWriter не
+    /// потокобезопасен, пишем под локом.</summary>
+    private readonly object _engineLogLock = new();
+
+    private bool _disposed;
+
     private Process? _xrayProcess;
     private Process? _singBoxProcess;
     private StreamWriter? _xrayLog;
@@ -65,14 +92,18 @@ public sealed class VpnEngine : INotifyPropertyChanged
 
     private void LogEngine(string message)
     {
+        if (_preview || _disposed) return; // журнал настоящего клиента / после Dispose не трогаем
         try
         {
-            if (_engineLog == null)
+            lock (_engineLogLock)
             {
-                Directory.CreateDirectory(Path.Combine(StateDir, "logs"));
-                _engineLog = new StreamWriter(Path.Combine(StateDir, "logs", "engine.log"), append: false) { AutoFlush = true };
+                if (_engineLog == null)
+                {
+                    Directory.CreateDirectory(Path.Combine(StateDir, "logs"));
+                    _engineLog = new StreamWriter(Path.Combine(StateDir, "logs", "engine.log"), append: false) { AutoFlush = true };
+                }
+                _engineLog.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {message}");
             }
-            _engineLog.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {message}");
         }
         catch { /* диагностика — не должна мешать основной работе */ }
     }
@@ -107,13 +138,24 @@ public sealed class VpnEngine : INotifyPropertyChanged
 
     /// <summary>Подписка на смену адресов на время сессии (см. OnNetworkAddressChanged).</summary>
     private NetworkAddressChangedEventHandler? _addressChangedHandler;
+
+    /// <summary>Дебаунс всплесков NetworkAddressChanged: событие приходит пачкой, и раньше
+    /// КАЖДОЕ запускало свой Task.Delay и свою EnableForwardingAsync — теперь новая пачка
+    /// отменяет предыдущую отложенную обработку, до пересылки доходит одно выполнение.</summary>
+    private CancellationTokenSource? _addressChangedDebounce;
+
+    /// <summary>Пересылка (EnableForwardingAsync) уже выполняется — параллельную не запускаем.</summary>
+    private int _forwardingInProgress;
+
     private int _reconnectInProgress;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public VpnEngine()
+    public VpnEngine(bool preview = false)
     {
         Current = this;
+        _preview = preview;
+        if (preview) return;
         Directory.CreateDirectory(StateDir);
         // Остатки аварийно завершённой прошлой сессии (краш приложения, выключение ПК при
         // поднятом туннеле): жёстко убитый sing-box не снимает strict_route и маршрут на TUN —
@@ -131,6 +173,12 @@ public sealed class VpnEngine : INotifyPropertyChanged
 
     /// <summary>Журналы ядер старше этого размера начинаются заново (см. StartProcess).</summary>
     private const long MaxCoreLogBytes = 10 * 1024 * 1024;
+
+    /// <summary>Полный путь PowerShell: запуск по имени из процесса с правами администратора
+    /// позволял подменить исполняемый файл (DLL/PATH-hijack вокруг Process.Start) — берём
+    /// системный бинарник из System32 напрямую.</summary>
+    private static readonly string PowerShellPath = Path.Combine(
+        Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
 
     private VlessNode? _lastNode;
 
@@ -178,7 +226,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
                 {
                     LastError = ex.Message;
                     LogEngine($"ConnectAsync: попытка {attempt}/{MaxConnectAttempts} FAILED — {ex}");
-                    Teardown();
+                    await TeardownAsync().ConfigureAwait(false);
                     if (attempt == MaxConnectAttempts) throw;
                     await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
                 }
@@ -188,7 +236,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
         {
             LastError = ex.Message;
             LogEngine($"ConnectAsync: FAILED — {ex}");
-            Teardown();
+            await TeardownAsync().ConfigureAwait(false);
         }
         finally
         {
@@ -278,13 +326,18 @@ public sealed class VpnEngine : INotifyPropertyChanged
 
     public async Task DisconnectAsync()
     {
+        // Флаг ДО захвата лока: kill switch мог держать _lifecycleLock до ~36с на перезапусках
+        // ядра (TryRestartXrayAsync) — с флагом он выходит между попытками и отдаёт лок,
+        // «Отключить» больше не висит.
+        Interlocked.Exchange(ref _disconnectRequested, 1);
         await _lifecycleLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            Teardown();
+            await TeardownAsync().ConfigureAwait(false);
         }
         finally
         {
+            Interlocked.Exchange(ref _disconnectRequested, 0);
             _lifecycleLock.Release();
         }
     }
@@ -304,7 +357,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
         return (stats.BytesReceived, stats.BytesSent);
     }
 
-    private void Teardown()
+    private async Task TeardownAsync()
     {
         LogEngine("Teardown: start");
         if (_addressChangedHandler != null)
@@ -312,13 +365,53 @@ public sealed class VpnEngine : INotifyPropertyChanged
             NetworkChange.NetworkAddressChanged -= _addressChangedHandler;
             _addressChangedHandler = null;
         }
+        _addressChangedDebounce?.Cancel();
+
+        // Сначала мягкое завершение: закрытие стандартных потоков даёт ядру шанс завершиться
+        // самому и снять маршруты/адаптер штатно — жёсткий Kill, застигший sing-box ДО снятия
+        // маршрутов, оставлял default route в мёртвый TUN (интернета нет до следующего
+        // подключения). Окно короткое, оба ядра ждём параллельно; кто не вышел сам — Kill ниже.
+        TryCloseStdStreams(_singBoxProcess, "sing-box.exe");
+        TryCloseStdStreams(_xrayProcess, "xray.exe");
+        await WaitSoftExitAsync(_singBoxProcess, _xrayProcess, TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+
         KillProcess(ref _singBoxProcess, ref _singBoxLog, "sing-box.exe");
         KillProcess(ref _xrayProcess, ref _xrayLog, "xray.exe");
+
+        // Открытая копия конфига с VLESS-UUID (см. WriteXrayConfigAsync) больше не нужна.
+        try { if (File.Exists(XrayRunConfigPath)) File.Delete(XrayRunConfigPath); } catch { /* лучшее усилие */ }
+
+        // После Kill ГАРАНТИРОВАННО чистим адаптер: раньше CleanupStaleAdapterAsync вызывался
+        // только в ctor и ConnectAttemptAsync, и жёстко убитый до снятия маршрутов sing-box
+        // оставлял систему с маршрутом в мёртвый TUN.
+        await CleanupStaleAdapterAsync().ConfigureAwait(false);
+
         _actualAdapterName = null;
         PhysicalIp = null;
         IsRunning = false;
         ConnectedSinceUtc = null;
         LogEngine("Teardown: done");
+    }
+
+    /// <summary>Закрывает перенаправленный стандартный ввод ядра — мягкий сигнал завершения
+    /// для консольного процесса; вышедший сам sing-box снимает auto_route/strict_route и
+    /// штатно отпускает Wintun-адаптер.</summary>
+    private static void TryCloseStdStreams(Process? process, string label)
+    {
+        if (process == null || process.HasExited) return;
+        try { process.StandardInput.Close(); }
+        catch (Exception ex) { Log($"Teardown: закрытие stdin {label} — {ex.Message}"); }
+    }
+
+    /// <summary>Ждёт самостоятельного выхода ядер после мягкого завершения не дольше timeout.</summary>
+    private static async Task WaitSoftExitAsync(Process? first, Process? second, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            if ((first == null || first.HasExited) && (second == null || second.HasExited)) return;
+            await Task.Delay(100).ConfigureAwait(false);
+        }
     }
 
     /// <summary>sendThrough во всех outbound'ах xray — адрес физического интерфейса, снятый в
@@ -340,7 +433,12 @@ public sealed class VpnEngine : INotifyPropertyChanged
             if (!IsRunning || IsConnecting || PhysicalIp == null) return;
             // Событие сыпется пачкой при любом чихе сети — даём устаканиться и перепроверяем:
             // адрес мог мигнуть на секунду (перезагрузка роутера), а не исчезнуть навсегда.
-            await Task.Delay(1500).ConfigureAwait(false);
+            // Отложенная обработка предыдущего события всплеска отменяется (дебаунс).
+            _addressChangedDebounce?.Cancel();
+            var debounce = new CancellationTokenSource();
+            _addressChangedDebounce = debounce;
+            try { await Task.Delay(1500, debounce.Token).ConfigureAwait(false); }
+            catch (OperationCanceledException) { return; }
             if (!IsRunning || IsConnecting || PhysicalIp == null) return;
             var stillThere = NetworkInterface.GetAllNetworkInterfaces().Any(n =>
                 n.OperationalStatus == OperationalStatus.Up &&
@@ -400,20 +498,37 @@ public sealed class VpnEngine : INotifyPropertyChanged
             }
             LastError = $"{label} неожиданно завершился (код {exitCode}) — туннель разорван. См. Runtime/logs/.";
             LogEngine($"{label}: triggering teardown, exitCode={exitCode}");
-            Teardown();
+            await TeardownAsync().ConfigureAwait(false);
         }
         finally { _lifecycleLock.Release(); }
     }
 
     private const int KillSwitchRestartAttempts = 3;
 
+    /// <summary>Запрошено ли отключение пользователем (см. DisconnectAsync) — kill switch
+    /// проверяет между попытками перезапуска ядра, чтобы не держать лок понапрасну.</summary>
+    private bool DisconnectRequested => Interlocked.CompareExchange(ref _disconnectRequested, 0, 0) == 1;
+
     /// <summary>Kill switch: новый xray.exe с тем же конфигом (StateDir/xray-config.json), пока
     /// sing-box держит туннель закрытым. Вызывается под _lifecycleLock.</summary>
     private async Task<bool> TryRestartXrayAsync()
     {
-        var configPath = Path.Combine(StateDir, "xray-config.json");
+        // Конфиг хранится зашифрованным DPAPI (см. WriteXrayConfigAsync) — восстанавливаем
+        // открытую копию для нового процесса xray.exe; файл старой версии (открытый текст)
+        // мигрирует в зашифрованный сам при чтении (LoadEncrypted).
+        var configJson = LoadEncrypted(XrayConfigPath)
+            ?? throw new InvalidOperationException("нет сохранённого конфига ядра для перезапуска");
+        File.WriteAllText(XrayRunConfigPath, configJson);
+        var configPath = XrayRunConfigPath;
         for (var attempt = 1; attempt <= KillSwitchRestartAttempts; attempt++)
         {
+            // Пользователь запросил отключение, пока мы ждали/перезапускали ядро, — выходим
+            // сразу и отдаём лок DisconnectAsync, не дотягивая оставшиеся попытки.
+            if (attempt > 1 && DisconnectRequested)
+            {
+                LogEngine("kill switch: запрошено отключение — прекращаем перезапуск");
+                return false;
+            }
             try
             {
                 KillProcess(ref _xrayProcess, ref _xrayLog, "xray.exe");
@@ -439,6 +554,11 @@ public sealed class VpnEngine : INotifyPropertyChanged
             catch (Exception ex)
             {
                 LogEngine($"kill switch: перезапуск xray, попытка {attempt}/{KillSwitchRestartAttempts} — {ex.Message}");
+                if (DisconnectRequested)
+                {
+                    LogEngine("kill switch: запрошено отключение — прекращаем перезапуск");
+                    return false;
+                }
                 await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
             }
         }
@@ -617,9 +737,47 @@ public sealed class VpnEngine : INotifyPropertyChanged
             catch { /* один нерезолвящийся кандидат не должен ломать весь конфиг — оставляем хостнейм, xray попробует резолвить его сам, как раньше */ }
         }
 
-        var path = Path.Combine(StateDir, "xray-config.json");
-        File.WriteAllText(path, config.ToJsonString());
-        return path;
+        var json = config.ToJsonString();
+        // В конфиге — VLESS-UUID: зашифрованная DPAPI копия (как TokenStore/AccountCache) живёт
+        // в StateDir для перезапуска ядра kill switch'ом, а открытая — только на время работы
+        // самого xray.exe и удаляется в TeardownAsync (см. XrayRunConfigPath).
+        SaveEncrypted(XrayConfigPath, json);
+        File.WriteAllText(XrayRunConfigPath, json);
+        return XrayRunConfigPath;
+    }
+
+    /// <summary>Зашифрованная (DPAPI, CurrentUser) копия конфига xray — в нём VLESS-UUID;
+    /// переживает отключение: по ней kill switch перезапускает ядро (TryRestartXrayAsync).</summary>
+    private static string XrayConfigPath => Path.Combine(StateDir, "xray-config.json");
+
+    /// <summary>Открытая копия того же конфига — её читает сам xray.exe (ядро принимает файл,
+    /// а не stdin); существует только пока ядро запущено и удаляется в TeardownAsync, чтобы
+    /// UUID не оставался на диске открытым текстом в простое.</summary>
+    private static string XrayRunConfigPath => Path.Combine(StateDir, "xray-config.run.json");
+
+    /// <summary>Шифрование секрета на диске через DPAPI — тот же способ, что TokenStore/AccountCache.</summary>
+    private static void SaveEncrypted(string path, string text)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, ProtectedData.Protect(Encoding.UTF8.GetBytes(text), optionalEntropy: null, DataProtectionScope.CurrentUser));
+    }
+
+    /// <summary>Чтение DPAPI-файла с прозрачной миграцией: версии до шифрования хранили
+    /// открытым текстом — такой файл читается как есть и сразу переписывается зашифрованно.</summary>
+    private static string? LoadEncrypted(string path)
+    {
+        if (!File.Exists(path)) return null;
+        var bytes = File.ReadAllBytes(path);
+        try
+        {
+            return Encoding.UTF8.GetString(ProtectedData.Unprotect(bytes, optionalEntropy: null, DataProtectionScope.CurrentUser));
+        }
+        catch (CryptographicException)
+        {
+            var plain = Encoding.UTF8.GetString(bytes);
+            try { SaveEncrypted(path, plain); } catch { /* миграция — лучшее усилие */ }
+            return plain;
+        }
     }
 
     /// <summary>"Сайты мимо VPN" (Настройки → Подключение, порт 6803326): домены из
@@ -761,7 +919,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
         return path;
     }
 
-    private static Process StartProcess(
+    private Process StartProcess(
         string exePath, string args, string workingDir,
         out StreamWriter log, string logFileName,
         Action<System.Collections.Generic.IDictionary<string, string?>>? configureEnv = null)
@@ -791,6 +949,8 @@ public sealed class VpnEngine : INotifyPropertyChanged
             WorkingDirectory = workingDir,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            // Мягкое завершение в TeardownAsync закрывает stdin ядра (TryCloseStdStreams).
+            RedirectStandardInput = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
@@ -801,6 +961,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
         process.OutputDataReceived += (_, e) => AppendCoreLog(localLog, e.Data);
         process.ErrorDataReceived += (_, e) => AppendCoreLog(localLog, e.Data);
         process.Start();
+        TryAddToJob(process);
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         return process;
@@ -834,6 +995,54 @@ public sealed class VpnEngine : INotifyPropertyChanged
         }
         if (log != null) lock (log) log.Dispose();
         log = null;
+    }
+
+    /// <summary>Освобождает Job Object и журнал движка (вызывается App при завершении
+    /// процесса). KILL_ON_JOB_CLOSE здесь работает последней страховкой: если какое-то ядро
+    /// всё же осталось жить после TeardownAsync, закрытие хэндла завершит его.</summary>
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_jobHandle != IntPtr.Zero)
+        {
+            try { CloseHandle(_jobHandle); } catch { /* лучший случай — ядер уже нет */ }
+            _jobHandle = IntPtr.Zero;
+        }
+        lock (_engineLogLock)
+        {
+            try { _engineLog?.Dispose(); } catch { /* уже закрыт */ }
+            _engineLog = null;
+        }
+    }
+
+    /// <summary>Создаёт Job Object с KILL_ON_JOB_CLOSE один раз и кладёт в него оба ядра —
+    /// страховка от осиротевших xray.exe/sing-box.exe при аварийной гибели приложения
+    /// (убийство через Диспетчер задач: обычные Process.Start не привязаны к жизни родителя).
+    /// KillStrayCoreProcesses при старте остаётся второй линией обороны.</summary>
+    private void EnsureJob()
+    {
+        if (_jobHandle != IntPtr.Zero) return;
+        var job = CreateJobObject(IntPtr.Zero, null);
+        if (job == IntPtr.Zero) return;
+        var info = default(JOBOBJECT_EXTENDED_LIMIT_INFORMATION);
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, ref info, Marshal.SizeOf<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>()))
+        {
+            CloseHandle(job);
+            return;
+        }
+        _jobHandle = job;
+    }
+
+    private void TryAddToJob(Process process)
+    {
+        try
+        {
+            EnsureJob();
+            if (_jobHandle != IntPtr.Zero && !AssignProcessToJobObject(_jobHandle, process.Handle))
+                LogEngine($"job: AssignProcessToJobObject failed: {Marshal.GetLastWin32Error()}");
+        }
+        catch (Exception ex) { LogEngine($"job: {ex.Message}"); }
     }
 
     /// <summary>Убивает xray.exe/sing-box.exe (и tun2socks.exe — от старых версий приложения,
@@ -912,12 +1121,15 @@ public sealed class VpnEngine : INotifyPropertyChanged
     /// TUN (default route), а Windows пересылает между интерфейсами только если forwarding
     /// включён на ОБОИХ; на Wintun он по умолчанию выключен — клиенты хот-спота без интернета
     /// или с обрывами. Лучшее усилие: ошибка не мешает основному подключению.</summary>
-    private static async Task EnableForwardingAsync(string adapterName)
+    private async Task EnableForwardingAsync(string adapterName)
     {
+        // Событие смены сети приходит пачкой (дебаунс в OnNetworkAddressChanged гасит большую
+        // часть, но не все) — параллельная вторая PowerShell не нужна и гонялась бы с первой.
+        if (Interlocked.Exchange(ref _forwardingInProgress, 1) == 1) return;
         try
         {
             var escapedName = adapterName.Replace("'", "''");
-            var psi = new ProcessStartInfo("powershell.exe",
+            var psi = new ProcessStartInfo(PowerShellPath,
                 "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command " +
                 $"\"Set-NetIPInterface -InterfaceAlias '{escapedName}' -AddressFamily IPv4 -Forwarding Enabled -ErrorAction Stop\"")
             {
@@ -932,6 +1144,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
             Log(process.ExitCode == 0 ? $"forwarding включён на {adapterName}" : $"forwarding: {err.Trim()}");
         }
         catch (Exception ex) { Log($"forwarding: {ex.Message}"); }
+        finally { Interlocked.Exchange(ref _forwardingInProgress, 0); }
     }
 
     /// <summary>Снимает оставшиеся IPv4-адреса с НАШЕГО Wintun-адаптера прошлой сессии (если он
@@ -958,7 +1171,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
             // литерала PowerShell (O'Brien → 'O''Brien'), иначе строка вида "x' ; <команда> ; '"
             // вырвалась бы из кавычек и выполнилась как произвольный PowerShell.
             var escapedName = adapter.Name.Replace("'", "''");
-            var psi = new ProcessStartInfo("powershell.exe",
+            var psi = new ProcessStartInfo(PowerShellPath,
                 "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command " +
                 $"\"Get-NetIPAddress -InterfaceAlias '{escapedName}' -AddressFamily IPv4 -ErrorAction SilentlyContinue | " +
                 "Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue\"")
@@ -1041,6 +1254,60 @@ public sealed class VpnEngine : INotifyPropertyChanged
             return reader.ReadToEnd().Trim();
         }
         catch { return null; }
+    }
+
+    // ── Job Object (см. _jobHandle/EnsureJob) ──────────────────────────────────────────
+
+    private const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
+    private const int JobObjectExtendedLimitInformation = 9;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetInformationJobObject(IntPtr hJob, int jobObjectInfoClass,
+        ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION lpJobObjectInfo, int cbJobObjectInfoLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr handle);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JOBOBJECT_BASIC_LIMIT_INFORMATION
+    {
+        public long PerProcessUserTimeLimit;
+        public long PerJobUserTimeLimit;
+        public uint LimitFlags;
+        public UIntPtr MinimumWorkingSetSize;
+        public UIntPtr MaximumWorkingSetSize;
+        public uint ActiveProcessLimit;
+        public UIntPtr Affinity;
+        public uint PriorityClass;
+        public uint SchedulingClass;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IO_COUNTERS
+    {
+        public ulong ReadOperationCount;
+        public ulong WriteOperationCount;
+        public ulong OtherOperationCount;
+        public ulong ReadTransferCount;
+        public ulong WriteTransferCount;
+        public ulong OtherTransferCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+    {
+        public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
+        public IO_COUNTERS IoInfo;
+        public UIntPtr ProcessMemoryLimit;
+        public UIntPtr JobMemoryLimit;
+        public UIntPtr PeakProcessMemoryUsed;
+        public UIntPtr PeakJobMemoryUsed;
     }
 
     private void SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

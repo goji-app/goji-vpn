@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Windows;
 using GodjiVpn.Models;
@@ -98,18 +99,29 @@ public sealed class UpdateService
         catch { return null; }
     }
 
-    /// <returns>Путь к скачанному установщику во временной папке. Если в манифесте был sha256
-    /// и файл не совпал — файл удаляется и бросается InvalidDataException: запускать чужой
-    /// установщик от администратора нельзя ни при каком раскладе.</returns>
+    /// <returns>Путь к скачанному установщику в каталоге обновлений
+    /// (%ProgramData%\GodjiVpn\updates). Если в манифесте был sha256 и файл не совпал — файл
+    /// удаляется и бросается InvalidDataException: запускать чужой установщик от администратора
+    /// нельзя ни при каком раскладе.</returns>
     public async Task<string> DownloadAsync(UpdateInfo update, IProgress<double>? progress, CancellationToken ct = default)
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), update.FileName);
+        // Имя файла приходит с зеркала/GitHub и подставляется в локальный путь: допускаем
+        // только «чистое» имя — без каталогов, слэшей и ".." (file.Path проверялся, а FileName
+        // нет — Path.Combine(temp, "..\..\evil.exe") вынес бы запуск за пределы каталога).
+        if (string.IsNullOrWhiteSpace(update.FileName) ||
+            update.FileName != Path.GetFileName(update.FileName) ||
+            update.FileName.Contains("..", StringComparison.Ordinal))
+            throw new InvalidOperationException("Некорректное имя файла обновления");
+
+        // Качаем НЕ в %TEMP% (туда пишет любой локальный пользователь — подмена файла между
+        // скачиванием и запуском, TOCTOU), а в наш подкаталог ProgramData с ACL.
+        var filePath = Path.Combine(PrepareUpdatesDir(), update.FileName);
         using var response = await _http.GetAsync(update.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         var total = response.Content.Headers.ContentLength ?? update.SizeBytes ?? -1L;
 
         await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        await using var file = File.Create(tempPath);
+        await using var file = File.Create(filePath);
         var buffer = new byte[81920];
         long downloaded = 0;
         int read;
@@ -130,11 +142,35 @@ public sealed class UpdateService
             if (actual != expected)
             {
                 await file.DisposeAsync().ConfigureAwait(false);
-                File.Delete(tempPath);
+                File.Delete(filePath);
                 throw new InvalidDataException($"Установщик не прошёл проверку целостности (sha256): ожидалось {expected}, получено {actual}");
             }
         }
-        return tempPath;
+        return filePath;
+    }
+
+    /// <summary>Каталог загрузки установщика: %ProgramData%\GodjiVpn\updates. Наследование
+    /// ACL от ProgramData отключаем (копируя унаследованные права), поверх даём полный доступ
+    /// только текущему пользователю — другой локальный пользователь не может ни подменить
+    /// скачанный файл, ни подложить свой до скачивания (File.Create тогда честно падает).</summary>
+    private static string PrepareUpdatesDir()
+    {
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GodjiVpn", "updates");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var dirInfo = new DirectoryInfo(dir);
+            var security = dirInfo.GetAccessControl();
+            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: true);
+            var user = System.Security.Principal.WindowsIdentity.GetCurrent().User;
+            if (user != null)
+                security.AddAccessRule(new FileSystemAccessRule(user, FileSystemRights.FullControl,
+                    InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                    PropagationFlags.None, AccessControlType.Allow));
+            dirInfo.SetAccessControl(security);
+        }
+        catch { /* ACL — лучшее усилие: каталог и так создаётся нами (администратором) */ }
+        return dir;
     }
 
     /// <summary>Запускает скачанный установщик и сразу завершает приложение — установщик сам

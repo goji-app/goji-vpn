@@ -20,7 +20,10 @@ public static class ShellLauncher
         if (!TryOpenUnelevated(path, out var diagnostic))
         {
             LogFallback(diagnostic);
-            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
+            // Полный путь, а не имя: запуск по имени из процесса с правами администратора
+            // позволял бы подменить бинарник рядом с рабочим каталогом/через PATH.
+            var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
+            Process.Start(new ProcessStartInfo(explorer, $"\"{path}\"") { UseShellExecute = true });
         }
     }
 
@@ -91,11 +94,17 @@ public static class ShellLauncher
             var logsDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GodjiVpn", "logs");
             Directory.CreateDirectory(logsDir);
-            File.AppendAllText(Path.Combine(logsDir, "shell-launcher.log"),
+            var logPath = Path.Combine(logsDir, "shell-launcher.log");
+            // Ротация по образцу MaxCoreLogBytes у ядер: разросшийся журнал начинаем заново.
+            try { if (File.Exists(logPath) && new FileInfo(logPath).Length > MaxLogBytes) File.Delete(logPath); }
+            catch { /* не смогли усечь — просто продолжаем дописывать */ }
+            File.AppendAllText(logPath,
                 $"{DateTime.Now:O} unelevated open failed, falling back to elevated explorer.exe: {diagnostic}{Environment.NewLine}");
         }
         catch { /* диагностика — не критично */ }
     }
+
+    private const long MaxLogBytes = 10 * 1024 * 1024;
 
     private const uint PROCESS_QUERY_INFORMATION = 0x0400;
     private const uint TOKEN_DUPLICATE = 0x0002;

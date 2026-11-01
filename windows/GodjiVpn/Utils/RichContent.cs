@@ -288,7 +288,13 @@ public static class RichContent
     {
         try
         {
-            var image = new Image { Source = new BitmapImage(new Uri(url, UriKind.Absolute)), Stretch = Stretch.Uniform };
+            // Только http/https: BitmapImage готов грузить ЛЮБЫЕ схемы, а file:// и UNC-пути
+            // (\\server\share\img.png) превращали бы «картинку» из рассылки в SMB-запрос к
+            // произвольному хосту с NTLM-хэшем машины. Прочие схемы пропускаем молча, как
+            // это делает UrlLauncher.
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) return;
+            var image = new Image { Source = new BitmapImage(uri), Stretch = Stretch.Uniform };
             onLoaded(image);
         }
         catch { /* битый/относительный URL — best effort, просто пропускаем картинку */ }

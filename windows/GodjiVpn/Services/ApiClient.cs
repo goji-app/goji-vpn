@@ -284,13 +284,11 @@ public sealed class ApiClient
         var sentToken = _tokenStore.AccessToken;
         var response = await SendWithDirectFallbackAsync(requestFactory, ct).ConfigureAwait(false);
 
-        // RequestUri здесь ещё относительный (например "api/subscriptions") — HttpClient
-        // резолвит его в абсолютный только в момент реальной отправки через BaseAddress,
-        // .AbsolutePath на ещё не отправленном относительном Uri бросает
-        // "This operation is not supported for a relative URI." Берём OriginalString — тот же
-        // относительный путь как есть, этого достаточно для проверки префикса.
-        bool isAuthEndpoint;
-        using (var probe = requestFactory()) isAuthEndpoint = probe.RequestUri!.OriginalString.Contains("api/auth/", StringComparison.Ordinal);
+        // RequestUri здесь уже абсолютный (HttpClient резолвит его через BaseAddress при
+        // отправке) — раньше для этой проверки на КАЖДУЮ отправку строили отдельный
+        // «мусорный» запрос через requestFactory(), путь берём из самого ответа.
+        var isAuthEndpoint = response.RequestMessage?.RequestUri?.OriginalString
+            .Contains("api/auth/", StringComparison.Ordinal) == true;
         if (response.StatusCode != HttpStatusCode.Unauthorized || isAuthEndpoint)
             return response;
 

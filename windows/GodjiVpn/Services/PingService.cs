@@ -74,9 +74,19 @@ public sealed class PingService
 
             var sw = Stopwatch.StartNew();
             using var socket = new TcpClient();
-            var connectTask = socket.ConnectAsync(node.Host, node.Port);
-            if (await Task.WhenAny(connectTask, Task.Delay(2000, ct)).ConfigureAwait(false) != connectTask || !socket.Connected)
-                return -1;
+            // Отменяем сам connect по таймауту (linked CTS), а не бросаем его осиротевшим:
+            // раньше Task.Delay(2000) просто «проигрывал гонку», а connectTask доживал сам.
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(2000);
+            try
+            {
+                await socket.ConnectAsync(node.Host, node.Port, timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                return -1; // наш таймаут замера, а не внешняя отмена
+            }
+            if (!socket.Connected) return -1;
             sw.Stop();
             return (int)sw.ElapsedMilliseconds;
         }
@@ -86,6 +96,20 @@ public sealed class PingService
     private static async Task<int> MeasureCoreAsync(VlessNode node, PingMethod method, string probeUrl, CancellationToken ct)
     {
         Directory.CreateDirectory(TempDir);
+        var (result, socksFailed) = await MeasureAttemptAsync(node, method, probeUrl, ct).ConfigureAwait(false);
+        // GetFreeTcpPort и старт xray.exe не атомарны: между ними порт мог занять чужой
+        // процесс (TOCTOU), и ядро просто не поднялось. Одна повторная попытка с новым
+        // портом; обычную недоступность сервера (SOCKS поднялся, ответ не пришёл) повтором
+        // не маскируем — это честный «недоступен».
+        if (!socksFailed) return result;
+        var (retry, _) = await MeasureAttemptAsync(node, method, probeUrl, ct).ConfigureAwait(false);
+        return retry;
+    }
+
+    /// <returns>(задержка в мс или -1; socksFailed — не поднялся именно локальный SOCKS
+    /// xray.exe, т.е. вероятен занятый порт — см. ретрай в MeasureCoreAsync).</returns>
+    private static async Task<(int Result, bool SocksFailed)> MeasureAttemptAsync(VlessNode node, PingMethod method, string probeUrl, CancellationToken ct)
+    {
         var port = GetFreeTcpPort();
         var configPath = Path.Combine(TempDir, $"ping-{Guid.NewGuid():N}.json");
         Process? process = null;
@@ -94,7 +118,7 @@ public sealed class PingService
             File.WriteAllText(configPath, await BuildConfigAsync(node, port).ConfigureAwait(false));
 
             var exePath = Path.Combine(RuntimeDir, "xray.exe");
-            if (!File.Exists(exePath)) return -1;
+            if (!File.Exists(exePath)) return (-1, false);
 
             var psi = new ProcessStartInfo(exePath, $"run -c \"{configPath}\"")
             {
@@ -106,10 +130,18 @@ public sealed class PingService
             };
             psi.Environment["XRAY_LOCATION_ASSET"] = RuntimeDir;
             process = Process.Start(psi);
-            if (process == null) return -1;
+            if (process == null) return (-1, false);
+
+            // Откачиваем вывод: без BeginOutputReadLine перенаправленные пайпы никто не
+            // читает, и xray мог навсегда зависнуть на записи в заполненный пайп (дедлок
+            // дочернего процесса), а замер — фальшиво «недоступен».
+            process.OutputDataReceived += (_, _) => { };
+            process.ErrorDataReceived += (_, _) => { };
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
 
             if (!await WaitForSocksReadyAsync(port, TimeSpan.FromSeconds(4), ct).ConfigureAwait(false))
-                return -1;
+                return (-1, true);
 
             using var handler = new SocketsHttpHandler
             {
@@ -126,12 +158,12 @@ public sealed class PingService
             // generate_204 отвечает 204 No Content на успехе — это ожидаемый "успешный" код,
             // а не ошибка.
             return response.StatusCode is HttpStatusCode.NoContent || response.IsSuccessStatusCode
-                ? (int)sw.ElapsedMilliseconds
-                : -1;
+                ? ((int)sw.ElapsedMilliseconds, false)
+                : (-1, false);
         }
         catch
         {
-            return -1;
+            return (-1, false);
         }
         finally
         {

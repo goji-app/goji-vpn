@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -76,6 +77,18 @@ public sealed partial class LoginViewModel : ObservableObject
             IsVerifySuccess = true;
             await Task.Delay(1300);
             await OnAuthenticatedAsync(token, refreshToken);
+        }
+        catch (HttpRequestException)
+        {
+            // Сетевой сбой — код может быть верным: не очищаем ввод и не называем его неверным.
+            ErrorMessage = "Нет связи, попробуйте ещё раз";
+            IsBusy = false;
+        }
+        catch (TaskCanceledException)
+        {
+            // Таймаут запроса — тот же случай «нет связи», код не очищаем.
+            ErrorMessage = "Нет связи, попробуйте ещё раз";
+            IsBusy = false;
         }
         catch (Exception ex)
         {

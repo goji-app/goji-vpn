@@ -1,4 +1,6 @@
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using GodjiVpn.Models;
@@ -105,18 +107,39 @@ public sealed class CustomNodeStore
         try
         {
             if (!File.Exists(StatePath)) return new List<Record>();
-            return JsonSerializer.Deserialize<List<Record>>(File.ReadAllText(StatePath)) ?? new List<Record>();
+            return JsonSerializer.Deserialize<List<Record>>(ReadStateText()) ?? new List<Record>();
         }
         catch { return new List<Record>(); }
     }
 
     private void Save()
     {
+        try { WriteStateText(JsonSerializer.Serialize(_records)); }
+        catch { /* лучшее усилие — при сбое просто не сохранится до следующего изменения */ }
+    }
+
+    /// <summary>В профилях лежат VLESS-UUID — с этой версии файл шифруется DPAPI
+    /// (CurrentUser), тем же способом, что TokenStore/AccountCache. Файл старой версии
+    /// (открытый текст) читается как есть и сразу переписывается зашифрованно — прозрачная
+    /// миграция без смены формата самих данных.</summary>
+    private static string ReadStateText()
+    {
+        var bytes = File.ReadAllBytes(StatePath);
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(StatePath)!);
-            File.WriteAllText(StatePath, JsonSerializer.Serialize(_records));
+            return Encoding.UTF8.GetString(ProtectedData.Unprotect(bytes, optionalEntropy: null, DataProtectionScope.CurrentUser));
         }
-        catch { /* лучшее усилие — при сбое просто не сохранится до следующего изменения */ }
+        catch (CryptographicException)
+        {
+            var plain = Encoding.UTF8.GetString(bytes);
+            try { WriteStateText(plain); } catch { /* миграция — лучшее усилие */ }
+            return plain;
+        }
+    }
+
+    private static void WriteStateText(string text)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(StatePath)!);
+        File.WriteAllBytes(StatePath, ProtectedData.Protect(Encoding.UTF8.GetBytes(text), optionalEntropy: null, DataProtectionScope.CurrentUser));
     }
 }

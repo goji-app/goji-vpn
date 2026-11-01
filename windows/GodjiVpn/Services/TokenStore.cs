@@ -60,7 +60,12 @@ public sealed class TokenStore
         _cachedToken = null;
         _cachedRefreshToken = null;
         _loaded = true;
-        if (File.Exists(StorePath)) File.Delete(StorePath);
+        // Файл бывает коротко залочен антивирусом/бэкап-агентом — IOException не должен
+        // ронять Clear (его зовёт и HandleSessionExpired): токены в памяти уже забыты,
+        // залоченный файл перезапишется следующим Save.
+        try { if (File.Exists(StorePath)) File.Delete(StorePath); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
         Cleared?.Invoke();
     }
 

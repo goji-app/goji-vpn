@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using GodjiVpn.Services;
@@ -172,5 +173,26 @@ public partial class GlobeHost : UserControl
         return Task.CompletedTask;
     }
 
-    private static string Escape(string s) => s.Replace("\\", "\\\\").Replace("'", "\\'");
+    /// <summary>Экранирование строки для JS-литерала в одинарных кавычках (ExecuteScriptAsync):
+    /// помимо кавычек и обратного слэша — переводы строк и прочие управляющие символы (\n/\r
+    /// и т.п. раньше попадали в литерал как есть и ломали скрипт).</summary>
+    private static string Escape(string s)
+    {
+        var sb = new StringBuilder(s.Length);
+        foreach (var c in s)
+        {
+            switch (c)
+            {
+                case '\\': sb.Append("\\\\"); break;
+                case '\'': sb.Append("\\'"); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\t': sb.Append("\\t"); break;
+                default:
+                    sb.Append(char.IsControl(c) ? ' ' : c);
+                    break;
+            }
+        }
+        return sb.ToString();
+    }
 }

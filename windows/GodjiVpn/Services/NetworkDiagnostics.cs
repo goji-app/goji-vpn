@@ -15,10 +15,12 @@ namespace GodjiVpn.Services;
 /// к адресу физического адаптера (VpnEngine.PhysicalIp: строгая модель хоста Windows отправляет
 /// такой пакет через его интерфейс, мимо TUN — тот же приём, что sendThrough у xray).
 ///  - IP: публичный IP через туннель не должен совпадать с настоящим;
-///  - DNS: edns.ip-api.com выдаёт каждому запросу случайный поддомен и сообщает, какой
-///    резолвер его разрешил. Поддомен разрешаем системным резолвером Windows — ровно тем путём,
-///    что и у обычных приложений. Резолвер у провайдера пользователя (или в его стране при
-///    другой стране выхода) — DNS идёт мимо VPN.
+///  - DNS: случайный поддомен edns.ip-api.com (генерируем сами, как iOS-клиент) разрешается
+///    системным резолвером Windows — ровно тем путём, что и у обычных приложений, — а сам
+///    сервис сообщает, какой резолвер его разрешил. Резолвер у провайдера пользователя (или в
+///    его стране при другой стране выхода) — DNS идёт мимо VPN.
+/// Все внешние запросы — только HTTPS: вердикт «утечек нет» по голому HTTP подделывается
+/// активным MITM на физическом пути.
 /// </summary>
 public sealed class NetworkDiagnostics
 {
@@ -133,43 +135,35 @@ public sealed class NetworkDiagnostics
     {
         try
         {
-            using var doc = JsonDocument.Parse(await client.GetStringAsync("http://ip-api.com/json?fields=status,query,country,isp", ct));
+            // У ip-api.com TLS доступен только с платным ключом — голый HTTP туда позволял
+            // MITM подделать «настоящий IP» (а с ним и вердикт «утечек нет»). ipapi.co —
+            // единый с iOS-клиентом (LeakChecker.swift) запасной HTTPS-источник.
+            using var doc = JsonDocument.Parse(await client.GetStringAsync("https://ipapi.co/json/", ct));
             var root = doc.RootElement;
-            if (Str(root, "status") != "success") return null;
-            var ip = Str(root, "query");
-            return ip == null ? null : new IpInfo(ip, Str(root, "country")?.Replace("The ", ""), Str(root, "isp"));
+            var ip = Str(root, "ip");
+            return ip == null ? null : new IpInfo(ip, Str(root, "country_name")?.Replace("The ", ""), Str(root, "org"));
         }
         catch (Exception ex)
         {
-            VpnEngine.Log($"leak-check: ip-api.com failed — {ex.Message}");
+            VpnEngine.Log($"leak-check: ipapi.co failed — {ex.Message}");
             return null;
         }
     }
 
-    /// <summary>Берём у edns.ip-api.com случайный поддомен (редирект, через туннель), разрешаем
-    /// его системным резолвером и спрашиваем, какой резолвер за ним пришёл. Запасной вариант —
-    /// домен целиком через SOCKS (имя разрешает xray).</summary>
+    /// <summary>Поддомен edns.ip-api.com генерируем сами (как iOS-клиент) и разрешаем его
+    /// системным резолвером Windows — это и есть проверяемый путь; edns-сервер запоминает,
+    /// какой резолвер за ним пришёл, и по HTTPS сообщает, какой именно. Запасной вариант —
+    /// домен целиком через SOCKS (имя разрешает xray внутри туннеля).</summary>
     private static async Task<DnsInfo?> FetchDnsAsync(CancellationToken ct)
     {
         try
         {
-            using var noRedirect = CreateTunnelClient(followRedirects: false);
-            using var response = await noRedirect.GetAsync("http://edns.ip-api.com/json", ct);
-            var host = response.Headers.Location is { } loc
-                ? (loc.IsAbsoluteUri ? loc.Host : null)
-                : null;
-            if (host != null)
-            {
-                var addresses = await Dns.GetHostAddressesAsync(host, AddressFamily.InterNetwork, ct);
-                if (addresses.Length > 0)
-                {
-                    using var tunnel = CreateTunnelClient(followRedirects: false);
-                    using var req = new HttpRequestMessage(HttpMethod.Get, $"http://{addresses[0]}/json");
-                    req.Headers.Host = host;
-                    using var res = await tunnel.SendAsync(req, ct);
-                    if (res.IsSuccessStatusCode && ParseEdns(await res.Content.ReadAsStringAsync(ct)) is { } info) return info;
-                }
-            }
+            var host = $"{Guid.NewGuid().ToString("N")[..24]}.edns.ip-api.com";
+            if ((await Dns.GetHostAddressesAsync(host, AddressFamily.InterNetwork, ct)).Length == 0) return null;
+            // Без прокси: имя резолвит ОС, ответ идёт обычным системным маршрутом (через TUN,
+            // когда туннель поднят), TLS валидируется по настоящему имени хоста.
+            using var systemPath = CreateDirectClient(null);
+            return ParseEdns(await systemPath.GetStringAsync($"https://{host}/json", ct));
         }
         catch (Exception ex)
         {
@@ -178,8 +172,9 @@ public sealed class NetworkDiagnostics
 
         try
         {
+            var host = $"{Guid.NewGuid().ToString("N")[..24]}.edns.ip-api.com";
             using var tunnel = CreateTunnelClient(followRedirects: true);
-            return ParseEdns(await tunnel.GetStringAsync("http://edns.ip-api.com/json", ct));
+            return ParseEdns(await tunnel.GetStringAsync($"https://{host}/json", ct));
         }
         catch (Exception ex)
         {
