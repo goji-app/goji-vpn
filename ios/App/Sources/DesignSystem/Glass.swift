@@ -47,9 +47,13 @@ struct SectionHeader: View {
 
     var body: some View {
         HStack {
+            // Единый стиль заголовков секций («Подключение», «Устройства», «Новости» и т.д.):
+            // капслет, 12 semibold, разрядка 1pt, приглушённый цвет — подпись, а не заголовок.
             Text(title)
-                .font(GojiFont.section())
-                .foregroundStyle(GojiColor.textPrimary)
+                .font(GojiFont.manrope(12, .semibold, relativeTo: .caption))
+                .tracking(1)
+                .textCase(.uppercase)
+                .foregroundStyle(GojiColor.textMuted)
             Spacer()
             trailing
         }
@@ -149,13 +153,17 @@ struct RowLabel: View {
 }
 
 /// Сегментированный переключатель-«пилюля» (периоды, вкладки «Открытые/История» и т.п.):
-/// дорожка surfaceContainerHigh, выбранный сегмент — secondaryContainer.
+/// дорожка surfaceContainerHigh, выбранный сегмент — secondaryContainer. В тёмной теме
+/// дорожка светлее на ступень (outlineVariant) и у выбранного сегмента тонкая обводка —
+/// иначе филлер почти сливается с треком; в светлой теме как было.
 struct PillSegmented<T: Hashable>: View {
     let options: [T]
     @Binding var selection: T
     let label: (T) -> String
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
+        let dark = scheme == .dark
         HStack(spacing: 4) {
             ForEach(options, id: \.self) { option in
                 let selected = option == selection
@@ -169,13 +177,18 @@ struct PillSegmented<T: Hashable>: View {
                         .background(
                             Capsule().fill(selected ? GojiColor.secondaryContainer : .clear)
                         )
+                        .overlay {
+                            if selected && dark {
+                                Capsule().strokeBorder(GojiColor.outline, lineWidth: 1)
+                            }
+                        }
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
         .padding(3)
-        .background(Capsule().fill(GojiColor.chip))
+        .background(Capsule().fill(dark ? GojiColor.outlineVariant : GojiColor.chip))
     }
 }
 

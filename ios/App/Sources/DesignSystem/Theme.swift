@@ -26,7 +26,7 @@ enum GojiColor {
     static let tertiaryContainer = Color(light: 0xFFFFDBCF, dark: 0xFF7B2F12)
     static let onTertiaryContainer = Color(light: 0xFF380D00, dark: 0xFFFFDBCF)
     static let errorContainer = Color(light: 0xFFFFDAD6, dark: 0xFF93000A)
-    static let outline = Color(light: 0xFF6F7977, dark: 0xFF889391)
+    static let outline = Color(light: 0xFF5C6664, dark: 0xFF889391)
     static let outlineVariant = Color(light: 0xFFBEC9C6, dark: 0xFF3F4947)
 
     // ── поля v5 (значения — роли M3) ────────────────────────
@@ -39,7 +39,9 @@ enum GojiColor {
     static let tealTint = primaryContainer
     static let tealTintBorder = primary
 
-    static let terracotta = Color(light: 0xFF9A4524, dark: 0xFFFFB59A)
+    // Терракотовый приглушён на ~10–15% насыщенности (1.0.132): тёплый акцент — график отдачи,
+    // полоски остатка подписки — не должен перетягивать внимание на карточке скорости.
+    static let terracotta = Color(light: 0xFF94553A, dark: 0xFFF2BCA2)
     static let terracottaTint = tertiaryContainer
     static let warning = Color(light: 0xFF8A6100, dark: 0xFFF0BF48)
     static let danger = Color(light: 0xFFBA1A1A, dark: 0xFFFFB4AB)

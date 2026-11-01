@@ -246,7 +246,9 @@ struct ConnectView: View {
                     }
                 }
                 Text(detail)
-                    .font(GojiFont.manrope(11, .medium, relativeTo: .caption2))
+                    // Число задержки — не мельче вторичного текста карточки (заголовок — 12),
+                    // semibold (1.0.132).
+                    .font(GojiFont.manrope(12, .semibold, relativeTo: .caption))
                     .foregroundStyle(GojiColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
@@ -619,8 +621,10 @@ struct PingLabel: View {
         // Пинг меряется через туннель до узла в Европе: обычные значения 300–1800 мс, поэтому пороги
         // 500/1000 мс — одинаково на всех платформах.
         let color: Color = ms < 0 ? GojiColor.danger : (ms < 500 ? GojiColor.teal : (ms < 1000 ? GojiColor.warning : GojiColor.terracotta))
+        // Кегль не мельче вторичного текста строки (город — 12), semibold: число пинга
+        // читается сразу, а не блёклой припиской. Цвета порогов не меняются.
         Text(ms < 0 ? L("servers.unavailable") : L("servers.ping_ms", ms))
-            .font(GojiFont.manrope(12, .bold, relativeTo: .caption).monospacedDigit())
+            .font(GojiFont.manrope(13, .semibold, relativeTo: .caption).monospacedDigit())
             .foregroundStyle(color)
     }
 }

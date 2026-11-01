@@ -170,11 +170,16 @@ struct GlobeView: View {
 
         // Точки «дом» и «узел»
         if let h = project(home.lon * rad, home.lat * rad) {
-            context.fill(Path(ellipseIn: CGRect(x: h.x - 4, y: h.y - 4, width: 8, height: 8)), with: .color(GojiColor.terracotta))
+            // Точка пользователя — приглушённый бирюзовый (primary ~0.6): сплошной оранжевый
+            // читался как «ошибка». Дуга маршрута не меняется.
+            context.fill(Path(ellipseIn: CGRect(x: h.x - 4, y: h.y - 4, width: 8, height: 8)),
+                         with: .color(GojiColor.primary.opacity(0.6)))
         }
         if let n = project(node.lon * rad, node.lat * rad) {
-            let pulse = status == .on ? 1 + 0.35 * sin(time * 3) : 1
-            let r = 10 * pulse
+            // Свечение точки узла — вдвое слабее (1.0.132): радиус ореола 10→5, амплитуда
+            // пульса вдвое меньше. Сам цвет ореола (accentGlow) в «Goji Expressive» прозрачный.
+            let pulse = status == .on ? 1 + 0.18 * sin(time * 3) : 1
+            let r = 5 * pulse
             context.fill(Path(ellipseIn: CGRect(x: n.x - r, y: n.y - r, width: r * 2, height: r * 2)), with: .color(GojiColor.accentGlow))
             context.fill(Path(ellipseIn: CGRect(x: n.x - 5, y: n.y - 5, width: 10, height: 10)), with: .color(GojiColor.teal))
         }

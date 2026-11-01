@@ -146,7 +146,9 @@ struct ServerRow: View {
                         PingLabel(ms: ping)
                     } else {
                         Text(L("servers.check"))
-                            .font(GojiFont.manrope(12, .semibold, relativeTo: .caption))
+                            // Кегль как у числа пинга в этой же колонке (13), чтобы строки
+                            // не «прыгали» между проверкой и результатом.
+                            .font(GojiFont.manrope(13, .semibold, relativeTo: .caption))
                             .foregroundStyle(GojiColor.tealDeep)
                     }
                 }

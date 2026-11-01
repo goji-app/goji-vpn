@@ -114,7 +114,8 @@ struct SubscriptionView: View {
     private var planCard: some View {
         if let sub = store.subscription {
             GlassCard(highlighted: true) {
-                VStack(alignment: .leading, spacing: 10) {
+                // Строки карточки сгруппированы плотнее (1.0.132): раньше растягивались.
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(L("sub.plan"))
@@ -149,9 +150,11 @@ struct SubscriptionView: View {
                             .font(GojiFont.caption())
                             .foregroundStyle(GojiColor.textSecondary)
                     }
+                    // «Не продлевается автоматически» — важное условие, а не серая приписка:
+                    // warning + semibold (1.0.132).
                     Text(L("sub.manage_note"))
-                        .font(GojiFont.caption())
-                        .foregroundStyle(GojiColor.textMuted)
+                        .font(GojiFont.manrope(12, .semibold, relativeTo: .caption))
+                        .foregroundStyle(GojiColor.warning)
                 }
             }
         } else if store.subscriptionLoaded {
@@ -164,11 +167,14 @@ struct SubscriptionView: View {
     // MARK: - Устройства
 
     private func devicesSection(_ sub: SubscriptionInfo) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let limit = sub.effectiveDeviceLimit ?? 0
+        // Лимит устройств достигнут — счётчик «N из M» подсвечен предупреждением (1.0.132).
+        let atLimit = limit > 0 && account.devices.count >= limit
+        return VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: L("devices.title"), trailing: AnyView(
-                Text(L("devices.count", account.devices.count, sub.effectiveDeviceLimit ?? 0))
-                    .font(GojiFont.caption())
-                    .foregroundStyle(GojiColor.textSecondary)
+                Text(L("devices.count", account.devices.count, limit))
+                    .font(GojiFont.manrope(12, atLimit ? .semibold : .medium, relativeTo: .caption))
+                    .foregroundStyle(atLimit ? GojiColor.warning : GojiColor.textSecondary)
             ))
             VStack(spacing: 0) {
                 if let error = account.devicesError, account.devices.isEmpty {
@@ -328,38 +334,84 @@ struct SubscriptionView: View {
     }
 }
 
+/// Новость в списке — компактная строка (1.0.132): заголовок semibold + дата вторичным в один
+/// ряд, остаток текста усечён до двух строк. «Ещё» разворачивает прежний полный вид.
+/// Отдельного поля «заголовок» у рассылки нет — заголовком служит первая строка текста.
 struct NewsCard: View {
     let item: Broadcast
     @State private var expanded = false
     @Environment(\.openURL) private var openURL
 
+    private var lines: [String] {
+        RichText.plain(item.content).components(separatedBy: .newlines).filter { !$0.isEmpty }
+    }
+
     var body: some View {
-        GlassCard(padding: 14) {
-            VStack(alignment: .leading, spacing: 8) {
-                if let date = item.createdAt {
-                    Text(DateParsing.dateTime(date))
-                        .font(GojiFont.caption())
-                        .foregroundStyle(GojiColor.textMuted)
+        GlassCard(padding: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                if expanded {
+                    fullText
+                } else {
+                    compactRow
                 }
-                Text(RichText.attributed(item.content))
-                    .font(GojiFont.body())
-                    .foregroundStyle(GojiColor.textPrimary)
-                    .lineLimit(expanded ? nil : 4)
-                    .tint(GojiColor.tealDeep)
-                Button(expanded ? L("news.collapse") : L("news.read_more")) {
-                    withAnimation { expanded.toggle() }
+                if lines.count > 1 {
+                    Button(expanded ? L("news.collapse") : L("news.read_more")) {
+                        withAnimation { expanded.toggle() }
+                    }
+                    .font(GojiFont.manrope(12, .bold))
+                    .foregroundStyle(GojiColor.tealDeep)
                 }
-                .font(GojiFont.manrope(12, .bold))
-                .foregroundStyle(GojiColor.tealDeep)
                 // Кнопки рассылок — только информационные ссылки; ссылки на оплату в iOS
-                // не показываем (правило 3.1.1).
-                ForEach(item.buttons.filter { !LinkPolicy.isPurchaseLink($0.url) }, id: \.self) { button in
-                    if let url = URL(string: button.url) {
-                        Button(button.text) { openURL(url) }
-                            .buttonStyle(SecondaryButtonStyle())
+                // не показываем (правило 3.1.1). В свёрнутой строке спрятаны за «Ещё».
+                if expanded {
+                    ForEach(item.buttons.filter { !LinkPolicy.isPurchaseLink($0.url) }, id: \.self) { button in
+                        if let url = URL(string: button.url) {
+                            Button(button.text) { openURL(url) }
+                                .buttonStyle(SecondaryButtonStyle())
+                        }
                     }
                 }
             }
+        }
+    }
+
+    /// Свёрнуто: заголовок + дата в одну строку, текст — две строки с усечением.
+    private var compactRow: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(lines.first ?? "")
+                    .font(GojiFont.manrope(13, .semibold))
+                    .foregroundStyle(GojiColor.textPrimary)
+                    .lineLimit(1)
+                Spacer(minLength: 6)
+                if let date = item.createdAt {
+                    Text(DateParsing.dateTime(date))
+                        .font(GojiFont.manrope(10.5, .medium, relativeTo: .caption2))
+                        .foregroundStyle(GojiColor.textMuted)
+                        .lineLimit(1)
+                }
+            }
+            if lines.count > 1 {
+                Text(lines.dropFirst().joined(separator: " "))
+                    .font(GojiFont.manrope(12, .medium, relativeTo: .caption))
+                    .foregroundStyle(GojiColor.textSecondary)
+                    .lineLimit(2)
+            }
+        }
+    }
+
+    /// Развёрнуто — прежний вид: дата и полный текст с разметкой.
+    private var fullText: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let date = item.createdAt {
+                Text(DateParsing.dateTime(date))
+                    .font(GojiFont.caption())
+                    .foregroundStyle(GojiColor.textMuted)
+            }
+            Text(RichText.attributed(item.content))
+                .font(GojiFont.body())
+                .foregroundStyle(GojiColor.textPrimary)
+                .tint(GojiColor.tealDeep)
         }
     }
 }
