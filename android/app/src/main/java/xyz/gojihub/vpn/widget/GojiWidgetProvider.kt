@@ -13,7 +13,6 @@ import androidx.core.content.ContextCompat
 import xyz.gojihub.vpn.MainActivity
 import xyz.gojihub.vpn.R
 import xyz.gojihub.vpn.i18n.Loc
-import xyz.gojihub.vpn.subscription.NodeListCache
 import xyz.gojihub.vpn.util.stripLeadingFlag
 import xyz.gojihub.vpn.vpn.GodjiVpnService
 
@@ -75,8 +74,11 @@ class GojiWidgetProvider : AppWidgetProvider() {
 
         private fun buildCompactViews(context: Context): RemoteViews {
             val running = GodjiVpnService.isRunning.value
-            val cached = NodeListCache.load(context)
-            val selected = cached?.nodes?.firstOrNull { it.id == cached.selectedId }
+            // Узлы берём из синглтона-репозитория (в памяти), а не из NodeListCache:
+            // load() каждый раз расшифровывает EncryptedFile на главном потоке — а этот
+            // метод зовётся из SubscriptionRepository.select() на каждый клик по серверу
+            // и из refresh() сервиса. Репозиторий сам читает диск один раз при создании.
+            val selected = context.widgetEntryPoint().subscriptionRepository().selectedNode()
             val nodeLabel = selected?.let { n ->
                 val flag = xyz.gojihub.vpn.geo.CountryGeoLookup.nodeFlag(n.name, n.geo)
                 "$flag  " + (n.geo?.displayCityCountry(Loc.lang) ?: stripLeadingFlag(n.name))

@@ -43,10 +43,14 @@ class GodjiVpnService : VpnService() {
         val connectedSinceMillis = MutableStateFlow<Long?>(null)
 
         fun tunnelAwareProxySelector(): ProxySelector = object : ProxySelector() {
-            override fun select(uri: URI?): List<Proxy> = listOf(
-                if (isRunning.value) Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", SOCKS_PORT))
-                else Proxy.NO_PROXY
-            )
+            // Как в настоящей реализации: пока туннель поднят — сначала SOCKS, затем прямое
+            // подключение запасным (OkHttp сам перейдёт к следующему прокси из списка),
+            // иначе API кабинета стало бы недоступно, если сам узел не видит gojihub.xyz.
+            override fun select(uri: URI?): List<Proxy> =
+                if (isRunning.value) listOf(
+                    Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", SOCKS_PORT)),
+                    Proxy.NO_PROXY
+                ) else listOf(Proxy.NO_PROXY)
             override fun connectFailed(uri: URI?, sa: SocketAddress?, ioe: IOException?) {}
         }
     }

@@ -87,18 +87,26 @@ object AppUpdateDownloader {
             AppLogger.e(context, LogCategory.MAIN, TAG, "installDownloaded: файл не найден — $file")
             return
         }
-        if (expectedSha256 != null) {
-            val actual = sha256Of(file)
-            if (actual == null || !actual.equals(expectedSha256.trim(), ignoreCase = true)) {
-                // Не совпало — это НЕ наш файл (скомпрометированное зеркало/битая закачка):
-                // чужой APK предлагать к установке нельзя, удаляем и останавливаемся.
-                Log.e(TAG, "installDownloaded: sha256 не совпал (ожидалось $expectedSha256, получено $actual) — файл удалён")
-                AppLogger.e(context, LogCategory.MAIN, TAG, "Обновление $version не прошло проверку целостности — установка отменена")
-                file.delete()
-                return
-            }
-            Log.d(TAG, "installDownloaded: sha256 совпал")
+        // Без контрольной суммы установку не запускаем вовсе (раньше null тихо пропускал
+        // проверку): битую/подменённую закачку тогда поймала бы только системная проверка
+        // подписи установщиком. Оба наших источника — зеркало latest.json и digest у
+        // GitHub-asset — отдают sha256; null означает, что источник его не отдал.
+        if (expectedSha256 == null) {
+            Log.e(TAG, "installDownloaded: нет контрольной суммы для $version — установка отменена, файл удалён")
+            AppLogger.e(context, LogCategory.MAIN, TAG, "Обновление $version не прошло проверку целостности (нет sha256) — установка отменена")
+            file.delete()
+            return
         }
+        val actual = sha256Of(file)
+        if (actual == null || !actual.equals(expectedSha256.trim(), ignoreCase = true)) {
+            // Не совпало — это НЕ наш файл (скомпрометированное зеркало/битая закачка):
+            // чужой APK предлагать к установке нельзя, удаляем и останавливаемся.
+            Log.e(TAG, "installDownloaded: sha256 не совпал (ожидалось $expectedSha256, получено $actual) — файл удалён")
+            AppLogger.e(context, LogCategory.MAIN, TAG, "Обновление $version не прошло проверку целостности — установка отменена")
+            file.delete()
+            return
+        }
+        Log.d(TAG, "installDownloaded: sha256 совпал")
         Log.d(TAG, "installDownloaded: запускаю установщик для $file (${file.length()} байт)")
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val intent = Intent(Intent.ACTION_VIEW).apply {

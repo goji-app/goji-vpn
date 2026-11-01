@@ -36,8 +36,10 @@ private class GojiWidgetItemFactory(private val context: Context) : RemoteViewsS
     override fun onDestroy() {}
     override fun getCount(): Int = nodes.size
     override fun getViewTypeCount(): Int = 1
+    // Позиция — не стабильный id узла: при смене состава списка "стабильные" id указывали
+    // на другие строки; ListView и без этого корректно перезавязывает строки по onDataSetChanged.
     override fun getItemId(position: Int): Long = position.toLong()
-    override fun hasStableIds(): Boolean = true
+    override fun hasStableIds(): Boolean = false
     override fun getLoadingView(): RemoteViews? = null
 
     override fun getViewAt(position: Int): RemoteViews {

@@ -146,7 +146,7 @@ class PlansViewModel @Inject constructor(
     init {
         // 1) Сразу — всё, что уже сохранено на телефоне: страница не бывает пустой, даже если
         //    сеть пропала или VPN как раз переподключается.
-        showCached()
+        viewModelScope.launch { showCached() }
         // 2) Подписка и новости — живые потоки репозитория (их обновляют воркер, «Главная» и
         //    кнопка «обновить»), страница просто следует за ними.
         viewModelScope.launch { subscriptionRepository.subscription.collect { applySubscription(it) } }
@@ -155,9 +155,14 @@ class PlansViewModel @Inject constructor(
         viewModelScope.launch { fetch(force = false) }
     }
 
-    private fun showCached() {
-        accountCache.load<xyz.gojihub.vpn.network.models.ReferralsResponse>(CacheKey.REFERRALS)?.let { savedAt[CacheKey.REFERRALS] = it.savedAt; applyReferrals(it.value) }
-        accountCache.load<List<DeviceDto>>(CacheKey.DEVICES)?.let { savedAt[CacheKey.DEVICES] = it.savedAt; applyDevices(it.value) }
+    private suspend fun showCached() {
+        // Расшифровка EncryptedFile — диск и AES-GCM, не для главного потока.
+        val (referrals, devices) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            accountCache.load<xyz.gojihub.vpn.network.models.ReferralsResponse>(CacheKey.REFERRALS) to
+                accountCache.load<List<DeviceDto>>(CacheKey.DEVICES)
+        }
+        referrals?.let { savedAt[CacheKey.REFERRALS] = it.savedAt; applyReferrals(it.value) }
+        devices?.let { savedAt[CacheKey.DEVICES] = it.savedAt; applyDevices(it.value) }
     }
 
     private fun stale(key: xyz.gojihub.vpn.subscription.AccountCache.Key) =
@@ -261,7 +266,9 @@ class PlansViewModel @Inject constructor(
                         if (it.hwid == hwid) it.copy(name = trimmed, busy = false) else it
                     })
                     rawDevices = rawDevices.map { if (it.hwid == hwid) it.copy(readableName = trimmed) else it }
-                    accountCache.save(xyz.gojihub.vpn.subscription.AccountCache.Key.DEVICES, rawDevices)
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        accountCache.save(xyz.gojihub.vpn.subscription.AccountCache.Key.DEVICES, rawDevices)
+                    }
                 }
                 .onFailure { setDeviceBusy(hwid, false) }
         }
@@ -282,7 +289,9 @@ class PlansViewModel @Inject constructor(
                 .onSuccess {
                     _state.value = _state.value.copy(devices = _state.value.devices.filterNot { it.hwid == hwid })
                     rawDevices = rawDevices.filterNot { it.hwid == hwid }
-                    accountCache.save(xyz.gojihub.vpn.subscription.AccountCache.Key.DEVICES, rawDevices)
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        accountCache.save(xyz.gojihub.vpn.subscription.AccountCache.Key.DEVICES, rawDevices)
+                    }
                 }
                 .onFailure { setDeviceBusy(hwid, false) }
         }

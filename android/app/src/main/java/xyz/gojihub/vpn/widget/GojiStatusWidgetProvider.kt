@@ -8,7 +8,6 @@ import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
 import xyz.gojihub.vpn.R
 import xyz.gojihub.vpn.i18n.Loc
-import xyz.gojihub.vpn.subscription.NodeListCache
 import xyz.gojihub.vpn.util.stripLeadingFlag
 import xyz.gojihub.vpn.vpn.GodjiVpnService
 
@@ -37,8 +36,8 @@ class GojiStatusWidgetProvider : AppWidgetProvider() {
 
         private fun build(context: Context): RemoteViews {
             val running = GodjiVpnService.isRunning.value
-            val cached = NodeListCache.load(context)
-            val selected = cached?.nodes?.firstOrNull { it.id == cached.selectedId }
+            // Как в GojiWidgetProvider: из репозитория в памяти, без расшифровки кэша на main.
+            val selected = context.widgetEntryPoint().subscriptionRepository().selectedNode()
             val node = selected?.let { it.geo?.displayCityCountry(Loc.lang) ?: stripLeadingFlag(it.name) } ?: Loc.s.widgetNotSelected
             fun color(id: Int) = ContextCompat.getColor(context, id)
             val primary = color(if (running) R.color.widget_on_text else R.color.widget_text_primary)

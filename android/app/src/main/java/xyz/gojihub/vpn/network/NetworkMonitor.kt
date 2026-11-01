@@ -23,7 +23,7 @@ enum class NetState { WIFI, CELLULAR, JAMMED }
  * как синглтон — отдельного stop() не нужно.
  */
 @Singleton
-class NetworkMonitor @Inject constructor(@ApplicationContext context: Context) {
+class NetworkMonitor @Inject constructor(@ApplicationContext private val context: Context) {
 
     private val _state = MutableStateFlow(NetState.CELLULAR)
     val state: StateFlow<NetState> = _state.asStateFlow()
@@ -49,8 +49,16 @@ class NetworkMonitor @Inject constructor(@ApplicationContext context: Context) {
         }
 
         override fun onLost(network: Network) {
-            hasWifi = false
-            hasCellular = false
+            // Потеря одной сети — не "нет сетей вообще": при миграции Wi-Fi↔LTE раньше оба
+            // флага сбрасывались вслепую и состояние на секунду мигало JAMMED ("глушат") —
+            // дебаунсы в потребителях это компенсировали, но сам state наружу отдавал ложное
+            // значение. Перечитываем возможности текущей активной сети.
+            val caps = runCatching {
+                val cm = context.getSystemService(ConnectivityManager::class.java)
+                cm?.getNetworkCapabilities(cm.activeNetwork)
+            }.getOrNull()
+            hasWifi = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+            hasCellular = caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
             recompute()
         }
     }

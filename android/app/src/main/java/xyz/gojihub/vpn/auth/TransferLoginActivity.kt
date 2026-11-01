@@ -23,6 +23,8 @@ class TransferLoginActivity : ComponentActivity() {
 
     @Inject lateinit var authRepository: AuthRepository
 
+    private var confirmDialog: AlertDialog? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val raw = intent?.dataString
@@ -34,13 +36,21 @@ class TransferLoginActivity : ComponentActivity() {
         // Прозрачная активити без собственной темы — иначе диалог рисуется в стиле Holo.
         val dialogTheme = if (xyz.gojihub.vpn.ui.theme.GodjiColors.isDark) android.R.style.Theme_DeviceDefault_Dialog_Alert
             else android.R.style.Theme_DeviceDefault_Light_Dialog_Alert
-        AlertDialog.Builder(this, dialogTheme)
+        confirmDialog = AlertDialog.Builder(this, dialogTheme)
             .setTitle(Loc.f.transferConfirmTitle)
             .setMessage(message)
             .setPositiveButton(Loc.f.transferConfirmYes) { _, _ -> login(raw) }
             .setNegativeButton(Loc.f.transferCancel) { _, _ -> finish() }
             .setOnCancelListener { finish() }
-            .show()
+            .create()
+            .also { it.show() }
+    }
+
+    override fun onDestroy() {
+        // Диалог привязан к окну активити: без явного dismiss пересоздание (смена темы,
+        // kill/restore) оставало window leak в logcat.
+        confirmDialog?.dismiss()
+        super.onDestroy()
     }
 
     private fun login(raw: String) {

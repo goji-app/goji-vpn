@@ -54,7 +54,7 @@ object AppUpdateChecker {
         val apkPath = apkFile?.optString("path")
         if (version.isBlank() || apkPath.isNullOrBlank() || apkPath.contains("..")) return@fetchJson null
         // sha256 из манифеста — единственная проверка целостности APK перед установкой
-        // (см. AppUpdateDownloader.installDownloaded); у GitHub-фолбэка её нет.
+        // (см. AppUpdateDownloader.installDownloaded — без неё установка не запускается).
         val sha256 = apkFile?.optString("sha256")?.takeIf { it.isNotBlank() }
         UpdateInfo(version = version, changelog = android.optString("notes"), apkUrl = "$site/${apkPath.trimStart('/')}", sha256 = sha256)
     }
@@ -63,15 +63,23 @@ object AppUpdateChecker {
     private fun fetchFromGitHub(): UpdateInfo? = fetchJson(RELEASES_URL, accept = "application/vnd.github+json") { json ->
         val version = json.optString("tag_name").removePrefix("v")
         val assets = json.optJSONArray("assets") ?: return@fetchJson null
-        val apkUrl = (0 until assets.length())
+        val apkAsset = (0 until assets.length())
             .mapNotNull { assets.optJSONObject(it) }
             .firstOrNull { it.optString("name").endsWith(".apk", ignoreCase = true) }
-            ?.optString("browser_download_url")
-        if (version.isBlank() || apkUrl.isNullOrBlank()) return@fetchJson null
+            ?: return@fetchJson null
+        val apkUrl = apkAsset.optString("browser_download_url")
+        if (version.isBlank() || apkUrl.isBlank()) return@fetchJson null
+        // GitHub API отдаёт у asset контрольную сумму в digest формата "sha256:<hex>" —
+        // раньше GitHub-путь отдавал sha256=null, и проверка целостности молча
+        // пропускалась (см. AppUpdateDownloader.installDownloaded).
+        val sha256 = apkAsset.optString("digest")
+            .removePrefix("sha256:")
+            .takeIf { it.length == 64 }
         UpdateInfo(
             version = version,
             changelog = json.optString("body").ifBlank { json.optString("name") },
-            apkUrl = apkUrl
+            apkUrl = apkUrl,
+            sha256 = sha256
         )
     }
 

@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -66,13 +67,22 @@ class PingRepository @Inject constructor(
     fun pingOne(id: String) {
         scope.launch {
             _checkingId.value = id
-            val node = subscriptionRepository.nodes.value.firstOrNull { it.id == id }
-            if (node != null) {
-                val method = settingsRepository.pingMethodNow()
-                val url = settingsRepository.pingTestUrlNow()
-                _pings.value = _pings.value + (node.id to measureOne(node, method, url))
+            try {
+                val node = subscriptionRepository.nodes.value.firstOrNull { it.id == id }
+                if (node != null) {
+                    val method = settingsRepository.pingMethodNow()
+                    val url = settingsRepository.pingTestUrlNow()
+                    val ms = measureOne(node, method, url)
+                    // update{} вместо "_pings.value = _pings.value + ..." — read-modify-write
+                    // на MutableStateFlow из нескольких потоков терял обновления, если параллельно
+                    // шла полная проверка (pingAllNodes) со своей записью всей карты целиком.
+                    _pings.update { it + (node.id to ms) }
+                }
+            } finally {
+                // Сбрасываем только "свой" индикатор: два параллельных pingOne раньше
+                // очищали флаг друг друга первым же завершившимся.
+                if (_checkingId.value == id) _checkingId.value = null
             }
-            _checkingId.value = null
         }
     }
 
@@ -99,11 +109,10 @@ class PingRepository @Inject constructor(
     }
 
     suspend fun pingAllInternal() {
-        // Guard — без него авто-пинг при каждом заходе на вкладку "Серверы" (см. ServersScreen)
-        // мог бы запускать параллельную проверку поверх уже идущей (например, если пользователь
-        // быстро туда-обратно переключает вкладки), удваивая нагрузку на libXray без пользы.
-        if (_checkingAll.value) return
-        _checkingAll.value = true
+        // compareAndSet вместо check-then-set: два одновременных автозапуска (открытие
+        // приложения + заход на "Серверы") раньше оба проходили проверку и поднимали
+        // двойную полную проверку.
+        if (!_checkingAll.compareAndSet(false, true)) return
         lastFullPingAt = System.currentTimeMillis()
         // finally: прерванная проверка (ушли с экрана — отменилась корутина) раньше оставляла
         // флаг поднятым — индикатор крутился без конца, а новые проверки не запускались.

@@ -64,6 +64,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val verifyEmail = intent?.getStringExtra(EXTRA_VERIFY_EMAIL)?.takeIf { !authRepository.isLoggedIn() }
+        // Снимаем extra сразу: при пересоздании Activity (восстановление процесса) intent
+        // приходит повторно, и LaunchedEffect заново публиковал экран ввода кода поверх
+        // восстановленного состояния.
+        intent?.removeExtra(EXTRA_VERIFY_EMAIL)
         // Новое окно после сбоя (savedInstanceState == null) — не поворот экрана и т.п.
         val crashReport = if (savedInstanceState == null) xyz.gojihub.vpn.util.CrashReporter.takePendingReport(this) else null
         setContent {
@@ -136,6 +140,15 @@ fun GodjiApp(startLoggedIn: Boolean, authRepository: AuthRepository, verifyEmail
     }
 
     val navController = rememberNavController()
+    // Решение о стартовом экране — один раз на композицию: иначе при каждой рекомпозиции
+    // заново синхронно читались SharedPreferences (Onboarding.isSeen).
+    val startDestination = remember(view.context) {
+        when {
+            startLoggedIn -> GodjiDestinations.CONNECT
+            !xyz.gojihub.vpn.ui.login.Onboarding.isSeen(view.context) -> GodjiDestinations.ONBOARDING
+            else -> GodjiDestinations.LOGIN
+        }
+    }
     val tabs = listOf(
         GlassTab(GodjiDestinations.CONNECT, Loc.s.tabHome, GojiTabIcons.Home, GojiTabIcons.HomeFilled),
         GlassTab(GodjiDestinations.SERVERS, Loc.s.tabServers, GojiTabIcons.Servers, GojiTabIcons.ServersFilled),
@@ -164,11 +177,7 @@ fun GodjiApp(startLoggedIn: Boolean, authRepository: AuthRepository, verifyEmail
     GlassBackdrop {
         NavHost(
             navController = navController,
-            startDestination = when {
-                startLoggedIn -> GodjiDestinations.CONNECT
-                !xyz.gojihub.vpn.ui.login.Onboarding.isSeen(view.context) -> GodjiDestinations.ONBOARDING
-                else -> GodjiDestinations.LOGIN
-            },
+            startDestination = startDestination,
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.systemBars)

@@ -36,6 +36,10 @@ class IsolatedXrayInvoker @Inject constructor(
     @Volatile private var service: Messenger? = null
     @Volatile private var connected = CompletableDeferred<Messenger>()
     @Volatile private var binding = false
+    // ensureBound/unbindIfIdle зовутся из разных потоков (Dispatchers.IO у PingRepository):
+    // без лока два потока одновременно проходили "if (!binding)" и дважды звали bindService
+    // с одним connection — рассинхрон bind/unbind.
+    private val bindLock = Any()
     private val idleUnbind = Runnable { unbindIfIdle() }
 
     private val replyMessenger = Messenger(Handler(Looper.getMainLooper()) { msg ->
@@ -91,14 +95,16 @@ class IsolatedXrayInvoker @Inject constructor(
     }
 
     private fun unbindIfIdle() {
-        if (pending.isNotEmpty() || !binding) return
-        runCatching { context.unbindService(connection) }
-        binding = false
-        service = null
-        connected = CompletableDeferred()
+        synchronized(bindLock) {
+            if (pending.isNotEmpty() || !binding) return
+            runCatching { context.unbindService(connection) }
+            binding = false
+            service = null
+            connected = CompletableDeferred()
+        }
     }
 
-    private fun ensureBound(): CompletableDeferred<Messenger> {
+    private fun ensureBound(): CompletableDeferred<Messenger> = synchronized(bindLock) {
         service?.let { return CompletableDeferred(it) }
         val waiter = connected
         if (!binding) {
@@ -114,7 +120,7 @@ class IsolatedXrayInvoker @Inject constructor(
                 }
             }
         }
-        return waiter
+        waiter
     }
 
     private fun failPending(reason: String) {

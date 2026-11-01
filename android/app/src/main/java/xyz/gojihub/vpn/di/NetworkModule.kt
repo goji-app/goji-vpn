@@ -166,10 +166,14 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(authInterceptor: Interceptor, tokenAuthenticator: Authenticator): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            // BODY — удобно для отладки, но логирует токены в plaintext. Не забудьте
-            // переключить на NONE/BASIC в релизной сборке.
+            // BODY — удобно для отладки, но логирует заголовки в plaintext. Не забудьте
+            // переключить на NONE/BASIC в релизной сборке. Токены (Authorization, Cookie
+            // refresh-запроса) вырезаем даже в DEBUG — logcat читается с консоли ADB
+            // и другими приложениями на рутованных прошивках.
             level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
                     else HttpLoggingInterceptor.Level.NONE
+            redactHeader("Authorization")
+            redactHeader("Cookie")
         }
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
