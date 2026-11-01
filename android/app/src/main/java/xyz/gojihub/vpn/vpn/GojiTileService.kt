@@ -16,9 +16,9 @@ import xyz.gojihub.vpn.util.stripLeadingFlag
 import xyz.gojihub.vpn.widget.widgetEntryPoint
 
 /**
- * Плитка "Goji VPN" в шторке быстрых настроек: одно касание — подключиться к выбранному узлу
- * или отключиться. Если системное разрешение на VPN ещё не выдано (или Android не дал поднять
- * сервис из фона) — открывает приложение, где "Включить" корректно запросит всё сам.
+ * Плитка "Goji VPN" в шторке быстрых настроек: показывает состояние туннеля (вкл/выкл,
+ * узел), а нажатие всегда открывает приложение — там "Включить" корректно запросит
+ * разрешение и подберёт узел, без ограничений Android на фоновый старт из шторки.
  *
  * Состояние плитки обновляется и при открытии шторки (onStartListening), и сразу при смене
  * состояния туннеля — VpnStateObserver зовёт [requestUpdate].
@@ -32,18 +32,7 @@ class GojiTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val busy = GodjiVpnService.isRunning.value || GodjiVpnService.isConnecting.value
-        if (busy) {
-            VpnLauncher.disconnect(this)
-        } else {
-            val node = widgetEntryPoint().subscriptionRepository().selectedNode()
-            val started = node != null && VpnLauncher.hasVpnPermission(this) && VpnLauncher.connect(this, node)
-            if (!started) {
-                openApp()
-                return
-            }
-        }
-        render()
+        openApp()
     }
 
     private fun render() {
