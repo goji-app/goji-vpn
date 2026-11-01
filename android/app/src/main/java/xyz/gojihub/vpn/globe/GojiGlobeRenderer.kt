@@ -37,13 +37,15 @@ data class GlobeTheme(
             ocean = hex(0x0a201d), oceanOp = 0.9f,
             land = hex(0x2f6f66), landOp = 0.75f,
             grid = hex(0x00d4c4), gridOp = 0.07f,
-            home = hex(0x8b7cf6), hi = hex(0x00e7d4), arc = hex(0x00e7d4), atmo = hex(0x00d4c4), dot = hex(0x4a625d)
+            // Точка пользователя — приглушённый primary (рисуется с альфой ~0.6): прежние
+            // фиолетовый/оранжевый читались как «ошибка», а не как «ты здесь».
+            home = hex(0x80d5ca), hi = hex(0x00e7d4), arc = hex(0x00e7d4), atmo = hex(0x00d4c4), dot = hex(0x4a625d)
         )
         val Light = GlobeTheme(
             ocean = hex(0xe7e0cf), oceanOp = 1f,
             land = hex(0x0f4d45), landOp = 0.55f,
             grid = hex(0x0f4d45), gridOp = 0.06f,
-            home = hex(0xd9714b), hi = hex(0x00897e), arc = hex(0xd9714b), atmo = hex(0x00a79b), dot = hex(0xa9a08a)
+            home = hex(0x006a62), hi = hex(0x00897e), arc = hex(0xd9714b), atmo = hex(0x00a79b), dot = hex(0xa9a08a)
         )
         private fun hex(v: Int) = floatArrayOf(
             ((v shr 16) and 0xFF) / 255f, ((v shr 8) and 0xFF) / 255f, (v and 0xFF) / 255f
@@ -341,7 +343,8 @@ class GojiGlobeRenderer(private val context: Context, initialTheme: GlobeTheme =
 
         // ── непрозрачные объекты (three.js рисует их первыми) ──
         if (showMarker) {
-            sphereAt(homePos, 0.015f, th.home, 1f)
+            // Альфа ~0.6 — точка пользователя остаётся заметной, но нейтральной (см. GlobeTheme.home).
+            sphereAt(homePos, 0.015f, th.home, 0.6f)
             sphereAt(nodePos, 0.02f, WHITE, 1f)
         }
         for (sf in satFrames) drawMesh(cubeVbo, GLES20.GL_TRIANGLES, world(sf.body), SAT_BODY, 1f)
@@ -350,11 +353,12 @@ class GojiGlobeRenderer(private val context: Context, initialTheme: GlobeTheme =
         val items = ArrayList<TransparentItem>()
         if (showMarker) {
             val z = modelZ(nodePos)
-            val haloA = (if (on) 0.42f else 0.25f) + sin(t * 2.4f) * 0.08f
-            items += TransparentItem(z) { sphereAt(nodePos, 0.036f, th.hi, haloA) }
+            // Свечение узла ужато вдвое (радиус и альфа): прежнее заливало соседние области.
+            val haloA = (if (on) 0.21f else 0.13f) + sin(t * 2.4f) * 0.04f
+            items += TransparentItem(z) { sphereAt(nodePos, 0.018f, th.hi, haloA) }
             for (i in 0 until 2) {
                 val p = ((t * 0.55f) + i * 0.5f) % 1f
-                val ringA = (if (on) 0.75f else 0.5f) * (1f - p)
+                val ringA = (if (on) 0.38f else 0.25f) * (1f - p)
                 items += TransparentItem(z) { annulusAt(nodePos, 0.6f + p * 1.9f, th.hi, ringA) }
             }
         }

@@ -39,7 +39,7 @@ object GodjiColors {
     var TertiaryContainer by mutableStateOf(Color(0xFFFFDBCF))
     var OnTertiaryContainer by mutableStateOf(Color(0xFF380D00))
     var ErrorContainer by mutableStateOf(Color(0xFFFFDAD6))
-    var Outline by mutableStateOf(Color(0xFF6F7977))
+    var Outline by mutableStateOf(Color(0xFF5C6664))
     var OutlineVariant by mutableStateOf(Color(0xFFBEC9C6))
 
     // ── поля v5 (значения — роли M3) ─────────────────────────
@@ -52,7 +52,7 @@ object GodjiColors {
     var InkShadow by mutableStateOf(Color.Transparent)
     var TextPrimary by mutableStateOf(Color(0xFF161D1C))
     var TextSecondary by mutableStateOf(Color(0xFF3F4947))
-    var TextMuted by mutableStateOf(Color(0xFF6F7977))
+    var TextMuted by mutableStateOf(Color(0xFF5C6664))
 
     var Teal by mutableStateOf(Color(0xFF006A62))             // primary
     var TealBright by mutableStateOf(Color(0xFF006A62))
@@ -73,7 +73,7 @@ object GodjiColors {
 
     var CardBorder by mutableStateOf(Color.Transparent)       // у тональных карточек нет обводки
     var CardBorderStrong by mutableStateOf(Color.Transparent)
-    var ButtonBorder by mutableStateOf(Color(0xFF6F7977))     // outline (поля ввода, outlined-кнопки)
+    var ButtonBorder by mutableStateOf(Color(0xFF5C6664))     // outline (поля ввода, outlined-кнопки)
     var Chip by mutableStateOf(Color(0xFFE3EAE7))             // surfaceContainerHigh
     var TrackBg by mutableStateOf(Color(0xFFDDE4E1))          // surfaceContainerHighest
 
@@ -145,7 +145,7 @@ object GodjiColors {
             surface = Color(0xFFF4FBF8), cLow = Color(0xFFEEF5F2), c = Color(0xFFE8EFEC),
             cHigh = Color(0xFFE3EAE7), cHighest = Color(0xFFDDE4E1),
             onSurface = Color(0xFF161D1C), onSurfaceVariant = Color(0xFF3F4947),
-            outline = Color(0xFF6F7977), outlineVariant = Color(0xFFBEC9C6),
+            outline = Color(0xFF5C6664), outlineVariant = Color(0xFFBEC9C6),
             primary = Color(0xFF006A62), onPrimary = Color(0xFFFFFFFF),
             primaryC = Color(0xFF9DF2E6), onPrimaryC = Color(0xFF00201D),
             secondaryC = Color(0xFFCCE8E3), onSecondaryC = Color(0xFF051F1C),

@@ -36,6 +36,8 @@ import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.NorthEast
 import androidx.compose.material.icons.filled.QrCode2
 import xyz.gojihub.vpn.ui.util.QrDialog
+import xyz.gojihub.vpn.ui.util.RichBlock
+import xyz.gojihub.vpn.ui.util.parseRichContent
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -229,17 +231,22 @@ private fun SubscriptionCard(state: PlansUiState) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             DaysRing(state.daysLeft, state.daysTotal)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    buildAnnotatedString {
-                        append(Loc.s.plansYourPlanPrefix)
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = GodjiColors.TextPrimary)) { append(state.planName) }
-                    },
-                    color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 13.sp
-                )
-                Text(Loc.s.plansUntil(state.expiryLabel), color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.5.sp)
+            // Тариф и статус — в одну строку; срок окончания — сразу под ними, акцентом
+            // (Primary, semibold): раньше был самой блёклой строкой карточки.
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        buildAnnotatedString {
+                            append(Loc.s.plansYourPlanPrefix)
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = GodjiColors.TextPrimary)) { append(state.planName) }
+                        },
+                        color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 13.sp,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (state.subscriptionId != null && state.daysLeft > 0) ActiveBadge(label = Loc.s.plansActive)
+                }
+                Text(Loc.s.plansUntil(state.expiryLabel), color = GodjiColors.TealDeep, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp)
             }
-            if (state.subscriptionId != null && state.daysLeft > 0) ActiveBadge(label = Loc.s.plansActive)
         }
         // Только в сборке site (сайт загрузки / GitHub): в Google Play вести к оплате мимо
         // Google Play Billing нельзя (см. app/build.gradle.kts).
@@ -265,7 +272,7 @@ private fun SubscriptionCard(state: PlansUiState) {
     }
 }
 
-/** Подпись секции ("НОВОСТИ", "ПРИГЛАСИ ДРУЗЕЙ"): 11sp, трекинг .06em, padding 8/8/0. */
+/** Подпись секции ("НОВОСТИ", "ПРИГЛАСИ ДРУЗЕЙ"): 11sp semibold, трекинг ~1sp, TextMuted. */
 @Composable
 private fun SectionLabel(text: String) {
     Box(Modifier.padding(start = 8.dp, top = 8.dp, end = 8.dp)) { SectionLabelText(text) }
@@ -273,7 +280,12 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun SectionLabelText(text: String) {
-    Text(text.uppercase(), color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, letterSpacing = 0.66.sp)
+    Text(text.uppercase(), color = GodjiColors.TextMuted, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, letterSpacing = 1.sp)
+}
+
+@Composable
+private fun SectionLabelText(text: AnnotatedString) {
+    Text(text, color = GodjiColors.TextMuted, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, letterSpacing = 1.sp)
 }
 
 @Composable
@@ -291,31 +303,58 @@ private fun PagerCircle(glyph: String, enabled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Новость: padding 14, радиус 24, gap 7 — дата сверху, текст, кнопка-чип под ним. */
+/** Новость — компактная строка вместо крупной карточки: заголовок semibold + дата вторичным
+ *  в одну строку, краткий текст усечён в одну строку. Тап разворачивает полный текст
+ *  («Ещё» у списка сохраняется) вместе с кнопками рассылки. */
 @Composable
 private fun NewsCard(item: NewsUi) {
     val context = LocalContext.current
+    var expanded by remember(item.id) { mutableStateOf(false) }
+    // Первые два текстовых блока — заголовок и краткое содержание; всё остальное — после тапа.
+    val texts = remember(item.rawContent) {
+        parseRichContent(item.rawContent).blocks.filterIsInstance<RichBlock.TextBlock>().map { it.parsed.annotated.text }
+    }
+    val title = texts.firstOrNull()
+    val preview = texts.getOrNull(1) ?: title
     Column(
         Modifier
             .fillMaxWidth()
             .godjiCard(RoundedCornerShape(24.dp))
-            .padding(horizontal = 14.dp, vertical = 11.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .clickable { expanded = !expanded }
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        Text(item.dateLabel, color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 10.5.sp)
-        RichContent(raw = item.rawContent, collapsedBlocks = 6, readMoreLabel = Loc.s.plansNewsReadMore)
-        item.buttons.forEach { btn ->
-            Box(
-                Modifier
-                    .height(32.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(GodjiColors.Chip)
-                    .border(1.dp, GodjiColors.CardBorder, RoundedCornerShape(50))
-                    .clickable { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(btn.url))) }
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(btn.text, color = GodjiColors.TealDeep, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (title != null) {
+                Text(
+                    title, color = GodjiColors.TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
+                )
+            }
+            Text(item.dateLabel, color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 10.5.sp, maxLines = 1)
+        }
+        if (!expanded && preview != null) {
+            Text(
+                preview, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.5.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (expanded) {
+            RichContent(raw = item.rawContent, collapsedBlocks = 6, readMoreLabel = Loc.s.plansNewsReadMore)
+            item.buttons.forEach { btn ->
+                Box(
+                    Modifier
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(GodjiColors.Chip)
+                        .border(1.dp, GodjiColors.CardBorder, RoundedCornerShape(50))
+                        .clickable { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(btn.url))) }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(btn.text, color = GodjiColors.TealDeep, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
             }
         }
     }
@@ -489,7 +528,19 @@ private fun DevicesSection(
     var renameTarget by remember { mutableStateOf<DeviceUi?>(null) }
     var deleteTarget by remember { mutableStateOf<DeviceUi?>(null) }
 
-    SectionLabel(if (deviceLimit > 0) "${Loc.s.plansDevicesTitle} · ${Loc.s.plansDevicesCountLabel(devices.size, deviceLimit)}" else Loc.s.plansDevicesTitle)
+    // Заголовок секции устройств: счётчик «N из M» рядом; на пределе лимита — цветом warning.
+    if (deviceLimit > 0) {
+        Box(Modifier.padding(start = 8.dp, top = 8.dp, end = 8.dp)) {
+            SectionLabelText(buildAnnotatedString {
+                append(Loc.s.plansDevicesTitle.uppercase() + " · ")
+                withStyle(SpanStyle(color = if (devices.size >= deviceLimit) GodjiColors.Warning else GodjiColors.TextMuted)) {
+                    append(Loc.s.plansDevicesCountLabel(devices.size, deviceLimit).uppercase())
+                }
+            })
+        }
+    } else {
+        SectionLabel(Loc.s.plansDevicesTitle)
+    }
     Column(Modifier.fillMaxWidth().godjiCard().clip(RoundedCornerShape(26.dp))) {
         if (devices.isEmpty()) {
             Text(Loc.s.plansDevicesEmpty, color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp))

@@ -420,12 +420,12 @@ private fun LeakRow(label: String, value: String) {
     }
 }
 
-/** Подпись раздела эталона: 11px/600, трекинг .06em, padding 8 8 0 (плюс общий gap 8 колонки). */
+/** Подпись раздела эталона: 11px/600, трекинг ~1sp, padding 8 8 0 (плюс общий gap 8 колонки). */
 @Composable
 internal fun SectionLabel(title: String) {
     Text(
-        title.uppercase(), color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold,
-        fontSize = 11.sp, letterSpacing = 0.66.sp,
+        title.uppercase(), color = GodjiColors.TextMuted, fontWeight = FontWeight.SemiBold,
+        fontSize = 11.sp, letterSpacing = 1.sp,
         modifier = Modifier.padding(start = 8.dp, top = 8.dp, end = 8.dp)
     )
 }
@@ -452,8 +452,8 @@ internal fun Hair() = HorizontalDivider(thickness = 2.dp, color = GodjiColors.Su
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column {
         Text(
-            title.uppercase(), color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold,
-            fontSize = 11.sp, letterSpacing = 0.66.sp,
+            title.uppercase(), color = GodjiColors.TextMuted, fontWeight = FontWeight.SemiBold,
+            fontSize = 11.sp, letterSpacing = 1.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
         Column(

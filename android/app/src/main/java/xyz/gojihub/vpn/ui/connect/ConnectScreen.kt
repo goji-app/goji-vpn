@@ -338,7 +338,7 @@ private fun GlobeCard(state: ConnectUiState, modifier: Modifier = Modifier) {
                     .padding(horizontal = 9.dp, vertical = 13.dp),
                 horizontalAlignment = Alignment.End
             ) {
-                Text(state.greetingHi, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text(state.greetingHi, color = GodjiColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Text(state.greetingSub, color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 9.sp)
             }
         }
@@ -422,6 +422,11 @@ private fun NetworkPill(net: NetState) {
     }
 }
 
+// Цвет отдачи — tertiary, приглушённый по насыщенности (~15%), чтобы приём доминировал;
+// полный акцент GodjiColors.Terracotta остался у остальных элементов.
+@Composable
+private fun uploadMuted(): Color = if (GodjiColors.isDark) Color(0xFFF2BCA2) else Color(0xFF94553A)
+
 /** Плашка скорости (концепт Goji 2.0): текущие ↓/↑ и мини-график скачивания за последние
  *  ~30 с (downHistory/upHistory из ConnectViewModel; отдача — тонкой линией под ним). */
 @Composable
@@ -443,7 +448,7 @@ private fun SpeedCard(state: ConnectUiState) {
                     fontSize = 22.sp, lineHeight = 24.sp, letterSpacing = (-0.4).sp
                 )
                 Spacer(Modifier.width(6.dp))
-                Icon(Icons.Filled.ArrowUpward, contentDescription = null, tint = GodjiColors.Terracotta, modifier = Modifier.size(13.dp))
+                Icon(Icons.Filled.ArrowUpward, contentDescription = null, tint = uploadMuted(), modifier = Modifier.size(13.dp))
                 Text(
                     "%.1f ${Loc.s.speedUnit}".format(state.upSpeedMbps), color = GodjiColors.TextSecondary,
                     fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1
@@ -459,7 +464,7 @@ private fun SpeedCard(state: ConnectUiState) {
 @Composable
 private fun SpeedSparkline(down: List<Float>, up: List<Float>, modifier: Modifier = Modifier) {
     val accent = GodjiColors.Teal
-    val warm = GodjiColors.Terracotta
+    val warm = uploadMuted()
     val muted = GodjiColors.OutlineVariant
     Canvas(modifier) {
         val stroke = 2.5.dp.toPx()
@@ -654,7 +659,8 @@ private fun QualityTile(state: ConnectUiState, modifier: Modifier = Modifier) {
                 state.connected -> Loc.f.qualityMeasuring
                 else -> Loc.f.qualityOff
             },
-            color = GodjiColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 14.sp
+            // Число задержки — не мельче заголовка плитки и semibold, чтобы читалось с первого взгляда.
+            color = GodjiColors.TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 15.sp
         )
     }
 }

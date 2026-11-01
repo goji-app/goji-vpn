@@ -190,7 +190,8 @@ fun ServersScreen(viewModel: ServersViewModel = hiltViewModel(), onServerPicked:
                                 else -> Loc.s.serversPingMs(node.pingMs)
                             },
                             color = pingColor(node.pingMs),
-                            fontWeight = FontWeight.Bold, fontSize = 11.5.sp
+                            // Кегль — не мельче вторичного текста экрана, иначе число пинга не читается.
+                            fontWeight = FontWeight.SemiBold, fontSize = 13.sp
                         )
                     }
                 }
