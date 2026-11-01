@@ -1,4 +1,4 @@
-# Полная пересборка Godji VPN: dotnet publish (self-contained win-x64) +
+﻿# Полная пересборка Godji VPN: dotnet publish (self-contained win-x64) +
 # упаковка в установщик через Inno Setup (ISCC.exe). Результат — единственный
 # файл dist\GodjiVpn-Setup-<версия>.exe, промежуточные папки после сборки
 # установщика удаляются.
