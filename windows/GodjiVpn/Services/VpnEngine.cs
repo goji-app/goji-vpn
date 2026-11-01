@@ -228,11 +228,9 @@ public sealed class VpnEngine : INotifyPropertyChanged
                     LogEngine($"ConnectAsync: попытка {attempt}/{MaxConnectAttempts} FAILED — {ex}");
                     await TeardownAsync().ConfigureAwait(false);
                     if (attempt == MaxConnectAttempts) throw;
-                    // Фантомное устройство Wintun после аварийного конца прошлой сессии: sing-box не
-                    // может ни создать адаптер («Cannot create a file when that file already exists»),
-                    // ни открыть («Element not found»). Вторая попытка обычно проходит и без этого
-                    // (драйвер сам освобождает фантом), но до того сгорает ~16 с на гарантированно
-                    // мёртвой попытке — удаляем устройство заранее.
+                    // Страховка поверх превентивной чистки в ConnectAttemptAsync: если фантом
+                    // всё же поймали первой попыткой (появился между проверкой и стартом sing-box),
+                    // удаляем его до повтора, а не ждём, пока драйвер сам соизволит.
                     if (ex.Message.Contains("не смог поднять сетевой адаптер") &&
                         (ex.Message.Contains("already exists") || ex.Message.Contains("Element not found")))
                         await RemovePhantomAdapterDeviceAsync().ConfigureAwait(false);
@@ -276,6 +274,12 @@ public sealed class VpnEngine : INotifyPropertyChanged
         // sing-box, поднимая tun, пытается сам назначить свой address и падает с "The
         // object already exists", если тот уже там висит — чистим адаптер заранее.
         await CleanupStaleAdapterAsync().ConfigureAwait(false);
+        // Фантомное PnP-устройство адаптера (см. RemovePhantomAdapterDeviceAsync) чаще всего
+        // остаётся от ПРЕДЫДУЩЕЙ сессии — то есть к моменту ПЕРВОЙ попытки оно уже есть, и та
+        // гарантированно сгорает на ~16 с, пока sing-box сам не сдаётся. Чистим заранее, а не
+        // только после падения: живой переиспользуемый адаптер (Status OK) команда не трогает,
+        // цена проверки — доли секунды на PowerShell при каждом подключении.
+        await RemovePhantomAdapterDeviceAsync().ConfigureAwait(false);
 
         // Должно определяться ДО того, как sing-box переключит системный default route на
         // TUN — иначе этот же трюк уже вернёт адрес самого TUN-адаптера, а не реального
@@ -1195,11 +1199,15 @@ public sealed class VpnEngine : INotifyPropertyChanged
         catch { /* лучшее усилие — если не получится, sing-box просто ещё раз упадёт с понятной ошибкой */ }
     }
 
-    /// <summary>Удаляет ПОЛУМЁРТВОЕ PnP-устройство нашего Wintun-адаптера (см. вызов в ConnectAsync):
-    /// после аварийного конца прошлой сессии (установщик убил sing-box, краш, выключение ПК при
-    /// поднятом туннеле) в системе остаётся фантом, который sing-box не может ни создать заново,
-    /// ни открыть. Удаляем точечно: имя — ровно наше («Godji», константа без кавычек), статус —
-    /// не OK (живой переиспользуемый адаптер и чужой Wintun типа WireGuard не задеты).</summary>
+    /// <summary>Удаляет ПОЛУМЁРТВОЕ PnP-устройство нашего Wintun-адаптера. После конца прошлой
+    /// сессии (установщик убил sing-box, краш, выключение ПК при поднятом туннеле — на практике
+    /// встречалось и после штатного завершения) в системе может остаться фантом, который sing-box
+    /// не может ни создать заново («Cannot create a file when that file already exists»), ни
+    /// открыть («Element not found»). Вызывается ДО старта sing-box в ConnectAttemptAsync (фантом
+    /// обычно достается от прошлой сессии — не сжигать первую попытку) и повторно в ConnectAsync
+    /// после падения (страховка). Удаляем точечно: имя — ровно наше («Godji», константа без
+    /// кавычек), статус — не OK (живой переиспользуемый адаптер и чужой Wintun типа WireGuard не
+    /// задеты).</summary>
     private async Task RemovePhantomAdapterDeviceAsync()
     {
         try
@@ -1217,7 +1225,7 @@ public sealed class VpnEngine : INotifyPropertyChanged
             };
             using var process = Process.Start(psi);
             if (process != null) await process.WaitForExitAsync().ConfigureAwait(false);
-            LogEngine("phantom adapter device removed");
+            LogEngine("phantom adapter cleanup: done");
         }
         catch (Exception ex) { LogEngine($"phantom adapter removal: {ex.Message}"); }
     }
