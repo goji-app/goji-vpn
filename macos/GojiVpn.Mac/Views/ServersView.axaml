@@ -20,7 +20,8 @@
             <Setter Property="Fill" Value="{DynamicResource WarningBrush}"/>
         </Style>
         <Style Selector="TextBlock.ping"><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/></Style>
-        <Style Selector="TextBlock.ping.good"><Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/></Style>
+        <!-- Зелёный порог — по шкале Primary (значения порогов не менялись: <500 good, <1000 mid). -->
+        <Style Selector="TextBlock.ping.good"><Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/></Style>
         <Style Selector="TextBlock.ping.mid"><Setter Property="Foreground" Value="#C98B12"/></Style>
         <Style Selector="TextBlock.ping.bad"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></Style>
         <Style Selector="c|GlassPanel.banner"><Setter Property="Tint" Value="{DynamicResource BannerOkBrush}"/></Style>
@@ -116,9 +117,10 @@
                                     </Button>
                                     <Button Grid.Column="2" Classes="bare" Margin="4,0,10,0" VerticalAlignment="Center"
                                             Command="{Binding $parent[ItemsControl].DataContext.PingOneCommand}" CommandParameter="{Binding}">
+                                        <!-- Пинг читается не хуже вторичного текста: кегль 12.5 + SemiBold (дизайн-ревью 1.0.132). -->
                                         <c:GlassPanel Classes="flat" CornerRadius="999" MinWidth="70" Height="30" Padding="11,0">
                                             <TextBlock Classes="ping" Classes.good="{Binding PingGood}" Classes.mid="{Binding PingMid}" Classes.bad="{Binding PingBad}"
-                                                       Text="{Binding PingLabel}" FontWeight="Bold" FontSize="{s:Fs 11.5}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                       Text="{Binding PingLabel}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </c:GlassPanel>
                                     </Button>
                                     <Button Grid.Column="3" Classes="bare" Padding="4" Margin="0,0,10,0" VerticalAlignment="Center" IsVisible="{Binding IsCustom}"

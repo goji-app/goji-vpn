@@ -9,9 +9,10 @@
          скорости с мини-графиком, плитки «Качество канала» и «Подписка», карточка узла со строкой
          журнала сети. -->
     <UserControl.Styles>
-        <Style Selector="Ellipse.net"><Setter Property="Fill" Value="{DynamicResource TealDeepBrush}"/></Style>
+        <!-- Зелёный акцент off-состояния — по шкале Primary (согласовано с меткой пинга, 1.0.132). -->
+        <Style Selector="Ellipse.net"><Setter Property="Fill" Value="{DynamicResource PrimaryBrush}"/></Style>
         <Style Selector="Ellipse.net.offline"><Setter Property="Fill" Value="{DynamicResource JamTextBrush}"/></Style>
-        <Style Selector="TextBlock.net"><Setter Property="Foreground" Value="{DynamicResource TealDeepBrush}"/></Style>
+        <Style Selector="TextBlock.net"><Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/></Style>
         <Style Selector="TextBlock.net.offline"><Setter Property="Foreground" Value="{DynamicResource JamTextBrush}"/></Style>
         <Style Selector="Ellipse.state"><Setter Property="Fill" Value="{DynamicResource OffDotBrush}"/></Style>
         <Style Selector="Ellipse.state.connecting"><Setter Property="Fill" Value="{DynamicResource ConnectingDotBrush}"/></Style>
@@ -52,7 +53,8 @@
                 <c:GlassPanel Classes="pill" CornerRadius="18" HorizontalAlignment="Right" VerticalAlignment="Top"
                               Margin="0,6,14,0" MaxWidth="190" Padding="13,9" IsVisible="{Binding IsConnected}">
                     <StackPanel HorizontalAlignment="Right">
-                        <TextBlock Text="{Binding GreetingHi}" FontWeight="Bold" FontSize="{s:Fs 20}" HorizontalAlignment="Right"/>
+                        <!-- Приветствие на шаг мельче (20 → 18), чтобы не спорило с заголовком статуса. -->
+                        <TextBlock Text="{Binding GreetingHi}" FontWeight="Bold" FontSize="{s:Fs 18}" HorizontalAlignment="Right"/>
                         <TextBlock Text="{Binding GreetingSub}" FontWeight="SemiBold" FontSize="{s:Fs 9}" HorizontalAlignment="Right"
                                    Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>

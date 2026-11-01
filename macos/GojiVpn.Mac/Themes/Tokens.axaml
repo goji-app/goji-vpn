@@ -22,7 +22,7 @@
             <SolidColorBrush x:Key="TertiaryContainerBrush" Color="#FFDBCF"/>
             <SolidColorBrush x:Key="OnTertiaryContainerBrush" Color="#380D00"/>
             <SolidColorBrush x:Key="ErrorContainerBrush" Color="#FFDAD6"/>
-            <SolidColorBrush x:Key="OutlineBrush" Color="#6F7977"/>
+            <SolidColorBrush x:Key="OutlineBrush" Color="#5C6664"/>
             <SolidColorBrush x:Key="OutlineVariantBrush" Color="#BEC9C6"/>
             <SolidColorBrush x:Key="BgBrush" Color="#00000000"/>
             <SolidColorBrush x:Key="BgSolidBrush" Color="#F4FBF8"/>
@@ -32,7 +32,7 @@
             <SolidColorBrush x:Key="InkShadowBrush" Color="#00000000"/>
             <SolidColorBrush x:Key="TextPrimaryBrush" Color="#161D1C"/>
             <SolidColorBrush x:Key="TextSecondaryBrush" Color="#3F4947"/>
-            <SolidColorBrush x:Key="TextMutedBrush" Color="#6F7977"/>
+            <SolidColorBrush x:Key="TextMutedBrush" Color="#5C6664"/>
             <SolidColorBrush x:Key="TealBrush" Color="#006A62"/>
             <SolidColorBrush x:Key="TealBrightBrush" Color="#006A62"/>
             <SolidColorBrush x:Key="TealDeepBrush" Color="#006A62"/>
@@ -49,7 +49,7 @@
             <SolidColorBrush x:Key="JamTextBrush" Color="#BA1A1A"/>
             <SolidColorBrush x:Key="CardBorderBrush" Color="#00000000"/>
             <SolidColorBrush x:Key="CardBorderStrongBrush" Color="#00000000"/>
-            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#6F7977"/>
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#5C6664"/>
             <SolidColorBrush x:Key="ChipBrush" Color="#E3EAE7"/>
             <SolidColorBrush x:Key="TrackBgBrush" Color="#DDE4E1"/>
             <SolidColorBrush x:Key="BorderTealBrush" Color="#006A62"/>
@@ -65,7 +65,7 @@
             <SolidColorBrush x:Key="BannerOkBrush" Color="#9DF2E6"/>
             <SolidColorBrush x:Key="BannerWarnBrush" Color="#FFDBCF"/>
             <SolidColorBrush x:Key="ConnectingDotBrush" Color="#8A6100"/>
-            <SolidColorBrush x:Key="OffDotBrush" Color="#6F7977"/>
+            <SolidColorBrush x:Key="OffDotBrush" Color="#5C6664"/>
             <SolidColorBrush x:Key="PanelBrush" Color="#E8EFEC"/>
             <SolidColorBrush x:Key="PanelAltBrush" Color="#E3EAE7"/>
             <SolidColorBrush x:Key="BorderBrush" Color="#BEC9C6"/>

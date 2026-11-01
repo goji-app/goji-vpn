@@ -65,10 +65,13 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
     </Style>
+    <!-- Заголовки секций (UPPERCASE-тексты): разрядка 1 и приглушённый цвет — читаются как
+         надписи-«ярлыки», а не ещё один заголовок (дизайн-ревью 1.0.132). -->
     <Style Selector="TextBlock.section">
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="FontSize" Value="{s:Fs 11}"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="FontSize" Value="{s:Fs 11.5}"/>
+        <Setter Property="LetterSpacing" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
         <Setter Property="Margin" Value="8,16,8,8"/>
     </Style>
     <Style Selector="TextBlock.rowTitle">

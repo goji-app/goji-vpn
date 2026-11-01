@@ -33,6 +33,17 @@ public class SpeedSparkline : Control
     private Color C(string key, Color fallback) =>
         this.TryFindResource(key, ActualThemeVariant, out var v) && v is Color c ? c : fallback;
 
+    /// <summary>Смешение цвета с его яркостью: k=0.12 снижает насыщенность примерно на 12%
+    /// (дизайн-ревью 1.0.132 — линия «Отдачи» чуть спокойнее рядом с бирюзовым скачиванием).</summary>
+    private static Color Desaturate(Color c, double k)
+    {
+        var l = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B;
+        return Color.FromArgb(c.A,
+            (byte)Math.Round(c.R + (l - c.R) * k),
+            (byte)Math.Round(c.G + (l - c.G) * k),
+            (byte)Math.Round(c.B + (l - c.B) * k));
+    }
+
     public override void Render(DrawingContext ctx)
     {
         var w = Bounds.Width;
@@ -81,7 +92,7 @@ public class SpeedSparkline : Control
         }
 
         if (up.Count >= 2)
-            ctx.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(178, warm.R, warm.G, warm.B)), 1.5, lineCap: PenLineCap.Round), Line(up, false));
+            ctx.DrawGeometry(null, new Pen(new SolidColorBrush(Desaturate(Color.FromArgb(178, warm.R, warm.G, warm.B), 0.12)), 1.5, lineCap: PenLineCap.Round), Line(up, false));
 
         var fill = new LinearGradientBrush
         {

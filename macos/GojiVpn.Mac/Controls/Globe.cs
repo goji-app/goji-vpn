@@ -44,7 +44,7 @@ public class Globe : AnimatedControl
         Color Hi, Color Arc, Color Home, Color Atmo);
 
     private static readonly Palette Light = new(C("#E7E0CF"), 1, C("#0F4D45"), 0.55, C("#0F4D45"), 0.06,
-        C("#00897E"), C("#D9714B"), C("#D9714B"), C("#00A79B"));
+        C("#00897E"), C("#D9714B"), C("#4C948B"), C("#00A79B")); // точка дома — приглушённый бирюзовый вместо оранжевого (1.0.132)
     private static readonly Palette Dark = new(C("#0A201D"), 0.9, C("#2F6F66"), 0.75, C("#00D4C4"), 0.07,
         C("#00E7D4"), C("#00E7D4"), C("#8B7CF6"), C("#00D4C4"));
 
@@ -332,13 +332,15 @@ public class Globe : AnimatedControl
         var (np, nz) = Project(NodeLat, NodeLon, 1.004, c, r);
         if (nz > 0)
         {
+            // Свечение точки подключения вдвое компактнее (дизайн-ревью 1.0.132): кольца
+            // расходятся до ~9px вместо ~18px, ореол 6.5 → 5.
             for (var i = 0; i < 2; i++)
             {
                 var q = (now * 0.55 + i * 0.5) % 1;
-                var rr = 7 * (0.6 + q * 1.9);
+                var rr = 3.5 * (0.6 + q * 1.9);
                 ctx.DrawEllipse(null, new Pen(new SolidColorBrush(WithA(pal.Hi, (on ? 0.75 : 0.5) * (1 - q))), 1.2), np, rr, rr);
             }
-            ctx.DrawEllipse(new SolidColorBrush(WithA(pal.Hi, (on ? 0.42 : 0.25) + Math.Sin(now * 2.4) * 0.08)), null, np, 6.5, 6.5);
+            ctx.DrawEllipse(new SolidColorBrush(WithA(pal.Hi, (on ? 0.42 : 0.25) + Math.Sin(now * 2.4) * 0.08)), null, np, 5, 5);
             ctx.DrawEllipse(new SolidColorBrush(pal.Hi), null, np, 3.5, 3.5);
         }
     }

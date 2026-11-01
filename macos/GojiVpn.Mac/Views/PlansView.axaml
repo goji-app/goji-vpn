@@ -31,6 +31,12 @@
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
+        <!-- Карточка подписки (дизайн-ревью 1.0.132): строка «До …» контрастнее, при близком
+             конце (≤ 7 дней) — warning-цвет. -->
+        <Style Selector="TextBlock.expiry"><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/></Style>
+        <Style Selector="TextBlock.expiry.soon"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/></Style>
+        <!-- Счётчик устройств в заголовке секции: лимит исчерпан — warning. -->
+        <Style Selector="TextBlock.section.limit"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/></Style>
     </UserControl.Styles>
     <!-- Без прокрутки: сверху шапка и карточка подписки, под ними переключатель разделов
          (устройства · друзья · новости); раздел занимает оставшееся место, длинные
@@ -39,7 +45,9 @@
             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="4,0">
                 <StackPanel>
                     <TextBlock Classes="title" Text="Твоя подписка"/>
-                    <TextBlock Classes="muted" Text="Продлевается вручную — списаний врасплох не будет" Margin="0,3,0,0"/>
+                    <!-- Сообщение «нет автопродления» — контрастнее: primary + SemiBold (1.0.132). -->
+                    <TextBlock Text="Продлевается вручную — списаний врасплох не будет" FontWeight="SemiBold" FontSize="{s:Fs 12}"
+                               Foreground="{DynamicResource PrimaryBrush}" Margin="0,3,0,0"/>
                 </StackPanel>
                 <!-- Подписанная кнопка — как «Обновить» на вкладке «Серверы» (2026-10-16). -->
                 <Button Grid.Column="1" Classes="bare" VerticalAlignment="Top" Margin="10,0,0,0" Command="{Binding RefreshCommand}"
@@ -58,19 +66,20 @@
 
             <c:GlassPanel Grid.Row="1" Classes="card" CornerRadius="28" Tint="{DynamicResource TealTintBrush}" Margin="0,12,0,0">
                 <Panel>
-                    <StackPanel Margin="16">
+                    <!-- Плотнее группировка (1.0.132): внутренние поля 16 → 14, отступ кнопки 12 → 10. -->
+                    <StackPanel Margin="14">
                         <Grid ColumnDefinitions="Auto,*,Auto">
                             <c:DaysRing Days="{Binding DaysLeft}" TotalDays="{Binding DaysTotal}"/>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,10,0">
                                 <TextBlock FontWeight="Medium" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap">
                                     <Run Text="Ваш тариф: "/><Run Text="{Binding PlanName}" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                 </TextBlock>
-                                <TextBlock FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"
+                                <TextBlock Classes="expiry" Classes.soon="{Binding IsExpiringSoon}" FontWeight="SemiBold" FontSize="{s:Fs 11.5}" Margin="0,2,0,0"
                                            Text="{Binding ExpiryLabel, StringFormat='До {0}'}"/>
                             </StackPanel>
                             <c:ActiveBadge Grid.Column="2" Text="АКТИВНА" IsVisible="{Binding IsSubscriptionActive}"/>
                         </Grid>
-                        <Button Classes="accent" Margin="0,12,0,0" Command="{Binding OpenCabinetCommand}">
+                        <Button Classes="accent" Margin="0,10,0,0" Command="{Binding OpenCabinetCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Оплатить в личном кабинете" FontSize="{s:Fs 14}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}" VerticalAlignment="Center"/>
                                 <Path Classes="icon white" Data="{StaticResource IconNorthEast}" Width="13" Height="13" Margin="7,0,0,0"/>
@@ -85,7 +94,8 @@
 
         <Panel Grid.Row="3">
             <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsDevicesSection}">
-                <TextBlock Grid.Row="0" IsVisible="{Binding HasDevices}" Classes="section" Text="{Binding DevicesSectionLabel}" Margin="8,14,8,0"/>
+                <TextBlock Grid.Row="0" IsVisible="{Binding HasDevices}" Classes="section" Classes.limit="{Binding DevicesAtLimit}"
+                           Text="{Binding DevicesSectionLabel}" Margin="8,14,8,0"/>
                 <TextBlock Grid.Row="1" Classes="muted" Text="Список устройств появится, когда подписка будет активна." FontSize="{s:Fs 12.5}" Margin="8,16,8,0" IsVisible="{Binding !HasDevices}"/>
                 <c:GlassPanel Grid.Row="1" Classes="card" Margin="0,8,0,0" VerticalAlignment="Top" IsVisible="{Binding HasDevices}">
                     <Panel>
@@ -207,25 +217,26 @@
             </Grid>
 
             <Grid RowDefinitions="*" IsVisible="{Binding IsNewsSection}">
-                <TextBlock Classes="muted" Text="Новостей пока нет." FontSize="{s:Fs 12.5}" Margin="8,16,8,0" IsVisible="{Binding !HasNews}"/>
+                <TextBlock Classes="muted" Text="Новостей пока нет." FontSize="{s:Fs 12.5}" Margin="8,10,8,0" IsVisible="{Binding !HasNews}"/>
                 <c:PagedItems ItemsSource="{Binding AllNews}">
                     <c:PagedItems.ItemTemplate>
                         <DataTemplate>
-                            <c:GlassPanel Classes="card" CornerRadius="24" Padding="14" Margin="0,12,0,0">
+                            <!-- Компактные строки (1.0.132): поля и отступы теснее; листание «Ещё» — прежний PagedItems. -->
+                            <c:GlassPanel Classes="card" CornerRadius="20" Padding="12" Margin="0,8,0,0">
                                 <StackPanel>
                                     <TextBlock Classes="muted" Text="{Binding DateLabel}" FontWeight="SemiBold" FontSize="{s:Fs 10.5}"/>
-                                    <SelectableTextBlock Text="{Binding Text}" FontSize="{s:Fs 12.5}" LineHeight="{s:Fs 18}" TextWrapping="Wrap" Margin="0,7,0,0"
+                                    <SelectableTextBlock Text="{Binding Text}" FontSize="{s:Fs 12.5}" LineHeight="{s:Fs 17}" TextWrapping="Wrap" Margin="0,4,0,0"
                                                          Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                    <Button Classes="link" HorizontalAlignment="Left" Padding="0,6,0,0" FontSize="{s:Fs 12}" FontWeight="Bold"
+                                    <Button Classes="link" HorizontalAlignment="Left" Padding="0,4,0,0" FontSize="{s:Fs 12}" FontWeight="Bold"
                                             Content="Читать полностью" Command="{Binding ExpandCommand}" IsVisible="{Binding CanExpand}"/>
-                                    <ItemsControl ItemsSource="{Binding Buttons}" Margin="0,7,0,0"
+                                    <ItemsControl ItemsSource="{Binding Buttons}" Margin="0,6,0,0"
                                                   IsVisible="{Binding Buttons.Count, Converter={x:Static conv:Conv.NonZero}}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Button Classes="chip" Height="32" Margin="0,0,6,6" Content="{Binding Text}"
+                                                <Button Classes="chip" Height="28" Margin="0,0,6,4" Content="{Binding Text}"
                                                         Command="{Binding $parent[UserControl].DataContext.OpenBroadcastButtonCommand}" CommandParameter="{Binding Url}"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

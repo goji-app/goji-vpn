@@ -116,15 +116,18 @@ public sealed partial class PlansViewModel : ObservableObject
     [ObservableProperty] private string planName = "—";
     [ObservableProperty] private string expiryLabel = "—";
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSubscriptionActive))]
+    [NotifyPropertyChangedFor(nameof(IsSubscriptionActive), nameof(IsExpiringSoon))]
     private int daysLeft;
     /// <summary>«АКТИВНА» — только при настоящей подписке с остатком дней (как на Android).</summary>
     public bool IsSubscriptionActive => DaysLeft > 0;
+    /// <summary>Подписка скоро закончится — строка «До …» в карточке подсвечивается warning-цветом.</summary>
+    public bool IsExpiringSoon => DaysLeft > 0 && DaysLeft <= 7;
     /// <summary>Длина оплаченного периода (см. SubscriptionPeriod) — кольцо = DaysLeft / DaysTotal.</summary>
     [ObservableProperty] private int daysTotal = 30;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DevicesCountLabel))]
     [NotifyPropertyChangedFor(nameof(DevicesSectionLabel))]
+    [NotifyPropertyChangedFor(nameof(DevicesAtLimit))]
     private int deviceLimit;
     [ObservableProperty] private bool refreshing;
     [ObservableProperty] private bool isNewsExpanded;
@@ -170,6 +173,9 @@ public sealed partial class PlansViewModel : ObservableObject
 
     /// <summary>Подпись секции устройств v5: "УСТРОЙСТВА · 1 из 5".</summary>
     public string DevicesSectionLabel => DeviceLimit > 0 ? $"УСТРОЙСТВА · {Devices.Count} из {DeviceLimit}" : "УСТРОЙСТВА";
+
+    /// <summary>Лимит устройств занят целиком — счётчик в заголовке секции подсвечивается warning-цветом.</summary>
+    public bool DevicesAtLimit => DeviceLimit > 0 && Devices.Count >= DeviceLimit;
 
     public PlansViewModel(ApiClient api, SubscriptionRepository subscription)
     {
@@ -330,6 +336,7 @@ public sealed partial class PlansViewModel : ObservableObject
         foreach (var d in devices) Devices.Add(ToDeviceItem(d));
         OnPropertyChanged(nameof(DevicesCountLabel));
         OnPropertyChanged(nameof(DevicesSectionLabel));
+        OnPropertyChanged(nameof(DevicesAtLimit));
     }
 
     /// <summary>Только для превью-экземпляра (GODJI_UI_PREVIEW_DEMO=1, см. App.xaml.cs) — сверка
@@ -346,6 +353,7 @@ public sealed partial class PlansViewModel : ObservableObject
         Devices.Add(new DeviceItem { Hwid = "a", Name = "Pixel 8", Details = "Android · Goji VPN 1.0.107", CreatedAtLabel = "3 сентября" });
         Devices.Add(new DeviceItem { Hwid = "b", Name = "Рабочий ноутбук", Details = "Windows", CreatedAtLabel = "12 сентября" });
         OnPropertyChanged(nameof(DevicesSectionLabel));
+        OnPropertyChanged(nameof(DevicesAtLimit));
         _allNews = new List<NewsItem>
         {
             new() { Id = "1", RawContent = "**Новый узел в Стамбуле**\n\nДобавили сервер в Турции — удобно, если нужен близкий к России выход с низким пингом.", DateLabel = "25 сентября", Buttons = new List<BroadcastButtonDto> { new() { Text = "Подробнее", Url = "кабинет" } } },
@@ -464,6 +472,7 @@ public sealed partial class PlansViewModel : ObservableObject
             AccountCache.Save(AccountCache.Key.Devices, _rawDevices);
             OnPropertyChanged(nameof(DevicesCountLabel));
             OnPropertyChanged(nameof(DevicesSectionLabel));
+            OnPropertyChanged(nameof(DevicesAtLimit));
         }
         catch { device.IsBusy = false; }
     }
