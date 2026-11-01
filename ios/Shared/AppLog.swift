@@ -117,10 +117,6 @@ enum AppLog {
         }.joined(separator: "\n")
     }
 
-    static func fileURL(_ category: LogCategory) -> URL {
-        SharedStorage.logsDir.appendingPathComponent("\(category.rawValue).log")
-    }
-
     private static func trim(_ url: URL) {
         guard let data = try? Data(contentsOf: url), data.count > keepBytes else { return }
         var tail = data.suffix(keepBytes)
