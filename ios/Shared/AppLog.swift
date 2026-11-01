@@ -33,8 +33,9 @@ enum LogCategory: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-/// Журнал в файлах App Group — по файлу на категорию, общий для приложения и туннеля
-/// (их можно посмотреть и отправить в поддержку из «Настройки → Журналы»).
+/// Журнал в файлах App Group — по файлу на категорию для каждого процесса (приложение —
+/// cat.log, туннель — cat.log.appex); в приложении оба видны вместе
+/// («Настройки → Журналы», отправка в поддержку).
 /// Никогда не пишет токены сессии и содержимое профилей подписки.
 enum AppLog {
     private static let queue = DispatchQueue(label: "xyz.gojihub.vpn.log")
@@ -47,7 +48,11 @@ enum AppLog {
         return f
     }()
 
-    static let processTag: String = Bundle.main.bundlePath.hasSuffix(".appex") ? "tun" : "app"
+    /// Расширение туннеля — отдельный процесс со своей копией кода: общий файл категории
+    /// писали и обрезали оба процесса одновременно.
+    static let isTunnelProcess: Bool = Bundle.main.bundlePath.hasSuffix(".appex")
+
+    static let processTag: String = isTunnelProcess ? "tun" : "app"
 
     static func d(_ category: LogCategory, _ message: @autoclosure () -> String) { write(category, .debug, message()) }
     static func i(_ category: LogCategory, _ message: @autoclosure () -> String) { write(category, .info, message()) }
@@ -78,14 +83,31 @@ enum AppLog {
         }
     }
 
+    /// Журнал категории для ЭТОГО процесса: туннель пишет в отдельный файл с суффиксом
+    /// .appex (см. isTunnelProcess), чтобы два процесса не писали и не обрезали один файл.
+    static func fileURL(_ category: LogCategory) -> URL {
+        let suffix = isTunnelProcess ? ".appex" : ""
+        return SharedStorage.logsDir.appendingPathComponent("\(category.rawValue).log\(suffix)")
+    }
+
+    /// Оба файла категории (приложение + туннель) — для чтения и очистки из приложения.
+    static func allFileURLs(_ category: LogCategory) -> [URL] {
+        [
+            SharedStorage.logsDir.appendingPathComponent("\(category.rawValue).log"),
+            SharedStorage.logsDir.appendingPathComponent("\(category.rawValue).log.appex")
+        ]
+    }
+
     static func read(_ category: LogCategory) -> String {
         queue.sync {
-            (try? String(contentsOf: fileURL(category), encoding: .utf8)) ?? ""
+            allFileURLs(category).compactMap { try? String(contentsOf: $0, encoding: .utf8) }.joined()
         }
     }
 
     static func clear(_ category: LogCategory) {
-        queue.sync { try? FileManager.default.removeItem(at: fileURL(category)) }
+        queue.sync {
+            for url in allFileURLs(category) { try? FileManager.default.removeItem(at: url) }
+        }
     }
 
     /// Все журналы одним текстом — для вложения в обращение в поддержку.

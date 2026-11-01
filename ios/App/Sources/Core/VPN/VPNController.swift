@@ -53,8 +53,10 @@ final class VPNController: ObservableObject {
         guard !DemoMode.isEnabled else { return }
         do {
             let managers = try await NETunnelProviderManager.loadAllFromPreferences()
+            // Своего профиля нет — только новый: перехват чужого VPN-профиля (другого
+            // VPN-приложения) ломал бы его конфигурацию при первом же сохранении.
             manager = managers.first { ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == AppConstants.tunnelBundleId }
-                ?? managers.first
+                ?? NETunnelProviderManager()
         } catch {
             AppLog.e(.main, "загрузка VPN-профиля", error)
         }
@@ -103,8 +105,13 @@ final class VPNController: ObservableObject {
         case .disconnected:
             stopStatsPolling()
             actualCountry = nil
-            if previous == .connecting, let error = TunnelSettings.lastError {
+            // Причину показывает и «подключается → отключено» (ошибка старта), и
+            // «подключено → отключено»: сторож закрывает туннель, записав причину в
+            // TunnelSettings, — раньше это выглядело как тихое отключение.
+            if previous == .connecting || previous == .connected, let error = TunnelSettings.lastError {
                 lastError = error
+            }
+            if previous == .connecting, lastError != nil {
                 Haptics.error()
             } else if previous == .connected || previous == .disconnecting {
                 Haptics.light()
@@ -120,6 +127,9 @@ final class VPNController: ObservableObject {
         lastError = nil
         SharedStorage.saveActiveProfile(.init(nodeId: node.id, label: node.displayName, payload: node.payload))
         TunnelSettings.lastError = nil
+        // Ручное подключение снимает backoff сторожа: пауза после аварийного закрытия нужна
+        // только против цикла On Demand, а не против самого пользователя.
+        TunnelSettings.lastCancelledAt = nil
         do {
             let manager = try await preparedManager(enableOnDemand: true)
             let options: [String: NSObject] = [
@@ -131,8 +141,25 @@ final class VPNController: ObservableObject {
             AppLog.i(.main, "запуск туннеля: \(node.displayName)")
         } catch {
             AppLog.e(.main, "не удалось запустить туннель", error)
-            lastError = (error as NSError).domain == NEVPNErrorDomain ? L("vpn.error.permission") : error.localizedDescription
+            lastError = Self.describe(error)
             updatePhase()
+        }
+    }
+
+    /// Любой NEVPNError раньше показывался как «нет разрешения» — теперь частные случаи
+    /// честные: недействительная конфигурация или права — разными сообщениями, остальное —
+    /// как есть (описание от системы). Разбор через домен/код NSError: мостинг брошенной
+    /// ObjC-ошибки в структуру NEVPNError не гарантирован.
+    private static func describe(_ error: Error) -> String {
+        let nsError = error as NSError
+        guard nsError.domain == NEVPNErrorDomain else { return error.localizedDescription }
+        switch NEVPNError.Code(rawValue: nsError.code) {
+        case .permissionDenied:
+            return L("vpn.error.permission")
+        case .configurationInvalid, .configurationReadWriteFailed:
+            return L("vpn.error.configuration")
+        default:
+            return error.localizedDescription
         }
     }
 
@@ -144,10 +171,16 @@ final class VPNController: ObservableObject {
             manager.isOnDemandEnabled = false
             try? await manager.saveToPreferences()
         }
+        // Ручное отключение — не ошибка: убираем причину сторожа, чтобы phaseChanged
+        // («подключено → отключено») не показал её как баннер.
+        TunnelSettings.lastError = nil
         manager.connection.stopVPNTunnel()
     }
 
     func toggle() async {
+        // DemoMode — только картинки для снимков экранов: ни записи active-profile.json,
+        // ни системного VPN-профиля, ни реального туннеля.
+        guard !DemoMode.isEnabled else { return }
         if phase == .connected || phase == .connecting {
             await disconnect()
         } else if let node = SubscriptionStore.shared.selectedNode {
@@ -162,6 +195,13 @@ final class VPNController: ObservableObject {
         SharedStorage.saveActiveProfile(.init(nodeId: node.id, label: node.displayName, payload: node.payload))
         guard phase == .connected || phase == .connecting else { return }
         actualCountry = nil
+        // Пока идёт подключение, переключить ядро на лету нельзя (старый запрос падал
+        // «не удалось сменить узел») — честно просим подождать; выбранный узел сохранён
+        // в active-profile.json и поднимется следующим подключением.
+        if phase == .connecting {
+            lastError = L("vpn.error.busy")
+            return
+        }
         Task {
             let response = await send(["type": TunnelMessage.switchProfile.rawValue, "payload": node.payload, "label": node.displayName, "nodeId": node.id])
             if (response?["ok"] as? Bool) == true {

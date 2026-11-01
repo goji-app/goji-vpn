@@ -47,6 +47,14 @@ final class SubscriptionStore: ObservableObject {
     private var cacheURL: URL { SharedStorage.cacheDir.appendingPathComponent("servers.json") }
     private var cachedLink: String?
 
+    /// Один клиент на все загрузки сервера подписки: ephemeral-сессия на каждый fetchNodes
+    /// утекала (invalidate никто не вызывал).
+    private static let nodesSession: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.httpCookieStorage = nil
+        return URLSession(configuration: config)
+    }()
+
     init() {
         if let data = try? Data(contentsOf: cacheURL), let cache = try? JSONDecoder().decode(Cache.self, from: data) {
             nodes = cache.nodes
@@ -186,9 +194,7 @@ final class SubscriptionStore: ObservableObject {
         request.setValue("Goji app", forHTTPHeaderField: "X-App-Name")
         request.setValue(AppConstants.appVersion, forHTTPHeaderField: "X-App-Version")
         do {
-            let config = URLSessionConfiguration.ephemeral
-            config.httpCookieStorage = nil
-            let (data, response) = try await URLSession(configuration: config).data(for: request)
+            let (data, response) = try await Self.nodesSession.data(for: request)
             if let http = response as? HTTPURLResponse {
                 if http.value(forHTTPHeaderField: "x-hwid-max-devices-reached") == "true" {
                     AppLog.w(.subscription, "сервер подписки: превышен лимит устройств")
@@ -209,6 +215,11 @@ final class SubscriptionStore: ObservableObject {
     static func parseJSONProfiles(_ raw: String) -> [VPNNode]? {
         guard let data = raw.trimmingCharacters(in: .whitespacesAndNewlines).data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return nil }
+        // Бэкенд отдаёт одинаковые remark|host:port повторами: без дедупликации id не
+        // уникальны — Dictionary(uniqueKeysWithValues:) в PingService падает, а ForEach
+        // дублирует строки. Побеждает первый профиль с данным id.
+        var seen = Set<String>()
+        var duplicates = 0
         let nodes: [VPNNode] = array.enumerated().compactMap { index, profile in
             guard let endpoint = XrayConfigBuilder.endpoint(of: profile),
                   let profileData = try? JSONSerialization.data(withJSONObject: profile),
@@ -216,8 +227,13 @@ final class SubscriptionStore: ObservableObject {
             let remarks = (profile["remarks"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? L("servers.fallback_name", index + 1)
             // ID — remark+host:port, НЕ позиция в массиве: выбор пользователя хранится на диске
             // и не должен «переезжать» на другой сервер при изменении состава подписки.
+            let id = "\(remarks)|\(endpoint.host):\(endpoint.port)"
+            guard seen.insert(id).inserted else {
+                duplicates += 1
+                return nil
+            }
             return VPNNode(
-                id: "\(remarks)|\(endpoint.host):\(endpoint.port)",
+                id: id,
                 name: remarks,
                 host: endpoint.host,
                 port: endpoint.port,
@@ -226,6 +242,7 @@ final class SubscriptionStore: ObservableObject {
                 uuid: endpoint.uuid
             )
         }
+        if duplicates > 0 { AppLog.w(.subscription, "дублей узлов в подписке отброшено: \(duplicates)") }
         return nodes.isEmpty ? nil : nodes
     }
 
@@ -234,13 +251,17 @@ final class SubscriptionStore: ObservableObject {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let decoded = Data(base64Encoded: trimmed, options: .ignoreUnknownCharacters)
             .flatMap { String(data: $0, encoding: .utf8) } ?? trimmed
+        // Та же дедупликация по remark|host:port, что и в parseJSONProfiles.
+        var seen = Set<String>()
         return decoded.split(whereSeparator: \.isNewline).enumerated().compactMap { index, line in
             let link = String(line).trimmingCharacters(in: .whitespaces)
             guard link.hasPrefix("vless://"), let components = URLComponents(string: link), let host = components.host else { return nil }
             let port = components.port ?? 443
             let remark = components.fragment?.removingPercentEncoding.flatMap { $0.isEmpty ? nil : $0 } ?? L("servers.fallback_name", index + 1)
+            let id = "\(remark)|\(host):\(port)"
+            guard seen.insert(id).inserted else { return nil }
             return VPNNode(
-                id: "\(remark)|\(host):\(port)",
+                id: id,
                 name: remark,
                 host: host,
                 port: port,

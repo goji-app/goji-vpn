@@ -51,7 +51,10 @@ struct GlobeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion && status == .off)) { timeline in
+        // Выключено — глобус статичен (никакой анимации нет), TimelineView стоит на паузе и
+        // не перерисовывает Canvas 30 раз в секунду. При подключении/подключённом VPN
+        // (дуга, бегущий блик, пульс узла) — полные 30 fps для плавности.
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: status == .off || reduceMotion)) { timeline in
             Canvas { context, size in
                 draw(context: &context, size: size, time: timeline.date.timeIntervalSinceReferenceDate)
             }
@@ -67,14 +70,15 @@ struct GlobeView: View {
         let rad = Double.pi / 180
         let dark = scheme == .dark
 
-        // Центр вида: при подключении — середина маршрута, иначе медленное вращение.
+        // Центр вида: при подключении — середина маршрута, иначе статичный ракурс (см. паузу
+        // TimelineView выше — вращения в выключенном состоянии больше нет).
         var lon0: Double
         var lat0: Double
         if let node, status != .off {
             lon0 = midLongitude(home.lon, node.lon) * rad
             lat0 = ((home.lat + node.lat) / 2 - 8) * rad
         } else {
-            lon0 = (reduceMotion ? 30 : (time * 6).truncatingRemainder(dividingBy: 360)) * rad
+            lon0 = 30 * rad
             lat0 = 25 * rad
         }
         let sinLat0 = sin(lat0), cosLat0 = cos(lat0)

@@ -10,14 +10,17 @@ enum AppConstants {
         ?? "xyz.gojihub.vpn.tunnel"
 
     /// Хосты кабинета и сайта загрузки — из Info.plist (Config/Hosts.local.xcconfig, в репозитории
-    /// их нет). Пустое значение — ошибка сборки, о ней лучше узнать сразу при запуске.
+    /// их нет). Пустое значение — ошибка сборки: в Debug падаем сразу при запуске, в Release
+    /// (этот код компилируется и в расширение туннеля) работаем с основным доменом — краш
+    /// продакшн-сборки из-за конфигурации недопустим.
     static let siteHost = infoHost("GojiSiteHost")
     static let downloadHost = infoHost("GojiDownloadHost")
 
     private static func infoHost(_ key: String) -> String {
         guard let host = Bundle.main.object(forInfoDictionaryKey: key) as? String,
               !host.isEmpty, !host.contains("$(") else {
-            fatalError("Не задан \(key): запустите Scripts/write-hosts-xcconfig.sh перед сборкой")
+            assertionFailure("Не задан \(key): запустите Scripts/write-hosts-xcconfig.sh перед сборкой")
+            return "gojihub.xyz"
         }
         return host
     }

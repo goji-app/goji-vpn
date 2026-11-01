@@ -269,6 +269,10 @@ struct TicketChatView: View {
     @State private var attachments: [APIClient.UploadFile] = []
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var showFileImporter = false
+    @Environment(\.scenePhase) private var scenePhase
+    /// Читается из фонового .task: @State обновляется onChange (значение environment,
+    /// захваченное замыканием, устаревает), поэтому дублируем в состояние.
+    @State private var isSceneActive = true
 
     init(ticketId: Int64, title: String?) {
         self.title = title
@@ -314,9 +318,14 @@ struct TicketChatView: View {
             await model.load()
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 15_000_000_000)
+                // Свёрнутое приложение не опрашивает чат каждые 15 с — сеть и батарея
+                // не тратятся; при возврате на экран цикл продолжается сам.
+                guard isSceneActive else { continue }
                 await model.load()
             }
         }
+        .onAppear { isSceneActive = scenePhase == .active }
+        .onChange(of: scenePhase) { phase in isSceneActive = phase == .active }
         .onChange(of: photoItems) { items in
             Task {
                 for item in items {

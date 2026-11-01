@@ -67,6 +67,7 @@ enum TunnelSettings {
     private static let logLevelKey = "log.level"
     private static let lastErrorKey = "tunnel.lastError"
     private static let connectedSinceKey = "tunnel.connectedSince"
+    private static let lastCancelledAtKey = "tunnel.lastCancelledAt"
 
     static var bypassDomains: [String] {
         get { SharedStorage.defaults.stringArray(forKey: bypassKey) ?? [] }
@@ -91,5 +92,16 @@ enum TunnelSettings {
             return t > 0 ? Date(timeIntervalSince1970: t) : nil
         }
         set { SharedStorage.defaults.set(newValue?.timeIntervalSince1970 ?? 0, forKey: connectedSinceKey) }
+    }
+
+    /// Момент последнего аварийного закрытия туннеля сторожем (через App Group): следующий
+    /// startTunnel не поднимает ядро ещё 2 минуты — иначе On Demand создаёт цикл
+    /// «cancel → рестарты ядра → cancel» на мёртвой сети.
+    static var lastCancelledAt: Date? {
+        get {
+            let t = SharedStorage.defaults.double(forKey: lastCancelledAtKey)
+            return t > 0 ? Date(timeIntervalSince1970: t) : nil
+        }
+        set { SharedStorage.defaults.set(newValue?.timeIntervalSince1970 ?? 0, forKey: lastCancelledAtKey) }
     }
 }

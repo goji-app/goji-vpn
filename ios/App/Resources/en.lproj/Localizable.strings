@@ -328,6 +328,8 @@
 "notif.news.title" = "New message from Goji VPN";
 
 "vpn.error.permission" = "Couldn't save the VPN configuration. Allow adding a VPN when iOS asks and try again.";
+"vpn.error.configuration" = "The VPN configuration is invalid — try enabling the VPN again.";
+"vpn.error.busy" = "A connection is in progress — wait for it to finish, then switch the server";
 "vpn.error.switch" = "Couldn't switch the server";
 
 "intent.connect.title" = "Turn on Goji VPN";

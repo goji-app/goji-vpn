@@ -28,6 +28,8 @@ enum CountryGeoLookup {
         (["turkey", "турция", "istanbul", "стамбул", "ankara", "анкара"], CountryGeo(country: "Turkey", lat: 41.01, lon: 28.98, lang: "tr", code: "TR", ruName: "Турция", ruPrep: "Турции", city: "Стамбул", enCity: "Istanbul")),
         (["united states", "usa", "сша", "new york", "нью-йорк", "los angeles", "лос-анджелес", "miami", "майами"], CountryGeo(country: "United States of America", lat: 40.71, lon: -74.01, lang: "en", code: "US", ruName: "США", ruPrep: "США", city: "Нью-Йорк", enCity: "New York")),
         (["japan", "япония", "tokyo", "токио"], CountryGeo(country: "Japan", lat: 35.68, lon: 139.77, lang: "ja", code: "JP", ruName: "Япония", ruPrep: "Японии", city: "Токио", enCity: "Tokyo")),
+        // Выше UK: алиас "uk" при простом contains цеплял «Ukraine».
+        (["ukraine", "украина", "kyiv", "kiev", "киев"], CountryGeo(country: "Ukraine", lat: 50.45, lon: 30.52, lang: "uk", code: "UA", ruName: "Украина", ruPrep: "Украине", city: "Киев", enCity: "Kyiv")),
         (["united kingdom", "англия", "великобритания", "london", "лондон", "uk"], CountryGeo(country: "United Kingdom", lat: 51.51, lon: -0.13, lang: "en", code: "GB", ruName: "Великобритания", ruPrep: "Великобритании", city: "Лондон", enCity: "London")),
         (["france", "франция", "paris", "париж"], CountryGeo(country: "France", lat: 48.85, lon: 2.35, lang: "fr", code: "FR", ruName: "Франция", ruPrep: "Франции", city: "Париж", enCity: "Paris")),
         (["poland", "польша", "warsaw", "варшава"], CountryGeo(country: "Poland", lat: 52.23, lon: 21.01, lang: "pl", code: "PL", ruName: "Польша", ruPrep: "Польше", city: "Варшава", enCity: "Warsaw")),
@@ -35,7 +37,6 @@ enum CountryGeoLookup {
         (["norway", "норвегия", "oslo", "осло"], CountryGeo(country: "Norway", lat: 59.91, lon: 10.75, lang: "no", code: "NO", ruName: "Норвегия", ruPrep: "Норвегии", city: "Осло", enCity: "Oslo")),
         (["italy", "италия", "milan", "милан", "rome", "рим"], CountryGeo(country: "Italy", lat: 45.46, lon: 9.19, lang: "it", code: "IT", ruName: "Италия", ruPrep: "Италии", city: "Милан", enCity: "Milan")),
         (["spain", "испания", "madrid", "мадрид"], CountryGeo(country: "Spain", lat: 40.42, lon: -3.70, lang: "es", code: "ES", ruName: "Испания", ruPrep: "Испании", city: "Мадрид", enCity: "Madrid")),
-        (["ukraine", "украина", "kyiv", "kiev", "киев"], CountryGeo(country: "Ukraine", lat: 50.45, lon: 30.52, lang: "uk", code: "UA", ruName: "Украина", ruPrep: "Украине", city: "Киев", enCity: "Kyiv")),
         (["kazakhstan", "казахстан", "almaty", "алматы"], CountryGeo(country: "Kazakhstan", lat: 43.24, lon: 76.95, lang: "kk", code: "KZ", ruName: "Казахстан", ruPrep: "Казахстане", city: "Алматы", enCity: "Almaty")),
         (["cyprus", "кипр"], CountryGeo(country: "Cyprus", lat: 35.19, lon: 33.38, lang: "el", code: "CY", ruName: "Кипр", ruPrep: "Кипре", city: "Никосия", enCity: "Nicosia")),
         (["latvia", "латвия", "riga", "рига"], CountryGeo(country: "Latvia", lat: 56.95, lon: 24.11, lang: "lv", code: "LV", ruName: "Латвия", ruPrep: "Латвии", city: "Рига", enCity: "Riga")),
@@ -64,7 +65,26 @@ enum CountryGeoLookup {
 
     static func find(_ remark: String) -> CountryGeo? {
         let lower = remark.lowercased()
-        return entries.first { aliases, _ in aliases.contains { lower.contains($0) } }?.1
+        return entries.first { aliases, _ in aliases.contains { matches(lower, alias: $0) } }?.1
+    }
+
+    /// Алиас должен быть отдельным словом (граница — край строки или небуквенно-цифровой
+    /// символ): простой contains цеплял «uk» внутри «Ukraine», «in» внутри «indiana» и т.п.
+    private static func matches(_ text: String, alias: String) -> Bool {
+        var searchStart = text.startIndex
+        while let range = text.range(of: alias, range: searchStart..<text.endIndex) {
+            let leftBound = range.lowerBound > text.startIndex
+                && isWordChar(text[text.index(before: range.lowerBound)])
+            let rightBound = range.upperBound < text.endIndex
+                && isWordChar(text[text.index(after: range.upperBound)])
+            if !leftBound && !rightBound { return true }
+            searchStart = range.upperBound
+        }
+        return false
+    }
+
+    private static func isWordChar(_ char: Character) -> Bool {
+        char.isLetter || char.isNumber
     }
 
     /// Узел-регион вроде «Автовыбор серверов EU»: страны нет, но есть флаг Евросоюза.

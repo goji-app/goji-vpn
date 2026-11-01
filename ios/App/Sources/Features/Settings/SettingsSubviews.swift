@@ -267,6 +267,9 @@ struct LogsView: View {
     @EnvironmentObject private var settings: AppSettings
     @State private var category: LogCategory = .main
     @State private var text = ""
+    /// Экспорт всех журналов — 4 файловых чтения, не в теле view (на каждый рендер):
+    /// заполняется при открытии экрана и после очистки.
+    @State private var exportText = ""
 
     var body: some View {
         SubScreen(title: L("logs.title")) {
@@ -285,13 +288,14 @@ struct LogsView: View {
             .background(GlassSurface(radius: 16))
             PillSegmented(options: LogCategory.allCases, selection: $category) { L("log.cat.\($0.rawValue)") }
             HStack(spacing: 10) {
-                ShareLink(item: AppLog.exportAll()) {
+                ShareLink(item: exportText) {
                     Label(L("logs.share"), systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(SecondaryButtonStyle())
                 Button {
                     AppLog.clear(category)
                     load()
+                    Task { await reloadExport() }
                 } label: {
                     Label(L("logs.clear"), systemImage: "trash")
                 }
@@ -307,6 +311,13 @@ struct LogsView: View {
         }
         .onAppear(perform: load)
         .onChange(of: category) { _ in load() }
+        .task { await reloadExport() }
+    }
+
+    /// Чтение файлов — вне главного потока (как AboutView с версией Xray).
+    @MainActor
+    private func reloadExport() async {
+        exportText = await Task.detached { AppLog.exportAll() }.value
     }
 
     private func load() {

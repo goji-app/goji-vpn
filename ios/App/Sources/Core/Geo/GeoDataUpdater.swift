@@ -45,20 +45,28 @@ enum GeoDataUpdater {
 
     @discardableResult
     static func refresh() async -> Bool {
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 180
-        let session = URLSession(configuration: config)
-        var allOk = true
-        for source in sources {
-            var updated = false
-            for url in source.urls where !updated {
-                updated = await download(url, to: source, session: session)
+        // Загрузка ~40 МБ и подмена файлов — вне главного потока (вызывается из
+        // didBecomeActive и фоновой задачи, обе стартуют на MainActor).
+        await Task.detached(priority: .utility) { () -> Bool in
+            let config = URLSessionConfiguration.ephemeral
+            config.timeoutIntervalForRequest = 30
+            config.timeoutIntervalForResource = 180
+            // Не качать в лимитном режиме (Low Data Mode): при недоступности обновление
+            // отложится до следующего didBecomeActive — lastUpdate пишется только при успехе.
+            config.waitsForConnectivity = true
+            config.allowsConstrainedNetworkAccess = false
+            let session = URLSession(configuration: config)
+            var allOk = true
+            for source in sources {
+                var updated = false
+                for url in source.urls where !updated {
+                    updated = await download(url, to: source, session: session)
+                }
+                if !updated { allOk = false }
             }
-            if !updated { allOk = false }
-        }
-        if allOk { UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastUpdateKey) }
-        return allOk
+            if allOk { UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastUpdateKey) }
+            return allOk
+        }.value
     }
 
     /// Одна попытка закачки; битый или слишком маленький ответ не затирает рабочий файл.

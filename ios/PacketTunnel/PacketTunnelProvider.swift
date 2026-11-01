@@ -1,5 +1,6 @@
 import Foundation
 import NetworkExtension
+import Network
 import Darwin
 
 /// Расширение Packet Tunnel: системный utun-интерфейс отдаётся встроенному TUN-инбаунду
@@ -24,6 +25,15 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private var stopping = false
     /// Столько трафика за тик сторожа достаточно, чтобы считать туннель живым без проверки.
     private static let aliveTrafficBytes: Int64 = 32 * 1024
+    /// Пользовательский текст ошибки сторожа — общий для отмены и backoff-отмены.
+    private static let watchdogErrorMessage = "Связь не восстанавливается — включите VPN заново"
+    /// После аварийного закрытия сторожем On Demand поднимает туннель снова почти сразу —
+    /// этот период ядро не поднимаем вовсе (см. startTunnel), чтобы не получить цикл
+    /// «cancel → рестарты ядра → cancel» на мёртвой сети.
+    private static let watchdogBackoffSeconds: TimeInterval = 120
+    /// Очередь запросов «прямого IP»: блокирующее ожидание NWPathMonitor не должно занимать
+    /// очередь туннеля, на которой живёт сторож.
+    private static let directQueue = DispatchQueue(label: "xyz.gojihub.vpn.directip")
 
     // MARK: - Жизненный цикл
 
@@ -45,6 +55,18 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             return
         }
 
+        // Backoff против цикла «сторож закрыл туннель → On Demand поднял снова»: меньше
+        // watchdogBackoffSeconds после аварийного закрытия ядро не поднимаем — сразу
+        // закрываем туннель с той же ошибкой (дёшево, без рестартов ядра и probe-запросов).
+        if let cancelledAt = TunnelSettings.lastCancelledAt,
+           Date().timeIntervalSince(cancelledAt) < Self.watchdogBackoffSeconds {
+            AppLog.w(.service, "после закрытия сторожем прошло \(Int(Date().timeIntervalSince(cancelledAt))) с — backoff, ядро не поднимаем")
+            fail(TunnelError.core("сторож: backoff после аварийного закрытия"), completionHandler)
+            // fail() перезаписал lastError своей причиной — возвращаем пользовательский текст.
+            TunnelSettings.lastError = Self.watchdogErrorMessage
+            return
+        }
+
         setTunnelNetworkSettings(makeNetworkSettings()) { [weak self] error in
             guard let self else { return }
             if let error {
@@ -62,6 +84,12 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                     self.runningPayload = profile.payload
                     TunnelSettings.connectedSince = Date()
                     AppLog.i(.service, "туннель поднят: \(profile.label)")
+                    // Счётчик рестартов сторожа обнуляется только при новом успешном
+                    // подключении — не при wake() (после сна сеть может быть всё ещё мертва,
+                    // и «3 рестарта не помогли» обязано сохраниться).
+                    self.watchdogRestarts = 0
+                    // Ядро только что поднялось — метрики с нуля, отметка трафика тоже.
+                    self.lastTrafficBytes = 0
                     self.startWatchdog()
                     completionHandler(nil)
                 } catch {
@@ -116,10 +144,14 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         case .stats:
             fetchStats { stats in completionHandler?(Self.encode(stats)) }
         case .status:
-            var result: [String: Any] = ["label": profile?.label ?? ""]
-            if let since = TunnelSettings.connectedSince { result["connectedSince"] = since.timeIntervalSince1970 }
-            if let error = TunnelSettings.lastError { result["lastError"] = error }
-            completionHandler?(Self.encode(result))
+            // Читаем profile на очереди туннеля: параллельный switchProfile пишет его там же,
+            // а handleAppMessage вызывается на системном потоке (гонка на label).
+            queue.async {
+                var result: [String: Any] = ["label": self.profile?.label ?? ""]
+                if let since = TunnelSettings.connectedSince { result["connectedSince"] = since.timeIntervalSince1970 }
+                if let error = TunnelSettings.lastError { result["lastError"] = error }
+                completionHandler?(Self.encode(result))
+            }
         case .switchProfile:
             guard let payload = request["payload"] as? String else { completionHandler?(nil); return }
             let label = request["label"] as? String ?? ""
@@ -134,8 +166,10 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 completionHandler?(Self.encode(["ok": ok]))
             }
         case .directIP:
-            // Собственные соединения расширения идут мимо туннеля — так приложение узнаёт свой
-            // настоящий IP для проверки утечек, не отключая VPN.
+            // «Прямой» запрос обязательно привязывается к физическому интерфейсу: собственные
+            // сокеты расширения идут по системной таблице маршрутизации (default route → utun),
+            // то есть без привязки они падали в туннель — и «настоящий IP» совпадал с IP через
+            // VPN (ложная «утечка»). Так приложение узнаёт свой реальный IP, не выключая VPN.
             fetchDirectIP { info in completionHandler?(Self.encode(info)) }
         }
     }
@@ -162,6 +196,12 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         // (смена узла без разрыва туннеля).
         let coreFd = dup(fd)
         guard coreFd >= 0 else { throw TunnelError.noTunFd }
+
+        // Владение dup-дескриптором: при успехе runXray дескриптор уходит в Go-рантайм —
+        // os.NewFile закрывает его финализатором при остановке экземпляра (libXray включает
+        // агрессивный GC, см. docs/ARCHITECTURE.md), из Swift закрывать нельзя (двойной
+        // close). При неуспехе API libXray не документирует, успело ли ядро взять
+        // дескриптор: закрываем сами — иначе каждый неудачный старт навсегда терял бы fd.
 
         let options = XrayConfigBuilder.Options(
             tunFd: coreFd,
@@ -201,6 +241,9 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             try startCore(payload: newProfile.payload)
             runningPayload = newProfile.payload
             consecutiveFailures = 0
+            // Метрики нового экземпляра ядра начинаются с нуля — старая отметка давала
+            // отрицательный прирост и лишние probe каждые 30 с, пока счётчик не «перекрыт».
+            lastTrafficBytes = 0
             TunnelSettings.lastError = nil
             return true
         } catch {
@@ -287,7 +330,11 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private func startWatchdog() {
         watchdog?.cancel()
         consecutiveFailures = 0
-        watchdogRestarts = 0
+        // watchdogRestarts и lastTrafficBytes не сбрасываем: счётчик рестартов живёт до
+        // успешного подключения (startTunnel) или восстановившейся связи (probe) — wake()
+        // после сна не должен маскировать «3 рестарта не помогли»; отметка трафика не
+        // сбрасывается, потому что ядро через wake() НЕ перезапускается и метрики
+        // продолжают расти (сброс — только в startTunnel/restartCore, где ядро новое).
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now() + 30, repeating: 30)
         timer.setEventHandler { [weak self] in self?.watchdogTick() }
@@ -332,7 +379,10 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                     // без интернета».
                     if self.watchdogRestarts >= 3 {
                         AppLog.e(.service, "сторож: 3 перезапуска ядра не помогли — останавливаю туннель")
-                        TunnelSettings.lastError = "Связь не восстанавливается — включите VPN заново"
+                        TunnelSettings.lastError = Self.watchdogErrorMessage
+                        // Отмечаем момент отмены: On Demand поднимет туннель снова почти сразу,
+                        // и startTunnel по этой метке не даст ядру рестартовать в цикле.
+                        TunnelSettings.lastCancelledAt = Date()
                         self.cancelTunnelWithError(TunnelError.core("сторож: связь не восстановилась после перезапусков ядра"))
                         return
                     }
@@ -393,26 +443,124 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         }.resume()
     }
 
+    // MARK: - Прямой IP (мимо туннеля)
+
+    /// Физический интерфейс устройства (Wi-Fi/сотовый/кабель): собственные сокеты расширения
+    /// маршрутизируются системной таблицей (default route → utun), поэтому без привязки
+    /// «прямой» запрос уходил в туннель. Интерфейс годится только не utun/lo — иначе вернёмся
+    /// к той же проблеме.
+    private static func physicalInterface() -> NWInterface? {
+        let monitor = NWPathMonitor()
+        let lock = NSLock()
+        var settled = false
+        var found: NWInterface?
+        let signal = DispatchSemaphore(value: 0)
+        monitor.pathUpdateHandler = { path in
+            lock.lock()
+            defer { lock.unlock() }
+            guard !settled else { return }
+            settled = true
+            found = path.availableInterfaces.first {
+                ($0.type == .wifi || $0.type == .cellular || $0.type == .wiredEthernet)
+                    && !$0.name.hasPrefix("utun") && !$0.name.hasPrefix("lo")
+            }
+            signal.signal()
+        }
+        monitor.start(queue: DispatchQueue(label: "xyz.gojihub.vpn.path"))
+        _ = signal.wait(timeout: .now() + 2)
+        monitor.cancel()
+        return found
+    }
+
+    /// IP «мимо VPN»: простой HTTPS GET к ipwho.is через NWConnection, привязанный к
+    /// физическому интерфейсу. Если физического интерфейса нет — пустой ответ: приложению
+    /// честнее показать «неизвестно», чем IP через VPN под видом настоящего.
     private func fetchDirectIP(_ completion: @escaping ([String: Any]) -> Void) {
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 8
-        let session = URLSession(configuration: config)
-        session.dataTask(with: URL(string: "https://ipwho.is/")!) { data, _, _ in
-            defer { session.finishTasksAndInvalidate() }
-            guard let data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        Self.directQueue.async {
+            guard let interface = Self.physicalInterface() else {
+                AppLog.w(.service, "прямой IP: физический интерфейс не найден")
                 completion([:])
                 return
             }
-            var out: [String: Any] = [:]
-            out["ip"] = json["ip"] as? String
-            out["country"] = json["country"] as? String
-            out["isp"] = (json["connection"] as? [String: Any])?["isp"] as? String
-            completion(out)
-        }.resume()
+            AppLog.d(.service, "прямой IP через интерфейс \(interface.name)")
+            let params = NWParameters.tls
+            params.requiredInterface = interface
+            let connection = NWConnection(host: "ipwho.is", port: 443, using: params)
+            let once = DirectIPOnce(connection: connection, completion: completion)
+            connection.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    // Минимальный HTTP/1.1-запрос; Connection: close — сервер закроет соединение
+                    // после тела, это естественная граница ответа.
+                    let request = "GET / HTTP/1.1\r\nHost: ipwho.is\r\nUser-Agent: curl/8.7\r\nAccept: application/json\r\nConnection: close\r\n\r\n"
+                    connection.send(content: Data(request.utf8), completion: .contentProcessed { _ in
+                        once.receive()
+                    })
+                case .failed(let error):
+                    AppLog.w(.service, "прямой IP: соединение не удалось (\(error.localizedDescription))")
+                    once.finish()
+                case .cancelled:
+                    once.finish()
+                default:
+                    break
+                }
+            }
+            connection.start(queue: Self.directQueue)
+            Self.directQueue.asyncAfter(deadline: .now() + 5) { once.finish() }
+        }
     }
 
     private static func encode(_ object: [String: Any]) -> Data? {
         try? JSONSerialization.data(withJSONObject: object)
+    }
+}
+
+/// Ответ «прямого IP» отправляется ровно один раз (тело получено, таймаут 5 с или ошибка —
+/// что раньше); соединение всегда отменяется, чтобы не висело на очереди.
+private final class DirectIPOnce {
+    private let lock = NSLock()
+    private var finished = false
+    private var body = Data()
+    private let connection: NWConnection
+    private let completion: ([String: Any]) -> Void
+
+    init(connection: NWConnection, completion: @escaping ([String: Any]) -> Void) {
+        self.connection = connection
+        self.completion = completion
+    }
+
+    func receive() {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { chunk, _, isComplete, error in
+            if let chunk { self.body.append(chunk) }
+            // Connection: close — сервер закрывает соединение после тела; обрыв после последнего
+            // сегмента тоже считаем концом ответа, тело уже накоплено.
+            if isComplete || error != nil { self.finish(); return }
+            self.receive()
+        }
+    }
+
+    func finish() {
+        lock.lock()
+        guard !finished else { lock.unlock(); return }
+        finished = true
+        lock.unlock()
+        // Обрываем цикл удержания connection → stateUpdateHandler → … до отмены.
+        connection.stateUpdateHandler = nil
+        connection.cancel()
+        completion(Self.parse(body))
+    }
+
+    /// Тело HTTP-ответа после пустой строки — разбирается так же, как раньше (ipwho.is).
+    private static func parse(_ data: Data) -> [String: Any] {
+        guard let headerEnd = data.range(of: Data("\r\n\r\n".utf8)),
+              let json = try? JSONSerialization.jsonObject(with: data[headerEnd.upperBound...]) as? [String: Any] else {
+            return [:]
+        }
+        var out: [String: Any] = [:]
+        out["ip"] = json["ip"] as? String
+        out["country"] = json["country"] as? String
+        out["isp"] = (json["connection"] as? [String: Any])?["isp"] as? String
+        return out
     }
 }
 

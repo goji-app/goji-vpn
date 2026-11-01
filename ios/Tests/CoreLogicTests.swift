@@ -154,6 +154,18 @@ final class SubscriptionParsingTests: XCTestCase {
         XCTAssertEqual(nodes.map(\.host), ["a.example.com", "b.example.com"])
         XCTAssertEqual(nodes[1].geo?.code, "FI")
     }
+
+    func testDuplicateProfilesAreDeduplicated() throws {
+        // Бэкенд отдаёт одинаковые remark|host:port повторами: без дедупликации id не
+        // уникальны и Dictionary(uniqueKeysWithValues:) в PingService падает.
+        let raw = """
+        [{"remarks": "NL", "outbounds": [{"tag": "proxy", "protocol": "vless", "settings": {"vnext": [{"address": "s.example.com", "port": 443, "users": [{"id": "u"}]}]}}]},
+         {"remarks": "NL", "outbounds": [{"tag": "proxy", "protocol": "vless", "settings": {"vnext": [{"address": "s.example.com", "port": 443, "users": [{"id": "u"}]}]}}]}]
+        """
+        let nodes = try XCTUnwrap(SubscriptionStore.parseJSONProfiles(raw))
+        XCTAssertEqual(nodes.count, 1)
+        XCTAssertEqual(Dictionary(uniqueKeysWithValues: nodes.map { ($0.id, 1) }).count, nodes.count)
+    }
 }
 
 @MainActor
@@ -170,6 +182,11 @@ final class UtilityTests: XCTestCase {
         XCTAssertEqual(CountryGeoLookup.flag("X"), "🌐")
         XCTAssertEqual(CountryGeoLookup.stripLeadingFlag("🇩🇪 Германия"), "Германия")
         XCTAssertEqual(CountryGeoLookup.find("Автовыбор серверов LTE")?.code, "RU")
+        // Алиасы матчатся по границам слова: «uk» не должен цеплять «Ukraine».
+        XCTAssertEqual(CountryGeoLookup.find("Ukraine")?.code, "UA")
+        XCTAssertEqual(CountryGeoLookup.find("🇺🇦 Украина — Киев")?.code, "UA")
+        XCTAssertEqual(CountryGeoLookup.find("UK 2")?.code, "GB")
+        XCTAssertEqual(CountryGeoLookup.find("United Kingdom")?.code, "GB")
     }
 
     func testRichText() {
@@ -179,8 +196,12 @@ final class UtilityTests: XCTestCase {
 
     func testPurchaseLinksAreFiltered() {
         XCTAssertTrue(LinkPolicy.isPurchaseLink("https://\(AppConstants.siteHost)/#/plans"))
+        XCTAssertTrue(LinkPolicy.isPurchaseLink("https://\(AppConstants.siteHost)/pay/123"))
         XCTAssertTrue(LinkPolicy.isPurchaseLink("https://t.me/Shadow_Duck_bot?start=pay"))
         XCTAssertFalse(LinkPolicy.isPurchaseLink("https://status.example.com/incident"))
+        // Информационные ссылки Telegram (канал, пост канала) не режем — только биллинг.
+        XCTAssertFalse(LinkPolicy.isPurchaseLink("https://t.me/gojihub"))
+        XCTAssertFalse(LinkPolicy.isPurchaseLink("https://t.me/gojihub/42"))
     }
 
     func testTransferURIDetection() {

@@ -364,12 +364,20 @@ struct NewsCard: View {
     }
 }
 
-/// Ссылки, ведущие к оплате вне App Store, в iOS-версии не показываем.
+/// Ссылки, ведущие к оплате вне App Store, в iOS-версии не показываем (правило 3.1.1).
+/// Блокируем точные признаки биллинга: личный кабинет (siteHost — там тарифы, оплата и
+/// продление) и платёжные deep-link'и Telegram-ботов (start=pay…). Информационные ссылки —
+/// канал в Telegram, страница статуса и т.п. — остаются кликабельными (раньше резали по
+/// подстрокам «t.me/», «promo» и блокировали их заодно).
 enum LinkPolicy {
     static func isPurchaseLink(_ raw: String) -> Bool {
-        let lower = raw.lowercased()
-        let markers = ["pay", "checkout", "plans", "tariff", "тариф", "оплат", "renew", "продл", "t.me/", "telegram.me", "\(AppConstants.siteHost)/#", "subscribe", "billing", "promo"]
-        return markers.contains { lower.contains($0) }
+        guard let url = URL(string: raw), let host = url.host?.lowercased() else { return false }
+        if host == AppConstants.siteHost || host == "www.\(AppConstants.siteHost)" { return true }
+        if host == "t.me" || host == "telegram.me" {
+            let query = (url.query ?? "").lowercased()
+            return query.contains("start=pay") || query.contains("start=checkout") || query.contains("start=subscribe")
+        }
+        return false
     }
 }
 
