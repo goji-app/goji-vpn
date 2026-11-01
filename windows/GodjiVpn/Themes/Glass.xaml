@@ -62,12 +62,14 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
     </Style>
 
-    <!-- Подпись секции ("НОВОСТИ", "ВНЕШНИЙ ВИД"): 11 SemiBold, padding 8/8/0. -->
+    <!-- Подпись секции ("НОВОСТИ", "СОБЫТИЯ"): UPPERCASE, 11 SemiBold, разрядка ~1 px и
+         приглушённый цвет (1.0.132) — заголовок тише содержимого, тексты уже капсом. -->
     <Style x:Key="SectionLabel" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{DynamicResource ManropeFamily}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="FontSize" Value="{s:Fs 11}"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+        <Setter Property="s:LetterSpacing.Spacing" Value="1"/>
         <Setter Property="Margin" Value="8,8,8,0"/>
     </Style>
 

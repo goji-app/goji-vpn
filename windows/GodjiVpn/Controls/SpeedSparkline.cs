@@ -31,6 +31,18 @@ public class SpeedSparkline : FrameworkElement
 
     private Color C(string key, Color fallback) => TryFindResource(key) is Color c ? c : fallback;
 
+    /// <summary>Снижение насыщенности цвета на долю <paramref name="by"/> (сдвиг к яркости по
+    /// luma): отдача на графике приглушена на ~12% с 1.0.132 — тёплая линия перетягивала
+    /// внимание с приёма. Цвет приёма не трогаем.</summary>
+    private static Color Desaturate(Color c, double by)
+    {
+        var luma = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B;
+        return Color.FromRgb(
+            (byte)Math.Clamp(c.R + (luma - c.R) * by, 0, 255),
+            (byte)Math.Clamp(c.G + (luma - c.G) * by, 0, 255),
+            (byte)Math.Clamp(c.B + (luma - c.B) * by, 0, 255));
+    }
+
     protected override void OnRender(DrawingContext dc)
     {
         var w = ActualWidth;
@@ -81,7 +93,8 @@ public class SpeedSparkline : FrameworkElement
 
         if (up.Count >= 2)
         {
-            var upPen = new Pen(new SolidColorBrush(Color.FromArgb(178, warm.R, warm.G, warm.B)), 1.5) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            var upWarm = Desaturate(warm, 0.12);
+            var upPen = new Pen(new SolidColorBrush(Color.FromArgb(178, upWarm.R, upWarm.G, upWarm.B)), 1.5) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
             upPen.Freeze();
             dc.DrawGeometry(null, upPen, Line(up, false));
         }

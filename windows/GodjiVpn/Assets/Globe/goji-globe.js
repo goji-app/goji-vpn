@@ -27,8 +27,10 @@ const HOME = { lat: 55.75, lon: 37.62 };
 const ATLAS = './vendor/countries-110m.json';
 
 const THEMES = {
+  // home — точка пользователя: в светлой теме была оранжевой (0xd9714b) и спорила с бирюзой
+  // акцентов — 1.0.132 заменили на приглушённый бирюзовый.
   dark: { ocean: 0x0a201d, oceanOp: 0.9, land: 0x2f6f66, landOp: 0.75, grid: 0x00d4c4, gridOp: 0.07, hi: 0x00e7d4, arc: 0x00e7d4, home: 0x8b7cf6, atmo: 0x00d4c4, dot: 0x4a625d, labelBg: 'rgba(10,20,18,.82)', labelFg: '#EAF4F2', labelBd: 'rgba(0,231,212,.45)' },
-  light: { ocean: 0xe7e0cf, oceanOp: 1, land: 0x0f4d45, landOp: 0.55, grid: 0x0f4d45, gridOp: 0.06, hi: 0x00897e, arc: 0xd9714b, home: 0xd9714b, atmo: 0x00a79b, dot: 0xa9a08a, labelBg: 'rgba(255,253,247,.94)', labelFg: '#12312C', labelBd: 'rgba(0,167,155,.5)' }
+  light: { ocean: 0xe7e0cf, oceanOp: 1, land: 0x0f4d45, landOp: 0.55, grid: 0x0f4d45, gridOp: 0.06, hi: 0x00897e, arc: 0xd9714b, home: 0x5f9c94, atmo: 0x00a79b, dot: 0xa9a08a, labelBg: 'rgba(255,253,247,.94)', labelFg: '#12312C', labelBd: 'rgba(0,167,155,.5)' }
 };
 
 let atlasPromise = null;
@@ -216,19 +218,21 @@ class GojiGlobe extends HTMLElement {
     home.position.copy(toVec(HOME.lat, HOME.lon, R * 1.012));
     globe.add(home);
 
-    // connection marker: solid core + two expanding rings, laid flat on the surface
+    // connection marker: solid core + two expanding rings, laid flat on the surface.
+    // Свечение (гало + расходящиеся кольца) с 1.0.132 вдвое слабее: гало — вдвое меньше
+    // по непрозрачности (радиус ужат до 0.028, ядро 0.02), кольца — вдвое ниже разлёт и яркость.
     const marker = new THREE.Group();
     const core = new THREE.Mesh(
       new THREE.SphereGeometry(0.02, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0xffffff })
     );
     const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(0.036, 16, 16),
-      new THREE.MeshBasicMaterial({ color: T.hi, transparent: true, opacity: 0.4 })
+      new THREE.SphereGeometry(0.028, 16, 16),
+      new THREE.MeshBasicMaterial({ color: T.hi, transparent: true, opacity: 0.2 })
     );
     const ringGeo = new THREE.RingGeometry(0.038, 0.044, 40);
     const rings = [0, 1].map(() => new THREE.Mesh(
-      ringGeo, new THREE.MeshBasicMaterial({ color: T.hi, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+      ringGeo, new THREE.MeshBasicMaterial({ color: T.hi, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
     ));
     marker.add(core, halo, rings[0], rings[1]);
     marker.visible = false;
@@ -448,10 +452,10 @@ class GojiGlobe extends HTMLElement {
       }
       rings.forEach((r, i) => {
         const p = ((t * 0.55) + i * 0.5) % 1;
-        r.scale.setScalar(0.6 + p * 1.9);
-        r.material.opacity = (on ? 0.75 : 0.5) * (1 - p);
+        r.scale.setScalar(0.6 + p * 0.95);
+        r.material.opacity = (on ? 0.38 : 0.25) * (1 - p);
       });
-      halo.material.opacity = (on ? 0.42 : 0.25) + Math.sin(t * 2.4) * 0.08;
+      halo.material.opacity = (on ? 0.2 : 0.13) + Math.sin(t * 2.4) * 0.04;
       if (highlight && hlCore) {
         hlCore.opacity = on ? 1 : 0.5 + Math.sin(t * 4) * 0.3;
         hlGlow.opacity = (on ? 0.3 : 0.15) + Math.sin(t * 2.2) * 0.1;

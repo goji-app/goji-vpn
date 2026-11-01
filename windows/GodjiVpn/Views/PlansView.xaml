@@ -25,8 +25,9 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Text="Твоя подписка" Style="{StaticResource ScreenTitle}"/>
-                    <TextBlock Text="Продлевается вручную — списаний врасплох не будет" FontWeight="Medium" FontSize="{s:Fs 12}"
-                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                    <!-- Отсутствие автопродления — заметнее (1.0.132): SemiBold + primary вместо серого. -->
+                    <TextBlock Text="Продлевается вручную — списаний врасплох не будет" FontWeight="SemiBold" FontSize="{s:Fs 12}"
+                               Foreground="{DynamicResource TealDeepBrush}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
                 <!-- Подписанная кнопка — как «Обновить» на вкладке «Серверы» (2026-10-16). -->
                 <Button Grid.Column="1" Style="{StaticResource BareButton}" VerticalAlignment="Top" Margin="10,0,0,0"
@@ -46,10 +47,11 @@
                 </Button>
             </Grid>
 
-            <!-- Карточка подписки: primaryContainer r28, кольцо дней, тариф, АКТИВНА, «Оплатить в личном кабинете ↗». -->
+            <!-- Карточка подписки: primaryContainer r28, кольцо дней, тариф, АКТИВНА, «Оплатить в личном кабинете ↗».
+                 Строки сгруппированы плотнее (1.0.132), срок при ≤7 днях — warning SemiBold. -->
             <controls:GlassPanel Grid.Row="1" Style="{StaticResource GlassCard}" CornerRadius="28" Tint="{DynamicResource TealTintBrush}" Margin="0,12,0,0">
                 <Grid>
-                    <StackPanel Margin="16">
+                    <StackPanel Margin="14,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -61,14 +63,24 @@
                                 <TextBlock FontWeight="Medium" FontSize="{s:Fs 13}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap">
                                     <Run Text="Ваш тариф: "/><Run Text="{Binding PlanName, Mode=OneWay}" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                 </TextBlock>
-                                <TextBlock FontWeight="Medium" FontSize="{s:Fs 11.5}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0">
-                                    <Run Text="До "/><Run Text="{Binding ExpiryLabel, Mode=OneWay}"/>
+                                <TextBlock FontWeight="SemiBold" FontSize="{s:Fs 11.5}" Margin="0,2,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsExpiringSoon}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                    <Run Text="До "/><Run Text="{Binding ExpiryLabel, Mode=OneWay}" FontWeight="Bold"/>
                                 </TextBlock>
                             </StackPanel>
                             <controls:ActiveBadge Grid.Column="2" Text="АКТИВНА" VerticalAlignment="Center"
                                                   Visibility="{Binding IsSubscriptionActive, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         </Grid>
-                        <Button Style="{StaticResource AccentPillButton}" Margin="0,12,0,0" Command="{Binding OpenCabinetCommand}">
+                        <Button Style="{StaticResource AccentPillButton}" Margin="0,10,0,0" Command="{Binding OpenCabinetCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Оплатить в личном кабинете" FontSize="{s:Fs 14}" FontWeight="Bold" Foreground="{DynamicResource SurfaceBrush}" VerticalAlignment="Center"/>
                                 <Path Data="{StaticResource IconNorthEast}" Style="{StaticResource Icon}" Width="13" Height="13" Fill="{DynamicResource SurfaceBrush}" Margin="7,0,0,0"/>
@@ -88,8 +100,19 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="{Binding DevicesSectionLabel}" Style="{StaticResource SectionLabel}" Margin="8,14,8,0"
-                           Visibility="{Binding HasDevices, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <!-- Лимит устройств исчерпан — счётчик секции подсвечен warning (1.0.132). -->
+                <TextBlock Grid.Row="0" Text="{Binding DevicesSectionLabel}" Margin="8,14,8,0"
+                           Visibility="{Binding HasDevices, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SectionLabel}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDeviceLimitReached}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <TextBlock Grid.Row="1" Text="Список устройств появится, когда подписка будет активна." FontWeight="Medium" FontSize="{s:Fs 12.5}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" Margin="8,16,8,0"
                            Visibility="{Binding HasDevices, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
                 <controls:GlassPanel Grid.Row="1" Style="{StaticResource GlassCard}" Margin="0,8,0,0" VerticalAlignment="Top"
@@ -285,31 +308,61 @@
                 </Grid.RowDefinitions>
                 <TextBlock Text="Новостей пока нет." FontWeight="Medium" FontSize="{s:Fs 12.5}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" Margin="8,16,8,0"
                            Visibility="{Binding HasNews, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
-                <controls:PagedItems ItemsSource="{Binding AllNews}">
-                    <controls:PagedItems.ItemTemplate>
-                        <DataTemplate>
-                            <controls:GlassPanel Style="{StaticResource GlassCard}" CornerRadius="24" Padding="14" Margin="0,12,0,0">
+                <!-- Компактные строки вместо крупных карточек (1.0.132): одна карточка со
+                     строками «заголовок + дата»; полный текст и кнопки раскрываются под строкой.
+                     «Ещё» — постраничность PagedItems (‹ 1 / 3 ›) и «Читать полностью» в тексте. -->
+                <controls:GlassPanel Style="{StaticResource GlassCard}" VerticalAlignment="Top"
+                                     Visibility="{Binding HasNews, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <controls:PagedItems ItemsSource="{Binding AllNews}">
+                        <controls:PagedItems.ItemTemplate>
+                            <DataTemplate>
                                 <StackPanel>
-                                    <TextBlock Text="{Binding DateLabel}" FontWeight="SemiBold" FontSize="{s:Fs 10.5}" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                    <controls:RichTextView Document="{Binding Document}" Focusable="False" Margin="0,7,0,0"/>
-                                    <ItemsControl ItemsSource="{Binding Buttons}" Margin="0,7,0,0"
-                                                  Visibility="{Binding Buttons.Count, Converter={StaticResource ZeroToVisibilityConverter}}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Button Style="{StaticResource ChipButton}" Height="32" Margin="0,0,6,6" Content="{Binding Text}"
-                                                        Command="{Binding DataContext.OpenBroadcastButtonCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding Url}"/>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <Rectangle Style="{StaticResource PagedSep}"/>
+                                    <Button Style="{StaticResource RowButton}" Padding="14,11"
+                                            Command="{Binding ToggleExpandedCommand}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{s:Fs 12.5}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding DateLabel}" FontWeight="SemiBold" FontSize="{s:Fs 10}"
+                                                           Foreground="{DynamicResource TextMutedBrush}" Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <Path Grid.Column="1" x:Name="Chev" Data="{StaticResource IconChevronRight}" Style="{StaticResource Icon}"
+                                                  Width="15" Height="15" Fill="{DynamicResource TextSecondaryBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                    <StackPanel x:Name="Body" Visibility="Collapsed" Margin="14,0,14,12">
+                                        <controls:RichTextView Document="{Binding Document}" Focusable="False" Margin="0,4,0,0"/>
+                                        <ItemsControl ItemsSource="{Binding Buttons}" Margin="0,7,0,0"
+                                                      Visibility="{Binding Buttons.Count, Converter={StaticResource ZeroToVisibilityConverter}}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Style="{StaticResource ChipButton}" Height="32" Margin="0,0,6,6" Content="{Binding Text}"
+                                                            Command="{Binding DataContext.OpenBroadcastButtonCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding Url}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </StackPanel>
-                            </controls:GlassPanel>
-                        </DataTemplate>
-                    </controls:PagedItems.ItemTemplate>
-                </controls:PagedItems>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                        <Setter TargetName="Body" Property="Visibility" Value="Visible"/>
+                                        <!-- Раскрыто — шеврон «вниз» (иконки вниз нет, геометрия expand_more). -->
+                                        <Setter TargetName="Chev" Property="Data" Value="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </controls:PagedItems.ItemTemplate>
+                    </controls:PagedItems>
+                </controls:GlassPanel>
             </Grid>
         </Grid>
     </Grid>

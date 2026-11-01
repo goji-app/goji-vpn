@@ -177,7 +177,8 @@
                                             Command="{Binding DataContext.PingOneCommand, RelativeSource={RelativeSource AncestorType=controls:PagedItems}}"
                                             CommandParameter="{Binding}" VerticalAlignment="Center">
                                         <controls:GlassPanel Style="{StaticResource GlassFlat}" CornerRadius="999" MinWidth="70" Height="30" Padding="11,0">
-                                            <TextBlock x:Name="Ping" Text="{Binding PingLabel}" FontWeight="Bold" FontSize="{s:Fs 11.5}"
+                                            <!-- Пинг: 12 SemiBold (не мельче вторичного текста строки, 1.0.132), цвета порогов — в триггерах ниже. -->
+                                            <TextBlock x:Name="Ping" Text="{Binding PingLabel}" FontWeight="SemiBold" FontSize="{s:Fs 12}"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                         </controls:GlassPanel>
                                     </Button>

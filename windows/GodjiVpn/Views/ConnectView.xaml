@@ -63,7 +63,8 @@
                                      Margin="0,6,14,0" MaxWidth="190" Padding="13,9"
                                      Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel HorizontalAlignment="Right">
-                        <TextBlock Text="{Binding GreetingHi}" FontWeight="Bold" FontSize="{s:Fs 20}" HorizontalAlignment="Right"/>
+                        <!-- Приветствие меньше (20→18, 1.0.132): доминанта главной — статус подключения. -->
+                        <TextBlock Text="{Binding GreetingHi}" FontWeight="Bold" FontSize="{s:Fs 18}" HorizontalAlignment="Right"/>
                         <TextBlock Text="{Binding GreetingSub}" FontWeight="SemiBold" FontSize="{s:Fs 9}" HorizontalAlignment="Right"
                                    Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>

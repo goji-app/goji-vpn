@@ -12,7 +12,9 @@ namespace GodjiVpn.ViewModels;
 
 /// <summary>Одна новость/рассылка (см. SubscriptionRepository.Broadcasts). Document
 /// перестраивается один раз при клике "Читать полностью" (см. RichContent.Build —
-/// collapsedBlocks сворачивает контент до 6 верхнеуровневых блоков, как на самом сайте).</summary>
+/// collapsedBlocks сворачивает контент до 6 верхнеуровневых блоков, как на самом сайте).
+/// С 1.0.132 лента — компактные строки: Title (первая строка без разметки) + дата, полный
+/// текст раскрывается под строкой по тапу (IsExpanded).</summary>
 public sealed partial class NewsItem : ObservableObject
 {
     private const int CollapsedBlockCount = 6;
@@ -24,8 +26,32 @@ public sealed partial class NewsItem : ObservableObject
     public required List<BroadcastButtonDto> Buttons { get; init; }
 
     [ObservableProperty] private FlowDocument document = new();
+    /// <summary>Раскрытая строка: под ней показывается полный текст (Document) и кнопки.</summary>
+    [ObservableProperty] private bool isExpanded;
+    /// <summary>Заголовок компактной строки — первая непустая строка рассылки без разметки.</summary>
+    public string Title { get; private set; } = "";
 
-    public void BuildCollapsed() => Document = RichContent.Build(RawContent, CollapsedBlockCount, Expand);
+    public void BuildCollapsed()
+    {
+        Title = FirstLineTitle(RawContent);
+        Document = RichContent.Build(RawContent, CollapsedBlockCount, Expand);
+    }
+
+    [RelayCommand]
+    private void ToggleExpanded() => IsExpanded = !IsExpanded;
+
+    /// <summary>«**Новый узел в Стамбуле**» → «Новый узел в Стамбуле»: первая непустая строка
+    /// без markdown-разметки (жирный/курсив/зачёркнутый/код/заголовок) — чтобы строка ленты
+    /// читалась обычным текстом.</summary>
+    private static string FirstLineTitle(string raw)
+    {
+        var first = raw.Replace("\r\n", "\n").Split('\n').Select(l => l.Trim())
+            .FirstOrDefault(l => l.Length > 0) ?? "";
+        return TitleStripRegex.Replace(first, "").Trim();
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex TitleStripRegex =
+        new(@"[*_~`#>\[\]]", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     private void Expand()
     {
@@ -116,14 +142,18 @@ public sealed partial class PlansViewModel : ObservableObject
     [ObservableProperty] private string expiryLabel = "—";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSubscriptionActive))]
+    [NotifyPropertyChangedFor(nameof(IsExpiringSoon))]
     private int daysLeft;
     /// <summary>«АКТИВНА» — только при настоящей подписке с остатком дней (как на Android).</summary>
     public bool IsSubscriptionActive => DaysLeft > 0;
+    /// <summary>Подписка на исходе (≤7 дней) — строка «До …» в карточке красится warning (1.0.132).</summary>
+    public bool IsExpiringSoon => DaysLeft > 0 && DaysLeft <= 7;
     /// <summary>Длина оплаченного периода (см. SubscriptionPeriod) — кольцо = DaysLeft / DaysTotal.</summary>
     [ObservableProperty] private int daysTotal = 30;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DevicesCountLabel))]
     [NotifyPropertyChangedFor(nameof(DevicesSectionLabel))]
+    [NotifyPropertyChangedFor(nameof(IsDeviceLimitReached))]
     private int deviceLimit;
     [ObservableProperty] private bool refreshing;
     [ObservableProperty] private bool isNewsExpanded;
@@ -169,6 +199,9 @@ public sealed partial class PlansViewModel : ObservableObject
 
     /// <summary>Подпись секции устройств v5: "УСТРОЙСТВА · 1 из 5".</summary>
     public string DevicesSectionLabel => DeviceLimit > 0 ? $"УСТРОЙСТВА · {Devices.Count} из {DeviceLimit}" : "УСТРОЙСТВА";
+
+    /// <summary>Лимит устройств исчерпан — счётчик секции подсвечивается warning (1.0.132).</summary>
+    public bool IsDeviceLimitReached => DeviceLimit > 0 && Devices.Count >= DeviceLimit;
 
     public PlansViewModel(ApiClient api, SubscriptionRepository subscription)
     {
@@ -330,6 +363,7 @@ public sealed partial class PlansViewModel : ObservableObject
         foreach (var d in devices) Devices.Add(ToDeviceItem(d));
         OnPropertyChanged(nameof(DevicesCountLabel));
         OnPropertyChanged(nameof(DevicesSectionLabel));
+        OnPropertyChanged(nameof(IsDeviceLimitReached));
     }
 
     /// <summary>Только для превью-экземпляра (GODJI_UI_PREVIEW_DEMO=1, см. App.xaml.cs) — сверка
@@ -467,6 +501,7 @@ public sealed partial class PlansViewModel : ObservableObject
             AccountCache.Save(AccountCache.Key.Devices, _rawDevices);
             OnPropertyChanged(nameof(DevicesCountLabel));
             OnPropertyChanged(nameof(DevicesSectionLabel));
+            OnPropertyChanged(nameof(IsDeviceLimitReached));
         }
         catch { device.IsBusy = false; }
     }
