@@ -73,10 +73,13 @@ enum CountryGeoLookup {
     private static func matches(_ text: String, alias: String) -> Bool {
         var searchStart = text.startIndex
         while let range = text.range(of: alias, range: searchStart..<text.endIndex) {
+            // Слева от совпадения — последний символ перед ним; справа — ПЕРВЫЙ символ после
+            // (range.upperBound уже указывает на него; index(after:) брал второй и ломал
+            // «UK 2»: после «uk» пробел, но проверялась «2»).
             let leftBound = range.lowerBound > text.startIndex
                 && isWordChar(text[text.index(before: range.lowerBound)])
             let rightBound = range.upperBound < text.endIndex
-                && isWordChar(text[text.index(after: range.upperBound)])
+                && isWordChar(text[range.upperBound])
             if !leftBound && !rightBound { return true }
             searchStart = range.upperBound
         }
