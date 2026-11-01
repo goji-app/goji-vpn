@@ -148,16 +148,16 @@ final class VPNController: ObservableObject {
 
     /// Любой NEVPNError раньше показывался как «нет разрешения» — теперь частные случаи
     /// честные: недействительная конфигурация или права — разными сообщениями, остальное —
-    /// как есть (описание от системы). Разбор через домен/код NSError: мостинг брошенной
-    /// ObjC-ошибки в структуру NEVPNError не гарантирован.
+    /// как есть (описание от системы). Сравнение по сырым кодам NSError (kNEVPNError…):
+    /// имена кейсов NEVPNError.Code меняются между SDK, сырые значения стабильны.
     private static func describe(_ error: Error) -> String {
         let nsError = error as NSError
         guard nsError.domain == NEVPNErrorDomain else { return error.localizedDescription }
-        switch NEVPNError.Code(rawValue: nsError.code) {
-        case .permissionDenied:
-            return L("vpn.error.permission")
-        case .configurationInvalid, .configurationReadWriteFailed:
+        switch nsError.code {
+        case 1, 3:   // configurationInvalid, configurationReadWriteFailed
             return L("vpn.error.configuration")
+        case 9:      // permissionDenied
+            return L("vpn.error.permission")
         default:
             return error.localizedDescription
         }
