@@ -57,8 +57,14 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async void OnLoggedIn()
     {
-        CurrentViewModel = _shell;
-        await _shell.LoadAsync();
+        // async void: исключение (сбой загрузки кабинета после входа) унесло бы весь процесс —
+        // ловим и пишем в crash.log, вход при этом остаётся завершённым.
+        try
+        {
+            CurrentViewModel = _shell;
+            await _shell.LoadAsync();
+        }
+        catch (Exception ex) { Program.LogCrash(ex); }
     }
 
     /// <summary>Сессия кабинета истекла и не продлилась (ApiClient.SessionExpired) — на экран

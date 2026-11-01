@@ -25,12 +25,15 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
     private bool _qualityWarmedUp;
     private int _journalTick;
 
-    // Замер качества идёт по обычному маршруту системы — пока VPN включён, это и есть туннель.
-    // Один клиент на всё время: соединение переиспользуется, и замер показывает задержку канала,
-    // а не каждый раз заново TLS-рукопожатие.
+    // Замер качества идёт тем же путём, что и трафик приложения: пока VPN включён — через
+    // локальный SOCKS туннеля (TunnelAwareProxy решает на каждый запрос; напрямую приложение
+    // при включённом туннеле идёт мимо него по правилу sing-box process_name, и «напрямую»
+    // мерило бы не канал VPN). Один клиент на всё время: соединение переиспользуется, и замер
+    // показывает задержку канала, а не каждый раз заново TLS-рукопожатие.
     private static readonly System.Net.Http.HttpClient ProbeClient = new(new System.Net.Http.SocketsHttpHandler
     {
-        UseProxy = false,
+        Proxy = new TunnelAwareProxy(),
+        UseProxy = true,
         ConnectTimeout = TimeSpan.FromSeconds(5),
         PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2)
     }) { Timeout = TimeSpan.FromSeconds(5) };

@@ -1,9 +1,11 @@
 namespace GodjiVpn.Services;
 
 /// <summary>
-/// Хранение секретов на macOS (токены сессии, ссылка подписки): файл в
-/// ~/Library/Application Support/GodjiVpn с правами 600 — читать его может только сам
-/// пользователь. Заменяет DPAPI Windows-клиента (на macOS его нет).
+/// Хранение секретов на macOS (токены сессии, ссылка подписки, конфиги ядер): файл с правами
+/// 600 — читать его может только сам пользователь. Заменяет DPAPI Windows-клиента (на macOS
+/// его нет).
+/// Каталог: Environment.SpecialFolder.LocalApplicationData — в .NET на macOS это
+/// ~/.local/share/GodjiVpn (а НЕ ~/Library/Application Support, как могло показаться).
 /// </summary>
 public static class SecretFile
 {

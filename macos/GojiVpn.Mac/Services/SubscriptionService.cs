@@ -48,8 +48,11 @@ public sealed class SubscriptionService
         // Версия ОС под тем именем, которое читает Remnawave (os_version в списке устройств).
         request.Headers.TryAddWithoutValidation("X-Ver-OS", $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}");
         request.Headers.TryAddWithoutValidation("X-Device-Model", Environment.MachineName);
-        request.Headers.TryAddWithoutValidation("X-App-Name", "Godji app (Windows)");
-        request.Headers.TryAddWithoutValidation("X-App-Version", "0.1.0");
+        // Представляемся сами (приложение — Goji VPN, как в App.axaml/build-macos.py), а не
+        // Windows-клиентом; версия — реальная версия сборки.
+        request.Headers.TryAddWithoutValidation("X-App-Name", "Goji app (macOS)");
+        var v = UpdateService.CurrentVersion;
+        request.Headers.TryAddWithoutValidation("X-App-Version", $"{v.Major}.{v.Minor}.{v.Build}");
 
         using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
         var raw = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);

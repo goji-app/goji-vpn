@@ -25,9 +25,13 @@ internal static class Keychain
         psi.ArgumentList.Add("-w"); psi.ArgumentList.Add(value);
         psi.ArgumentList.Add("-U"); // обновить существующую запись вместо ошибки "already exists"
         using var p = Process.Start(psi) ?? throw new InvalidOperationException("security не запустился");
+        // Поток читаем ДО WaitForExit: после таймаута ожидания ExitCode кинул бы исключение.
+        var stderr = p.StandardError.ReadToEnd();
         p.WaitForExit(5000);
+        if (!p.HasExited)
+            throw new InvalidOperationException("Keychain: security не завершился вовремя");
         if (p.ExitCode != 0)
-            throw new InvalidOperationException($"Keychain: {p.StandardError.ReadToEnd().Trim()} (код {p.ExitCode})");
+            throw new InvalidOperationException($"Keychain: {stderr.Trim()} (код {p.ExitCode})");
     }
 
     public static string? Read(string account)
@@ -43,7 +47,7 @@ internal static class Keychain
             var stdout = p.StandardOutput.ReadToEnd();
             p.WaitForExit(5000);
             // 44 = "could not be found" — нормальный случай "не залогинен".
-            return p.ExitCode == 0 ? stdout.TrimEnd('\n') : null;
+            return p.HasExited && p.ExitCode == 0 ? stdout.TrimEnd('\n') : null;
         }
         catch { return null; }
     }

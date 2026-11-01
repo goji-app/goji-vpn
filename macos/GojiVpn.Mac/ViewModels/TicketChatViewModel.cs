@@ -45,6 +45,9 @@ public sealed partial class TicketChatViewModel : ObservableObject
 
     private readonly ApiClient _api;
     private readonly DispatcherTimer _pollTimer;
+    // Поллинг раз в 5 с без защиты: медленный запрос (>5 с) накладывался бы на следующий такт
+    // — параллельные LoadMessagesAsync чистили/заполняли Messages одновременно. Занят — такт пропускаем.
+    private readonly SemaphoreSlim _pollLock = new(1, 1);
     private long _ticketId;
 
     [ObservableProperty] private string title = "Поддержка";
@@ -78,7 +81,13 @@ public sealed partial class TicketChatViewModel : ObservableObject
     {
         _api = api;
         _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(PollIntervalMs) };
-        _pollTimer.Tick += async (_, _) => await LoadMessagesAsync(showLoading: false);
+        _pollTimer.Tick += async (_, _) =>
+        {
+            // Пропуск такта, если предыдущий опрос ещё не завершился (медленная сеть).
+            if (!_pollLock.Wait(0)) return;
+            try { await LoadMessagesAsync(showLoading: false); }
+            finally { _pollLock.Release(); }
+        };
     }
 
     partial void OnInputChanged(string value) => SendCommand.NotifyCanExecuteChanged();

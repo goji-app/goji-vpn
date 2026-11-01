@@ -22,6 +22,9 @@ public partial class App : Application
     private DispatcherTimer? _hourlyRefreshTimer;
     private DispatcherTimer? _updateCheckTimer;
     private bool _exiting;
+    /// <summary>Системный выход (завершение сеанса/выключение macOS) — тогда Closing не
+    /// отменяем, иначе безусловный args.Cancel блокировал бы выход из сеанса.</summary>
+    private bool _osExiting;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
@@ -88,9 +91,12 @@ public partial class App : Application
             if (args.PropertyName == nameof(SubscriptionRepository.Broadcasts))
                 broadcastNotifier.Check(subscriptionRepository.Broadcasts);
         };
+        // Завершение сеанса/выключение macOS: ShutdownRequested приходит ДО закрытия окон —
+        // запоминаем, чтобы Closing ниже не отменил закрытие и не блокировал выход из сеанса.
+        desktop.ShutdownRequested += (_, _) => _osExiting = true;
         window.Closing += (_, args) =>
         {
-            if (_exiting) return;
+            if (_exiting || _osExiting) return;
             // Как у любого VPN-клиента: закрытие окна не рвёт туннель — приложение остаётся в
             // строке меню, окно открывается оттуда или кликом по значку в Dock.
             args.Cancel = true;
@@ -136,7 +142,17 @@ public partial class App : Application
             _exiting = true;
             _hourlyRefreshTimer?.Stop();
             _updateCheckTimer?.Stop();
-            try { await vpnEngine.DisconnectAsync(); } catch { /* уходим в любом случае */ }
+            // DisconnectAsync может ждать окна пароля администратора (ConnectAsync держит лок
+            // жизненного цикла всё время подключения) — прерываем подключение и ограничиваем
+            // разрыв туннеля десятью секундами: «Выход» не должен висеть до 5 минут.
+            vpnEngine.CancelConnect();
+            try
+            {
+                var disconnect = vpnEngine.DisconnectAsync();
+                if (await Task.WhenAny(disconnect, Task.Delay(TimeSpan.FromSeconds(10))) != disconnect)
+                    VpnEngine.Log("Выход: туннель не остановился за 10 с — выходим принудительно");
+            }
+            catch { /* уходим в любом случае */ }
             tray?.Dispose();
             desktop.Shutdown();
         }

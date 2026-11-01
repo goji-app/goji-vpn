@@ -78,12 +78,28 @@ public sealed partial class LoginViewModel : ObservableObject
             var (_, token, refreshToken) = await _api.VerifyOtpAsync(Email.Trim(), Code.Trim());
             IsVerifySuccess = true;
             await Task.Delay(1300);
-            await OnAuthenticatedAsync(token, refreshToken);
+            try
+            {
+                await OnAuthenticatedAsync(token, refreshToken);
+            }
+            catch (Exception saveEx)
+            {
+                // Код верный — это сбой сохранения сессии (Keychain и т.п.), а не «неверный код».
+                Program.LogCrash(saveEx);
+                IsVerifySuccess = false;
+                ErrorMessage = "Код верный, но сессию сохранить не удалось: " + saveEx.Message;
+                Code = "";
+            }
         }
         catch (Exception ex)
         {
             ErrorMessage = "Неверный код: " + ex.Message;
             Code = "";
+        }
+        finally
+        {
+            // Раньше IsBusy сбрасывался только в catch — исключение сохранения сессии
+            // оставляло экран входа навсегда «занятым».
             IsBusy = false;
         }
     }

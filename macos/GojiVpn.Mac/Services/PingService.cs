@@ -50,28 +50,24 @@ public sealed class PingService
     public async Task<int> MeasureAsync(VlessNode node, CancellationToken ct = default)
     {
         var method = _settings.Method;
-        // TCP/ICMP не смотрят на JSON-конфиг узла вообще — только host:port, без прокси и без
-        // временного xray.exe (см. PingRepository.kt — тот же выбор: эти методы быстрее и не
-        // требуют поднимать процесс, но не отражают работоспособность самого VLESS-протокола).
-        if (method is PingMethod.Tcp or PingMethod.Icmp)
-            return await MeasureDirectAsync(node, method, ct).ConfigureAwait(false);
+        // ICMP на macOS без root всегда даёт «недоступен» (raw socket: permission denied) —
+        // пункт убран из выбора, а сохранённый в настройках ICMP прозрачно считаем TCP.
+        if (method == PingMethod.Icmp) method = PingMethod.Tcp;
+        // TCP не смотрит на JSON-конфиг узла вообще — только host:port, без прокси и без
+        // временного xray.exe (см. PingRepository.kt — тот же выбор: этот метод быстрее и не
+        // требует поднимать процесс, но не отражает работоспособность самого VLESS-протокола).
+        if (method == PingMethod.Tcp)
+            return await MeasureDirectAsync(node, ct).ConfigureAwait(false);
 
         await Concurrency.WaitAsync(ct).ConfigureAwait(false);
         try { return await MeasureCoreAsync(node, method, _settings.TestUrl, ct).ConfigureAwait(false); }
         finally { Concurrency.Release(); }
     }
 
-    private static async Task<int> MeasureDirectAsync(VlessNode node, PingMethod method, CancellationToken ct)
+    private static async Task<int> MeasureDirectAsync(VlessNode node, CancellationToken ct)
     {
         try
         {
-            if (method == PingMethod.Icmp)
-            {
-                using var ping = new System.Net.NetworkInformation.Ping();
-                var reply = await ping.SendPingAsync(node.Host, 2000).ConfigureAwait(false);
-                return reply.Status == System.Net.NetworkInformation.IPStatus.Success ? (int)reply.RoundtripTime : -1;
-            }
-
             var sw = Stopwatch.StartNew();
             using var socket = new TcpClient();
             var connectTask = socket.ConnectAsync(node.Host, node.Port);

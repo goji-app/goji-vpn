@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using GodjiVpn.Models;
 
 namespace GodjiVpn.Services;
@@ -12,8 +13,9 @@ namespace GodjiVpn.Services;
 /// <summary>Одна доступная версия, готовая к скачиванию. Changelog — сырой Markdown из тела
 /// релиза (release.Body), рендерится через Utils/RichContent.cs на стороне ViewModel — тот же
 /// рендерер, что и у новостей, GitHub-флейвор Markdown он покрывает разумно (заголовки, списки,
-/// жирный/курсив, ссылки — то немногое, чем обычно пишут release notes).</summary>
-public sealed record UpdateInfo(Version Version, string VersionLabel, string Changelog, string DownloadUrl, string FileName, long? SizeBytes);
+/// жирный/курсив, ссылки — то немногое, чем обычно пишут release notes). Sha256 — из манифеста
+/// сайта загрузки; у GitHub-ассетов его нет, там проверяется размер.</summary>
+public sealed record UpdateInfo(Version Version, string VersionLabel, string Changelog, string DownloadUrl, string FileName, long? SizeBytes, string? Sha256 = null);
 
 /// <summary>
 /// Проверка новых версий: сначала манифест latest.json на сайте загрузки (открывается
@@ -73,8 +75,13 @@ public sealed class UpdateService
 
             var file = platform.Files.FirstOrDefault(f => f.Kind == $"zip-{MacArch}");
             if (file == null || string.IsNullOrWhiteSpace(file.Path) || file.Path.Contains("..")) return null;
+            // Имя файла из манифеста — только имя: путь туда писать нельзя (Path.Combine ниже).
+            var fileName = Path.GetFileName(file.Name);
+            if (string.IsNullOrEmpty(fileName)) return null;
 
-            return new UpdateInfo(version, platform.Version, platform.Notes, $"{site}/{file.Path.TrimStart('/')}", file.Name, file.Size);
+            return new UpdateInfo(version, platform.Version, platform.Notes, $"{site}/{file.Path.TrimStart('/')}",
+                fileName, file.Size,
+                string.IsNullOrWhiteSpace(file.Sha256) ? null : file.Sha256.Trim());
         }
         catch { return null; }
     }
@@ -92,7 +99,7 @@ public sealed class UpdateService
             var asset = release.Assets.FirstOrDefault(a => a.Name.EndsWith($"-macOS-{MacArch}.zip", StringComparison.OrdinalIgnoreCase));
             if (asset == null) return null;
 
-            return new UpdateInfo(version, tag, release.Body, asset.BrowserDownloadUrl, asset.Name, asset.Size);
+            return new UpdateInfo(version, tag, release.Body, asset.BrowserDownloadUrl, Path.GetFileName(asset.Name), asset.Size);
         }
         catch { return null; }
     }
@@ -104,7 +111,8 @@ public sealed class UpdateService
         // автоматическая замена бандла на месте ненадёжна).
         var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
         Directory.CreateDirectory(downloads);
-        var tempPath = Path.Combine(downloads, update.FileName);
+        // Только имя файла — манифест/ассет не должны уводить запись выше "Загрузок".
+        var tempPath = Path.Combine(downloads, Path.GetFileName(update.FileName));
         using var response = await _http.GetAsync(update.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         var total = response.Content.Headers.ContentLength ?? update.SizeBytes ?? -1L;
@@ -120,7 +128,35 @@ public sealed class UpdateService
             downloaded += read;
             if (total > 0) progress?.Report((double)downloaded / total);
         }
+
+        // Целостность: sha256 обязателен, когда манифест его даёт; для GitHub-ассетов хэша нет —
+        // сверяем хотя бы размер. Нет ни того ни другого — обновление не устанавливаем.
+        if (!string.IsNullOrWhiteSpace(update.Sha256))
+        {
+            string actualHex;
+            using (var hashed = File.OpenRead(tempPath))
+                actualHex = Convert.ToHexString(await SHA256.HashDataAsync(hashed, ct).ConfigureAwait(false));
+            if (!actualHex.Equals(update.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                TryDelete(tempPath);
+                throw new InvalidOperationException("Контрольная сумма скачанного обновления не совпала — установка отменена, попробуйте ещё раз.");
+            }
+        }
+        else
+        {
+            var expectedSize = update.SizeBytes ?? total;
+            if (expectedSize <= 0 || downloaded != expectedSize)
+            {
+                TryDelete(tempPath);
+                throw new InvalidOperationException("Скачанное обновление не совпало по размеру — установка отменена, попробуйте ещё раз.");
+            }
+        }
         return tempPath;
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { if (File.Exists(path)) File.Delete(path); } catch { /* лучшее усилие */ }
     }
 
     /// <summary>Запускает скачанный установщик и сразу завершает приложение — установщик сам

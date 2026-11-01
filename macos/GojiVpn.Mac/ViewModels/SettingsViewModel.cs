@@ -67,9 +67,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     private static string LogsDir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GodjiVpn", "logs");
 
-    /// <summary>Версия встроенного xray.exe (Assets/xray) — строка "Версия XRAY" в
-    /// "О программе", как BUNDLED_XRAY_VERSION в Android.</summary>
-    public const string BundledXrayVersion = "26.3.27";
+    /// <summary>Версия встроенного ядра xray — строка "Версия XRAY" в "О программе", как
+    /// BUNDLED_XRAY_VERSION в Android. Ядра два: актуальное 26.10.21 (macOS 13+) и legacy
+    /// 26.3.27 для 10.15–12 — показываем версию фактически выбранного (см. VpnEngine.XrayExe).</summary>
+    public string XrayVersion => VpnEngine.BundledXrayVersion;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UpdateIdleText))]
@@ -83,7 +84,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>Откуда взять ID подписки — задаёт App (SubscriptionRepository.SelectedNode).</summary>
     public Func<string?>? SubscriptionIdSource { get; set; }
     [ObservableProperty] private string deviceInfo = "—";
-    public string XrayVersion => BundledXrayVersion;
     [ObservableProperty] private LogFileItem selectedLogFile;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLogEmpty))]
@@ -263,13 +263,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     };
 
     /// <summary>Аналог PingSettingsScreen.kt — способ проверки серверов на вкладке "Серверы"
-    /// (см. PingService/PingSettings).</summary>
+    /// (см. PingService/PingSettings). ICMP не предлагаем: raw socket на macOS без root
+    /// всегда даёт "недоступен" (PingService прозрачно считает сохранённый ICMP как TCP).</summary>
     public ObservableCollection<PingMethodItem> PingMethods { get; } = new()
     {
         new PingMethodItem { Label = "Через прокси · GET", Method = PingMethod.ProxyGet },
         new PingMethodItem { Label = "Через прокси · HEAD", Method = PingMethod.ProxyHead },
         new PingMethodItem { Label = "TCP", Method = PingMethod.Tcp },
-        new PingMethodItem { Label = "ICMP", Method = PingMethod.Icmp },
     };
 
     /// <summary>Аналог ThemeMode (Android) — "Системная" следует теме Windows живьём, пока
@@ -297,7 +297,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         _api = api;
         selectedLogFile = LogFiles[0];
         selectedLogFile.IsSelected = true;
-        foreach (var m in PingMethods) m.IsSelected = m.Method == _pingSettings.Method;
+        // Раньше был режим ICMP (на macOS без root всегда «недоступен», убран из выбора) —
+        // сохранённый в настройках ICMP показываем выбранным TCP, как его и проверяет PingService.
+        var selectedPingMethod = _pingSettings.Method == PingMethod.Icmp ? PingMethod.Tcp : _pingSettings.Method;
+        foreach (var m in PingMethods) m.IsSelected = m.Method == selectedPingMethod;
         pingTestUrl = _pingSettings.TestUrl;
         // Превью-экземпляр: сразу нужный подэкран (GODJI_UI_PREVIEW_SETTINGS=Bypass и т.п.).
         if (Environment.GetEnvironmentVariable("GODJI_UI_PREVIEW") == "1" &&
@@ -430,7 +433,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             var executables = Directory.GetFiles(Path.Combine(appPath, "Contents", "MacOS"));
             var exact = executables.FirstOrDefault(f => Path.GetFileName(f) == bundleName);
-            return Path.GetFileName(exact ?? executables.FirstOrDefault()) ?? bundleName;
+            if (exact != null) return Path.GetFileName(exact);
+            // Точного совпадения нет: единственный файл — берём его, а когда файлов несколько,
+            // первый попавшийся может оказаться вспомогательным бинарником — не угадываем.
+            return executables.Length == 1 ? Path.GetFileName(executables[0]) : null;
         }
         catch { return string.IsNullOrEmpty(bundleName) ? null : bundleName; }
     }
@@ -546,9 +552,18 @@ public sealed partial class SettingsViewModel : ObservableObject
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             const int maxChars = 20000;
             var length = (int)Math.Min(stream.Length, maxChars);
+            var seeked = stream.Length > length; // читаем не с начала файла
             stream.Seek(-length, SeekOrigin.End);
             using var reader = new StreamReader(stream);
-            LogContent = reader.ReadToEnd();
+            var content = reader.ReadToEnd();
+            // Разрез посередине многобайтового UTF-8-символа даёт битые знаки в начале —
+            // отбрасываем неполный фрагмент до первого перевода строки.
+            if (seeked)
+            {
+                var nl = content.IndexOf('\n');
+                if (nl >= 0) content = content[(nl + 1)..];
+            }
+            LogContent = content;
         }
         catch (Exception ex)
         {

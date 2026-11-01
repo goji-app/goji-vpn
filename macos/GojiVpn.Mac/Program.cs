@@ -23,6 +23,15 @@ internal static class Program
         {
             return; // уже запущено — второй экземпляр не нужен
         }
+        catch (UnauthorizedAccessException)
+        {
+            return; // файл блокировки недоступен — считаем, что приложение уже запущено
+        }
+        catch (Exception ex)
+        {
+            LogCrash(ex); // неожиданная причина (нет места, битый каталог…) — с логом, но не воюем за порт
+            return;
+        }
         // Необработанное исключение — в crash.log (журнал "Сбои" в Настройках).
         AppDomain.CurrentDomain.UnhandledException += (_, e) => LogCrash(e.ExceptionObject as Exception);
         TaskScheduler.UnobservedTaskException += (_, e) => { LogCrash(e.Exception); e.SetObserved(); };
@@ -37,6 +46,8 @@ internal static class Program
         {
             var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GodjiVpn", "logs");
             Directory.CreateDirectory(dir);
+            // Тот же лимит, что у журналов ядер (VpnEngine): crash.log не должен расти вечно.
+            Services.VpnEngine.TrimLogIfNeeded(Path.Combine(dir, "crash.log"));
             File.AppendAllText(Path.Combine(dir, "crash.log"), $"===== {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} =====\n{ex}\n\n");
         }
         catch { /* ничего не поделать */ }
