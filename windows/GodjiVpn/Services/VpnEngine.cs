@@ -228,6 +228,14 @@ public sealed class VpnEngine : INotifyPropertyChanged
                     LogEngine($"ConnectAsync: попытка {attempt}/{MaxConnectAttempts} FAILED — {ex}");
                     await TeardownAsync().ConfigureAwait(false);
                     if (attempt == MaxConnectAttempts) throw;
+                    // Фантомное устройство Wintun после аварийного конца прошлой сессии: sing-box не
+                    // может ни создать адаптер («Cannot create a file when that file already exists»),
+                    // ни открыть («Element not found»). Вторая попытка обычно проходит и без этого
+                    // (драйвер сам освобождает фантом), но до того сгорает ~16 с на гарантированно
+                    // мёртвой попытке — удаляем устройство заранее.
+                    if (ex.Message.Contains("не смог поднять сетевой адаптер") &&
+                        (ex.Message.Contains("already exists") || ex.Message.Contains("Element not found")))
+                        await RemovePhantomAdapterDeviceAsync().ConfigureAwait(false);
                     await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
                 }
             }
@@ -1185,6 +1193,33 @@ public sealed class VpnEngine : INotifyPropertyChanged
             if (process != null) await process.WaitForExitAsync().ConfigureAwait(false);
         }
         catch { /* лучшее усилие — если не получится, sing-box просто ещё раз упадёт с понятной ошибкой */ }
+    }
+
+    /// <summary>Удаляет ПОЛУМЁРТВОЕ PnP-устройство нашего Wintun-адаптера (см. вызов в ConnectAsync):
+    /// после аварийного конца прошлой сессии (установщик убил sing-box, краш, выключение ПК при
+    /// поднятом туннеле) в системе остаётся фантом, который sing-box не может ни создать заново,
+    /// ни открыть. Удаляем точечно: имя — ровно наше («Godji», константа без кавычек), статус —
+    /// не OK (живой переиспользуемый адаптер и чужой Wintun типа WireGuard не задеты).</summary>
+    private async Task RemovePhantomAdapterDeviceAsync()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo(PowerShellPath,
+                "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command " +
+                $"\"Get-PnpDevice -Class Net -ErrorAction SilentlyContinue | " +
+                $"Where-Object {{ $_.FriendlyName -eq '{RequestedAdapterName}' -and $_.Status -ne 'OK' }} | " +
+                "ForEach-Object { pnputil /remove-device $_.InstanceId }\"")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(psi);
+            if (process != null) await process.WaitForExitAsync().ConfigureAwait(false);
+            LogEngine("phantom adapter device removed");
+        }
+        catch (Exception ex) { LogEngine($"phantom adapter removal: {ex.Message}"); }
     }
 
     /// <returns>Реальное имя адаптера (см. _actualAdapterName) — не обязательно
