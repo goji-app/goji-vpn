@@ -17,6 +17,12 @@ ADMIN=gojici
 sudo sysadminctl -addUser "$ADMIN" -password "$PASS" -admin 2>&1 | tail -1
 
 sed -n '/const string script = """/,/""";/p' GojiVpn.Mac/Services/VpnEngine.cs | sed '1d;$d' | sed 's/^            //' > "$work/wrapper.sh"
+# Приложение подставляет @APPNAME@ именем своего процесса (VpnEngine.StartPrivilegedTunnelAsync);
+# в тесте «приложение» — этот bash-скрипт ($$ передаётся как app pid), подставляем его фактическое
+# comm — иначе новая проверка обёртки (kill -0 + совпадение имени) решит, что приложение умерло,
+# и снимет туннель через 2 с после старта.
+appname=$(ps -p $$ -o comm=)
+sed -i '' "s/@APPNAME@/$appname/" "$work/wrapper.sh"
 cat > "$work/xray.json" <<'EOF'
 {"log":{"loglevel":"warning"},
  "inbounds":[{"listen":"127.0.0.1","port":10808,"protocol":"socks","settings":{"udp":true}}],
