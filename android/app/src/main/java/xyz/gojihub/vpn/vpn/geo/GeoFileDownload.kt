@@ -24,10 +24,14 @@ internal object GeoFileDownload {
     }
 
     /** Пробует адреса по очереди (зеркала сайта, затем GitHub) до первой удачной закачки. */
-    fun download(client: OkHttpClient, urls: List<String>, dest: File, minValidSize: Long): Boolean =
-        urls.any { download(client, it, dest, minValidSize) }
+    fun download(client: OkHttpClient, urls: List<String>, dest: File, minValidSize: Long, validate: ((File) -> Boolean)? = null): Boolean =
+        urls.any { download(client, it, dest, minValidSize, validate) }
 
-    fun download(client: OkHttpClient, url: String, dest: File, minValidSize: Long): Boolean {
+    /** [validate] — необязательная проверка содержимого скачанного tmp-файла ДО переименования
+     *  поверх рабочей версии (для protobuf-файлов — GeoDataParser.isValidDat). Проверки одного
+     *  размера мало: страница ошибки зеркала и оборванная посреди записи закачка легко весят
+     *  больше MIN_VALID_SIZE, а битый geosite.dat потом ронял establishTunnel целиком. */
+    fun download(client: OkHttpClient, url: String, dest: File, minValidSize: Long, validate: ((File) -> Boolean)? = null): Boolean {
         val etagFile = File(dest.path + ".etag")
         val tmp = File(dest.parentFile, "${dest.name}.tmp")
         return try {
@@ -50,6 +54,11 @@ internal object GeoFileDownload {
                 // Оборванная закачка или HTML-страница вместо файла не должна вытеснять рабочую версию.
                 if (written < minValidSize) {
                     Log.w(TAG, "GeoFileDownload: подозрительно маленький ответ ($url, $written байт) — отброшен")
+                    tmp.delete()
+                    return false
+                }
+                if (validate != null && !validate(tmp)) {
+                    Log.w(TAG, "GeoFileDownload: содержимое $url не прошло структурную проверку — отброшено")
                     tmp.delete()
                     return false
                 }

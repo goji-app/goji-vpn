@@ -66,6 +66,16 @@ object GeoDataParser {
         return result
     }
 
+    /** Структурная проверка geoip.dat/geosite.dat сразу после закачки (см. GeoDataDownloader):
+     *  тот же потоковый проход по верхнему уровню файла, что и resolve*, но без запроса тегов.
+     *  HTML-страница ошибки с зеркала, gzip-контент без Content-Encoding и оборванная посреди
+     *  записи закачка ломаются на первом же теге ("unsupported protobuf wire type …") или на
+     *  EOF — и не вытесняют рабочую версию файла, чтобы потом не ронять каждое подключение
+     *  (живой кейс: establishTunnel падал с "wire type 7" — gzip-магия 0x1F даёт ровно его). */
+    fun isValidDat(file: File): Boolean = file.exists() && runCatching {
+        forEachWantedEntry(file, emptySet()) { _, _ -> }
+    }.isSuccess
+
     /**
      * Потоковый проход по верхнему уровню GeoIPList/GeoSiteList (repeated entry = 1) без чтения
      * файла целиком: geoip.dat весит ~23 МБ, и раньше readBytes() на каждое (первое после
