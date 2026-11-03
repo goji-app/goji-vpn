@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
 using GodjiVpn.Services;
@@ -33,6 +34,20 @@ public partial class App : Application
         // Логируем и показываем понятное сообщение вместо тихого исчезновения окна.
         DispatcherUnhandledException += (_, args) =>
         {
+            // Глобус (GlobeHost) — это WebView2CompositionControl, и при остановке
+            // GPU-устройства (сброс драйвера, сон/пробуждение, отвалившийся RDP-сеанс)
+            // его внутренний обработчик SizeChanged кидает COMException 0x887A0005
+            // ("экземпляр устройства GPU приостановлен"). Рендер-цикл WPF дёргает
+            // SizeChanged на каждый кадр ресайза, поэтому MessageBox ниже сыпался бы
+            // серией один за другим, хотя исключение восстановимо само: D3D-поверхность
+            // пересоздастся, когда устройство вернётся (живые краш-логи 2026-10-30 —
+            // ровно этот кейс, дважды за ночь). Тихо логируем и продолжаем работу.
+            if (args.Exception is COMException { HResult: unchecked((int)0x887A0005) })
+            {
+                LogUnhandledException(args.Exception);
+                args.Handled = true;
+                return;
+            }
             LogUnhandledException(args.Exception);
             MessageBox.Show(
                 "Произошла непредвиденная ошибка:\n\n" + args.Exception.Message +
