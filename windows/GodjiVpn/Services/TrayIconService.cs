@@ -62,6 +62,15 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(_toggleItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(exitItem);
+        // Меню создаётся вне визуального дерева окна: без явных стилей фон рисует дефолтный
+        // WPF-шаблон (светлый SystemColors), а текст уходит под глобальный неявный стиль
+        // TextBlock из App.xaml (в тёмной теме — почти белый) → нечитаемо (скриншот 2026-11-03).
+        // Styles описаны в App.xaml (TrayContextMenu/TrayMenuItem), тема подхватывается через
+        // DynamicResource и переживает смену светлой/тёмной в рантайме.
+        menu.Style = (Style)Application.Current.TryFindResource("TrayContextMenu");
+        openItem.Style = (Style)Application.Current.TryFindResource("TrayMenuItem");
+        _toggleItem.Style = openItem.Style;
+        exitItem.Style = openItem.Style;
         _icon.ContextMenu = menu;
 
         _icon.TrayMouseDoubleClick += (_, _) => ShowWindow(window);

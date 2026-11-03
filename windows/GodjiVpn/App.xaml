@@ -363,6 +363,72 @@
                 </Style.Triggers>
             </Style>
 
+            <!-- Меню иконки в трее (TrayIconService). Контекстное меню создаётся в коде ВНЕ
+                 визуального дерева окна, поэтому дефолтный WPF-шаблон рисует фон системными
+                 SystemColors (светлый), а текст попадает под ГЛОБАЛЬНЫЙ неявный стиль TextBlock
+                 выше: Foreground=TextPrimaryBrush — в тёмной теме почти белый. Итог — белый
+                 текст на светлом фоне, нечитаемо (живой скриншот 2026-11-03). Лечится так же,
+                 как в PressScaleButtonBase: свой ControlTemplate со scope-переопределением
+                 неявного TextBlock-стиля + фон/текст из темы приложения. DynamicResource
+                 переживает смену темы в рантайме (ThemeService подменяет MergedDictionaries[0]). -->
+            <Style x:Key="TrayContextMenu" TargetType="{x:Type ContextMenu}">
+                <Setter Property="Background" Value="{DynamicResource SurfaceContainerLowBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                <Setter Property="Padding" Value="4"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ContextMenu}">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="{TemplateBinding Padding}">
+                                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="TrayMenuItem" TargetType="{x:Type MenuItem}">
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="FontFamily" Value="{StaticResource ManropeFamily}"/>
+                <Setter Property="FontSize" Value="{s:Fs 13}"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type MenuItem}">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    CornerRadius="6" Padding="12,7" SnapsToDevicePixels="True">
+                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True">
+                                    <ContentPresenter.Resources>
+                                        <!-- Неявный App-level стиль TextBlock (Foreground=TextPrimaryBrush)
+                                             здесь перебивал бы цвет из триггера IsHighlighted — ровно та же
+                                             причина, что расписана в PressScaleButtonBase. Локальный стиль
+                                             сильнее: резолвинг ищет ближайший словарь. -->
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=MenuItem}}"/>
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <DataTemplate DataType="{x:Type vm:OnboardingViewModel}">
                 <views:OnboardingView/>
             </DataTemplate>
