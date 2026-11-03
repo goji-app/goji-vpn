@@ -274,6 +274,9 @@ public partial class App : Application
     {
         _hourlyRefreshTimer?.Stop();
         _updateCheckTimer?.Stop();
+        // Раньше разрыв при закрытии приложения не оставлял в журнале никакого следа —
+        // в логе было видно "Teardown" без причины, неотличимо от ручного отключения.
+        VpnEngine.Log("выход из приложения: разрываю туннель");
         try
         {
             var disconnect = VpnEngine.Current?.DisconnectAsync() ?? Task.CompletedTask;

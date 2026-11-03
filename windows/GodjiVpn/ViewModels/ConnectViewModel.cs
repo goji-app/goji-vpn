@@ -203,6 +203,10 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         ErrorMessage = null;
         if (IsConnected)
         {
+            // Все внутренние причины разрыва логируются (смерть ядра, смена сети, wifi-правила);
+            // раньше этот путь оставался единственным «немым» — по логу нельзя было отличить
+            // ручное нажатие (кнопка/трей) от автоматического отключения.
+            Services.VpnEngine.Log("toggle: отключение (кнопка/трей)");
             await _vpnEngine.DisconnectAsync();
             return;
         }

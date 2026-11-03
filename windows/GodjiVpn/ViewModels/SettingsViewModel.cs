@@ -556,6 +556,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private async Task ApplyBypassAsync()
     {
         BypassDirty = false;
+        Services.VpnEngine.Log("настройки: применены «Сайты мимо VPN» — переподключение");
         await _vpnEngine.ReconnectAsync();
     }
 

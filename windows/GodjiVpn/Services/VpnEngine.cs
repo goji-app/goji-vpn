@@ -187,6 +187,10 @@ public sealed class VpnEngine : INotifyPropertyChanged
     public async Task ReconnectAsync()
     {
         if (_lastNode is not { } node || !IsRunning) return;
+        // Вызывается и обработчиком смены сети (он логирует свою причину), и UI-путями
+        // (применение «Сайтов мимо VPN») — здесь общий след, чтобы в логе было видно
+        // каждое переподключение, даже если вызывающий забыл залогировать свой.
+        LogEngine("ReconnectAsync: переподключение к тому же узлу");
         await DisconnectAsync().ConfigureAwait(false);
         await ConnectAsync(node).ConfigureAwait(false);
     }
