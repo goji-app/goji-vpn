@@ -25,6 +25,12 @@ public static class WebView2EnvironmentProvider
         return _task;
     }
 
+    /// <summary>Сбросить кэш среды — путь восстановления GlobeHost после смерти браузерного
+    /// процесса (BrowserProcessExited): среда, пережившая смерть своего процесса, может не
+    /// поднять новый контрол, поэтому пробуем ещё раз с заведомо свежей (новая среда с той же
+    /// папкой данных в одном процессе — штатный сценарий, браузерный процесс у них общий).</summary>
+    public static void Reset() => _task = null;
+
     private static Task<CoreWebView2Environment> CreateAsync()
     {
         var userDataFolder = Path.Combine(

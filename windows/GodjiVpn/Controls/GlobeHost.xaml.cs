@@ -1,9 +1,11 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using GodjiVpn.Services;
 using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
 
 namespace GodjiVpn.Controls;
 
@@ -21,11 +23,22 @@ namespace GodjiVpn.Controls;
 public partial class GlobeHost : UserControl
 {
     private const string VirtualHost = "godji.local";
+    /// <summary>Сколько раз пересоздаём контрол после смерти браузерного процесса, прежде чем
+    /// сдаться и оставить глобус пустым (он декоративный, но процесс, умирающий сразу после
+    /// пересоздания, не должен крутить бесконечный цикл «умер → создали → умер»).</summary>
+    private const int MaxCrashRecoveries = 3;
     private bool _ready;
     private bool _disposed;
     private readonly Queue<Func<Task>> _pending = new();
     private Window? _window;
     private bool? _sentPaused;
+    // Падение браузерного процесса (BrowserProcessExited): контрол после этого мёртв навсегда
+    // (даже CoreWebView2-геттер кидает InvalidOperationException — реальный краш пользователя
+    // 1.0.132/2026-11-03, серия записей в crash.log с каждого resize/activate окна).
+    private bool _browserDead;
+    private bool _recovering;
+    private bool _crashedDuringRecovery;
+    private int _crashRecoveries;
 
     /// <summary>Спутники на орбитах — только экран входа (satellites="on" в эталоне).
     /// Задаётся в XAML до загрузки: компонент читает его один раз при старте.</summary>
@@ -89,30 +102,8 @@ public partial class GlobeHost : UserControl
 
         try
         {
-            // Общий Environment на процесс (см. WebView2EnvironmentProvider) — та же папка
-            // данных, которую использует и WebLoginWindow, вместо создания второй независимой
-            // копии по умолчанию рядом с exe (там нет прав на запись в Program Files).
-            var env = await WebView2EnvironmentProvider.GetAsync();
-            if (_disposed) return;
-            await Web.EnsureCoreWebView2Async(env);
-            if (_disposed) return;
-
-            var globeDir = Path.Combine(AppContext.BaseDirectory, "Assets", "Globe");
-            Web.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                VirtualHost, globeDir, CoreWebView2HostResourceAccessKind.Allow);
-
-            Web.CoreWebView2.NavigationCompleted += async (_, e) =>
-            {
-                if (_disposed || !e.IsSuccess) return;
-                _ready = true;
-                await SetThemeAsync(ThemeService.Current?.IsDark ?? false);
-                while (_pending.Count > 0 && !_disposed) await _pending.Dequeue()();
-            };
-            Web.CoreWebView2.Navigate($"https://{VirtualHost}/globe.html{(Satellites ? "?sat=1" : "")}");
-
-            // Живое переключение темы, пока экран с глобусом уже открыт (не только на старте) —
-            // тот же статический синглтон-паттерн, что и VpnEngine.Current.
-            if (ThemeService.Current != null) ThemeService.Current.Changed += OnThemeChanged;
+            await InitializeCoreAsync();
+            return;
         }
         catch (Exception ex)
         {
@@ -122,9 +113,181 @@ public partial class GlobeHost : UserControl
             // должно остаться полностью рабочим, просто без глобуса, а не падать целиком (это
             // было бы особенно обидно, учитывая, что GlobeHost встроен и в LoginView, то есть
             // сработало бы на самом первом экране, который видит пользователь).
-            App.LogUnhandledException(ex);
+            LogGlobeFailure("инициализация WebView2 не удалась", ex);
         }
     }
+
+    private async Task InitializeCoreAsync()
+    {
+        if (_ready || _disposed) return;
+
+        // Общий Environment на процесс (см. WebView2EnvironmentProvider) — та же папка
+        // данных, которую использует и окно веб-входа, вместо создания второй независимой
+        // копии по умолчанию рядом с exe (там нет прав на запись в Program Files).
+        var env = await WebView2EnvironmentProvider.GetAsync();
+        if (_disposed) return;
+        await Web.EnsureCoreWebView2Async(env);
+        if (_disposed) return;
+
+        var globeDir = Path.Combine(AppContext.BaseDirectory, "Assets", "Globe");
+        Web.CoreWebView2.SetVirtualHostNameToFolderMapping(
+            VirtualHost, globeDir, CoreWebView2HostResourceAccessKind.Allow);
+
+        // Должен висеть до Navigate: смерть процесса может случиться в любой момент,
+        // и без обработчика контрол остаётся «зомби» (см. _browserDead).
+        Web.CoreWebView2.ProcessFailed += OnProcessFailed;
+
+        Web.CoreWebView2.NavigationCompleted += async (_, e) =>
+        {
+            if (_disposed || !e.IsSuccess) return;
+            _ready = true;
+            await SetThemeAsync(ThemeService.Current?.IsDark ?? false);
+            while (_pending.Count > 0 && !_disposed) await _pending.Dequeue()();
+            // Свежая страница (первая загрузка, перезагрузка после смерти рендер-процесса
+            // или пересоздание контрола после смерти браузерного) не знает о состоянии окна —
+            // заставляем UpdatePaused отправить godjiSetPaused и MemoryUsageTargetLevel заново.
+            _sentPaused = null;
+            UpdatePaused();
+        };
+        Web.CoreWebView2.Navigate($"https://{VirtualHost}/globe.html{(Satellites ? "?sat=1" : "")}");
+
+        // Живое переключение темы, пока экран с глобусом уже открыт (не только на старте) —
+        // тот же статический синглтон-паттерн, что и VpnEngine.Current. -= перед += нужен для
+        // повторной инициализации после пересоздания контрола: подписка живёт на сервисе,
+        // а не на контроле, и без -= накапливалась бы с каждым восстановлением.
+        if (ThemeService.Current != null)
+        {
+            ThemeService.Current.Changed -= OnThemeChanged;
+            ThemeService.Current.Changed += OnThemeChanged;
+        }
+    }
+
+    private void OnProcessFailed(object? sender, CoreWebView2ProcessFailedEventArgs e)
+    {
+        if (_disposed) return;
+        switch (e.ProcessFailedKind)
+        {
+            case CoreWebView2ProcessFailedKind.BrowserProcessExited:
+                if (_recovering) { _crashedDuringRecovery = true; return; }
+                HandleBrowserProcessExited(e);
+                break;
+            case CoreWebView2ProcessFailedKind.RenderProcessExited:
+                // Рендер-процесс WebView2 поднимает автоматически, но с той же ошибкой на
+                // странице (по документации достаточно Reload, чтобы загрузить контент заново).
+                try { Web.CoreWebView2.Reload(); }
+                catch { /* не смогли — глобус просто замрёт до следующего события */ }
+                break;
+            // Остальные виды (render unresponsive, падения процессов фреймов) WebView2
+            // переживает сам; глобус декоративный — в лог не спамим.
+        }
+    }
+
+    private async void HandleBrowserProcessExited(CoreWebView2ProcessFailedEventArgs e)
+    {
+        // Второй ProcessFailed от уже умершего процесса не придёт, но подстраховаться стоит:
+        // recovery запускается один раз, окончательно сдавшийся глобус помечен _browserDead.
+        if (_recovering || _disposed || (_browserDead && _crashRecoveries >= MaxCrashRecoveries)) return;
+        _recovering = true;
+        var restarted = false;
+        try
+        {
+            while (!_disposed && _crashRecoveries < MaxCrashRecoveries)
+            {
+                _browserDead = true; // RunAsync/UpdatePaused молчат, пока контрол мёртв
+                _ready = false;
+                _crashedDuringRecovery = false;
+                _crashRecoveries++;
+                App.LogUnhandledException(new InvalidOperationException(
+                    $"WebView2: умер браузерный процесс глобуса (kind={e.ProcessFailedKind}, " +
+                    $"reason={e.Reason}, exit={e.ExitCode}) — пересоздаю контрол " +
+                    $"(попытка {_crashRecoveries} из {MaxCrashRecoveries})"));
+                // Пауза даёт системе доубрать процессы и отойти от причины смерти
+                // (сброс GPU-драйвера, память) — нарастающая, чтобы не долбиться в упор.
+                await Task.Delay(TimeSpan.FromSeconds(_crashRecoveries));
+                if (_disposed) return;
+                try
+                {
+                    RecreateWebView();
+                }
+                catch (Exception ex)
+                {
+                    LogGlobeFailure("не удалось пересоздать WebView2-контрол", ex);
+                    continue;
+                }
+                restarted = await TryInitializeCoreAsync();
+                if (restarted && !_crashedDuringRecovery) break;
+                restarted = false;
+            }
+        }
+        finally
+        {
+            _recovering = false;
+            if (!_disposed)
+            {
+                if (restarted || _ready)
+                {
+                    // _ready выставляет NavigationCompleted: если он успел — контрол уже
+                    // фактически работает, _browserDead надо снять в любом случае
+                    _browserDead = false;
+                }
+                else
+                {
+                    _browserDead = true;
+                    App.LogUnhandledException(new InvalidOperationException(
+                        "WebView2: глобус не удалось восстановить после падения браузерного " +
+                        "процесса — приложение продолжает работу без него"));
+                }
+            }
+        }
+    }
+
+    /// <summary>Одна попытка инициализации: сначала с закэшированной средой, при неудаче —
+    /// со свежей (среда, пережившая смерть своего браузерного процесса, может не поднять
+    /// новый; новая среда с той же папкой данных в том же процессе — штатный сценарий).</summary>
+    private async Task<bool> TryInitializeCoreAsync()
+    {
+        try
+        {
+            await InitializeCoreAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LogGlobeFailure("инициализация пересозданного контрола не удалась", ex);
+            if (_disposed) return false;
+            WebView2EnvironmentProvider.Reset();
+            try
+            {
+                await InitializeCoreAsync();
+                return true;
+            }
+            catch (Exception ex2)
+            {
+                LogGlobeFailure("повтор с новой средой WebView2 тоже не удался", ex2);
+                return false;
+            }
+        }
+    }
+
+    /// <summary>Старый контрол после BrowserProcessExited мёртв навсегда (по документации
+    /// восстановить можно только пересозданием) — подменяем его в гриде новым.</summary>
+    private void RecreateWebView()
+    {
+        var parent = (Grid)Web.Parent;
+        var index = parent.Children.IndexOf(Web);
+        parent.Children.Remove(Web);
+        try { Web.Dispose(); }
+        catch { /* мёртвый контрол мог не пережить Dispose — не важно, он уже невидим */ }
+        Web = new WebView2CompositionControl { DefaultBackgroundColor = System.Drawing.Color.Transparent };
+        parent.Children.Insert(index, Web);
+        // Состояние pause/replay будет отправлено заново после NavigationCompleted
+        // (см. сброс _sentPaused там же), очередь _pending сохраняем — она доиграет
+        // на новом контроле и вернёт глобусу последний известный статус/узел.
+        _sentPaused = null;
+    }
+
+    private static void LogGlobeFailure(string what, Exception ex) =>
+        App.LogUnhandledException(new InvalidOperationException($"Глобус (WebView2): {what}", ex));
 
     private void OnWindowStateChanged(object? sender, EventArgs e) => UpdatePaused();
 
@@ -168,9 +331,29 @@ public partial class GlobeHost : UserControl
     private Task RunAsync(string script)
     {
         if (_disposed) return Task.CompletedTask;
-        if (_ready) return Web.CoreWebView2.ExecuteScriptAsync(script);
-        _pending.Enqueue(() => _disposed ? Task.CompletedTask : Web.CoreWebView2.ExecuteScriptAsync(script));
+        // Окончательно сдавшийся глобус копить скрипты не должен (утечка очереди);
+        // во время recovery очередь, наоборот, сохраняется и доигрывает на новом контроле.
+        if (_browserDead && !_recovering) return Task.CompletedTask;
+        if (_ready) return ExecuteScriptAsyncSafe(script);
+        _pending.Enqueue(() => _disposed ? Task.CompletedTask : ExecuteScriptAsyncSafe(script));
         return Task.CompletedTask;
+    }
+
+    /// <summary>ExecuteScriptAsync, переживаемый молча: гонка «ProcessFailed ещё не долетел,
+    /// а CoreWebView2 уже мёртв» кидает InvalidOperationException прямо в геттере, ObjectDisposed —
+    /// на Dispose-гонке, COMException — при смерти GPU. Без перехвата это исключение уходит
+    /// через UpdatePaused → WndProc → DispatcherUnhandledException (реальный краш клиента).</summary>
+    private Task ExecuteScriptAsyncSafe(string script)
+    {
+        try
+        {
+            return Web.CoreWebView2.ExecuteScriptAsync(script);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException or COMException)
+        {
+            LogGlobeFailure("не смог выполнить скрипт в глобусе", ex);
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>Экранирование строки для JS-литерала в одинарных кавычках (ExecuteScriptAsync):
